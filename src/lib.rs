@@ -73,6 +73,11 @@ impl Soa {
         self.cap = cap;
     }
 
+    fn grow(&mut self) {
+        let cap = if self.cap == 0 { 4 } else { self.cap * 2 };
+        self.resize(cap);
+    }
+
     fn layout_and_offsets(cap: usize) -> (Layout, usize, usize) {
         let layout = Layout::array::<u64>(cap).unwrap();
         let (layout, offset1) = layout.extend(Layout::array::<u8>(cap).unwrap()).unwrap();
@@ -84,8 +89,7 @@ impl Soa {
 
     pub fn push(&mut self, el: El) {
         if self.len == self.cap {
-            let cap = if self.cap == 0 { 4 } else { self.cap * 2 };
-            self.resize(cap);
+            self.grow();
         }
 
         unsafe {
@@ -109,6 +113,44 @@ impl Soa {
                     baz: self.baz.ptr.as_ptr().add(self.len).read(),
                 }
             })
+        }
+    }
+
+    pub fn insert(&mut self, index: usize, el: El) {
+        assert!(index <= self.len, "index out of bounds");
+        if self.cap == self.len {
+            self.grow();
+        }
+        self.len += 1;
+        unsafe {
+            let foo = self.foo.ptr.as_ptr();
+            let bar = self.bar.ptr.as_ptr();
+            let baz = self.baz.ptr.as_ptr();
+            std::ptr::copy(foo.add(index), foo.add(index + 1), self.len - index);
+            std::ptr::copy(bar.add(index), bar.add(index + 1), self.len - index);
+            std::ptr::copy(baz.add(index), baz.add(index + 1), self.len - index);
+            foo.add(index).write(el.foo);
+            bar.add(index).write(el.bar);
+            baz.add(index).write(el.baz);
+        }
+    }
+
+    pub fn remove(&mut self, index: usize) -> El {
+        assert!(index <= self.len, "index out of bounds");
+        self.len -= 1;
+        unsafe {
+            let foo = self.foo.ptr.as_ptr();
+            let bar = self.bar.ptr.as_ptr();
+            let baz = self.baz.ptr.as_ptr();
+            let out = El {
+                foo: foo.add(index).read(),
+                bar: bar.add(index).read(),
+                baz: baz.add(index).read(),
+            };
+            std::ptr::copy(foo.add(index + 1), foo.add(index), self.len - index);
+            std::ptr::copy(bar.add(index + 1), bar.add(index), self.len - index);
+            std::ptr::copy(baz.add(index + 1), baz.add(index), self.len - index);
+            out
         }
     }
 
@@ -165,11 +207,22 @@ mod tests {
         baz: [3, 2],
     };
 
-    #[test]
-    fn push_and_pop() {
+    const ZERO: El = El {
+        foo: 0,
+        bar: 0,
+        baz: [0, 0],
+    };
+
+    fn soa() -> Soa {
         let mut soa = Soa::new();
         soa.push(A);
         soa.push(B);
+        soa
+    }
+
+    #[test]
+    fn push_and_pop() {
+        let mut soa = soa();
         assert_eq!(soa.pop(), Some(B));
         assert_eq!(soa.pop(), Some(A));
         assert_eq!(soa.pop(), None);
@@ -177,9 +230,20 @@ mod tests {
 
     #[test]
     fn iterators() {
-        let mut soa = Soa::new();
-        soa.push(A);
-        soa.push(B);
+        let soa = soa();
+        assert_eq!(soa.foo(), &[20, 10]);
+        assert_eq!(soa.bar(), &[10, 5]);
+        assert_eq!(soa.baz(), &[[6, 4], [3, 2]]);
+    }
+
+    #[test]
+    fn insert_and_remove() {
+        let mut soa = soa();
+        soa.insert(1, ZERO);
+        assert_eq!(soa.foo(), &[20, 0, 10]);
+        assert_eq!(soa.bar(), &[10, 0, 5]);
+        assert_eq!(soa.baz(), &[[6, 4], [0, 0], [3, 2]]);
+        assert_eq!(soa.remove(1), ZERO);
         assert_eq!(soa.foo(), &[20, 10]);
         assert_eq!(soa.bar(), &[10, 5]);
         assert_eq!(soa.baz(), &[[6, 4], [3, 2]]);
