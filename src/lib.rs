@@ -113,29 +113,65 @@ impl Soa {
             })
         }
     }
+
+    pub fn foo(&self) -> &[u64] {
+        unsafe { std::slice::from_raw_parts(self.foo.ptr.as_ptr(), self.len) }
+    }
+
+    pub fn foo_mut(&mut self) -> &mut [u64] {
+        unsafe { std::slice::from_raw_parts_mut(self.foo.ptr.as_ptr(), self.len) }
+    }
+
+    pub fn bar(&self) -> &[u8] {
+        unsafe { std::slice::from_raw_parts(self.bar.ptr.as_ptr(), self.len) }
+    }
+
+    pub fn bar_mut(&mut self) -> &mut [u8] {
+        unsafe { std::slice::from_raw_parts_mut(self.bar.ptr.as_ptr(), self.len) }
+    }
+
+    pub fn baz(&self) -> &[[u32; 2]] {
+        unsafe { std::slice::from_raw_parts(self.baz.ptr.as_ptr(), self.len) }
+    }
+
+    pub fn baz_mut(&mut self) -> &mut [[u32; 2]] {
+        unsafe { std::slice::from_raw_parts_mut(self.baz.ptr.as_ptr(), self.len) }
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
 
+    const A: El = El {
+        foo: 20,
+        bar: 10,
+        baz: [6, 4],
+    };
+
+    const B: El = El {
+        foo: 10,
+        bar: 5,
+        baz: [3, 2],
+    };
+
     #[test]
     fn push_and_pop() {
-        let a = El {
-            foo: 20,
-            bar: 10,
-            baz: [6, 4],
-        };
-        let b = El {
-            foo: 10,
-            bar: 5,
-            baz: [3, 2],
-        };
         let mut soa = Soa::new();
-        soa.push(a);
-        soa.push(b);
-        assert_eq!(soa.pop(), Some(b));
-        assert_eq!(soa.pop(), Some(a));
+        soa.push(A);
+        soa.push(B);
+        assert_eq!(soa.pop(), Some(B));
+        assert_eq!(soa.pop(), Some(A));
         assert_eq!(soa.pop(), None);
+    }
+
+    #[test]
+    fn iterators() {
+        let mut soa = Soa::new();
+        soa.push(A);
+        soa.push(B);
+        assert_eq!(soa.foo(), &[20, 10]);
+        assert_eq!(soa.bar(), &[10, 5]);
+        assert_eq!(soa.baz(), &[[6, 4], [3, 2]]);
     }
 }
