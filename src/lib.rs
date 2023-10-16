@@ -1,6 +1,7 @@
 use std::{
     alloc::{self, Layout},
     marker::PhantomData,
+    mem::{self, ManuallyDrop},
     ptr::NonNull,
 };
 
@@ -11,6 +12,7 @@ pub struct El {
     baz: [u32; 2],
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 struct Unique<T> {
     ptr: NonNull<T>,
     _owns_t: PhantomData<T>,
@@ -179,6 +181,97 @@ impl Soa {
     }
 }
 
+pub struct SoaIntoIter {
+    buf: Unique<u64>,
+    cap: usize,
+    foo_start: *const u64,
+    foo_end: *const u64,
+    bar_start: *const u8,
+    bar_end: *const u8,
+    baz_start: *const [u32; 2],
+    baz_end: *const [u32; 2],
+}
+
+impl Iterator for SoaIntoIter {
+    type Item = El;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.foo_start == self.foo_end {
+            None
+        } else {
+            unsafe {
+                let out = El {
+                    foo: self.foo_start.read(),
+                    bar: self.bar_start.read(),
+                    baz: self.baz_start.read(),
+                };
+                self.foo_start = self.foo_start.offset(1);
+                self.bar_start = self.bar_start.offset(1);
+                self.baz_start = self.baz_start.offset(1);
+                Some(out)
+            }
+        }
+    }
+
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        let len = (self.foo_end as usize - self.foo_start as usize) / mem::size_of::<u64>();
+        (len, Some(len))
+    }
+}
+
+impl DoubleEndedIterator for SoaIntoIter {
+    fn next_back(&mut self) -> Option<Self::Item> {
+        if self.foo_start == self.foo_end {
+            None
+        } else {
+            unsafe {
+                self.foo_end = self.foo_end.offset(-1);
+                self.bar_end = self.bar_end.offset(-1);
+                self.baz_end = self.baz_end.offset(-1);
+                Some(El {
+                    foo: self.foo_end.read(),
+                    bar: self.bar_end.read(),
+                    baz: self.baz_end.read(),
+                })
+            }
+        }
+    }
+}
+
+impl IntoIterator for Soa {
+    type Item = El;
+
+    type IntoIter = SoaIntoIter;
+
+    fn into_iter(self) -> Self::IntoIter {
+        let soa = ManuallyDrop::new(self);
+        unsafe {
+            SoaIntoIter {
+                buf: soa.foo,
+                cap: soa.cap,
+                foo_start: soa.foo.ptr.as_ptr(),
+                foo_end: soa.foo.ptr.as_ptr().add(soa.len),
+                bar_start: soa.bar.ptr.as_ptr(),
+                bar_end: soa.bar.ptr.as_ptr().add(soa.len),
+                baz_start: soa.baz.ptr.as_ptr(),
+                baz_end: soa.baz.ptr.as_ptr().add(soa.len),
+            }
+        }
+    }
+}
+
+impl Drop for SoaIntoIter {
+    fn drop(&mut self) {
+        if self.cap > 0 {
+            for _ in &mut *self {}
+            let (layout, _, _) = Soa::layout_and_offsets(self.cap);
+            unsafe {
+                alloc::dealloc(self.buf.ptr.as_ptr() as *mut u8, layout);
+            }
+        }
+    }
+}
+
 impl Drop for Soa {
     fn drop(&mut self) {
         if self.cap > 0 {
@@ -247,5 +340,22 @@ mod tests {
         assert_eq!(soa.foo(), &[20, 10]);
         assert_eq!(soa.bar(), &[10, 5]);
         assert_eq!(soa.baz(), &[[6, 4], [3, 2]]);
+    }
+
+    #[test]
+    fn into_iter() {
+        {
+            let mut soa = soa().into_iter();
+            assert_eq!(soa.next(), Some(A));
+            assert_eq!(soa.next(), Some(B));
+            assert_eq!(soa.next(), None);
+        }
+
+        {
+            let mut soa = soa().into_iter().rev();
+            assert_eq!(soa.next(), Some(B));
+            assert_eq!(soa.next(), Some(A));
+            assert_eq!(soa.next(), None);
+        }
     }
 }
