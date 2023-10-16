@@ -56,23 +56,12 @@ impl Soa {
     }
 
     fn resize(&mut self, cap: usize) {
-        let layout = Layout::array::<u64>(cap).unwrap();
-        let (layout, offset1) = layout.extend(Layout::array::<u8>(cap).unwrap()).unwrap();
-        let (layout, offset2) = layout
-            .extend(Layout::array::<[u32; 2]>(cap).unwrap())
-            .unwrap();
+        let (layout, offset1, offset2) = Self::layout_and_offsets(cap);
 
         let ptr = if self.cap == 0 {
             unsafe { alloc::alloc(layout) }
         } else {
-            let old_layout = Layout::array::<u64>(self.cap)
-                .unwrap()
-                .extend(Layout::array::<u8>(self.cap).unwrap())
-                .unwrap()
-                .0
-                .extend(Layout::array::<[u32; 2]>(self.cap).unwrap())
-                .unwrap()
-                .0;
+            let (old_layout, _, _) = Self::layout_and_offsets(self.cap);
             let old_ptr = self.foo.ptr.as_ptr() as *mut u8;
             unsafe { alloc::realloc(old_ptr, old_layout, layout.size()) }
         };
@@ -82,6 +71,15 @@ impl Soa {
         self.bar = unsafe { Unique::new(ptr.add(offset1)) };
         self.baz = unsafe { Unique::new(ptr.add(offset2)) };
         self.cap = cap;
+    }
+
+    fn layout_and_offsets(cap: usize) -> (Layout, usize, usize) {
+        let layout = Layout::array::<u64>(cap).unwrap();
+        let (layout, offset1) = layout.extend(Layout::array::<u8>(cap).unwrap()).unwrap();
+        let (layout, offset2) = layout
+            .extend(Layout::array::<[u32; 2]>(cap).unwrap())
+            .unwrap();
+        (layout, offset1, offset2)
     }
 
     pub fn push(&mut self, el: El) {
@@ -136,6 +134,18 @@ impl Soa {
 
     pub fn baz_mut(&mut self) -> &mut [[u32; 2]] {
         unsafe { std::slice::from_raw_parts_mut(self.baz.ptr.as_ptr(), self.len) }
+    }
+}
+
+impl Drop for Soa {
+    fn drop(&mut self) {
+        if self.cap > 0 {
+            while let Some(_) = self.pop() {}
+            let (layout, _, _) = Self::layout_and_offsets(self.cap);
+            unsafe {
+                alloc::dealloc(self.foo.ptr.as_ptr() as *mut u8, layout);
+            }
+        }
     }
 }
 
