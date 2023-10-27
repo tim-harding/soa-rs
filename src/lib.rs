@@ -38,247 +38,241 @@ impl<T> Unique<T> {
     }
 }
 
-pub struct Soa {
-    foo: Unique<u64>,
-    bar: Unique<u8>,
-    baz: Unique<[u32; 2]>,
-    len: usize,
-    cap: usize,
-}
-
-impl Soa {
-    pub const fn new() -> Self {
-        Self {
-            foo: Unique::dangling(),
-            bar: Unique::dangling(),
-            baz: Unique::dangling(),
-            len: 0,
-            cap: 0,
-        }
-    }
-
-    fn resize(&mut self, cap: usize) {
-        let (layout, offset1, offset2) = Self::layout_and_offsets(cap);
-
-        let ptr = if self.cap == 0 {
-            unsafe { alloc::alloc(layout) }
-        } else {
-            let (old_layout, _, _) = Self::layout_and_offsets(self.cap);
-            let old_ptr = self.foo.ptr.as_ptr() as *mut u8;
-            unsafe { alloc::realloc(old_ptr, old_layout, layout.size()) }
-        };
-
-        assert_ne!(ptr as *const u8, std::ptr::null());
-        self.foo = unsafe { Unique::new(ptr) };
-        self.bar = unsafe { Unique::new(ptr.add(offset1)) };
-        self.baz = unsafe { Unique::new(ptr.add(offset2)) };
-        self.cap = cap;
-    }
-
-    fn grow(&mut self) {
-        let cap = if self.cap == 0 { 4 } else { self.cap * 2 };
-        self.resize(cap);
-    }
-
-    fn layout_and_offsets(cap: usize) -> (Layout, usize, usize) {
-        let layout = Layout::array::<u64>(cap).unwrap();
-        let (layout, offset1) = layout.extend(Layout::array::<u8>(cap).unwrap()).unwrap();
-        let (layout, offset2) = layout
-            .extend(Layout::array::<[u32; 2]>(cap).unwrap())
-            .unwrap();
-        (layout, offset1, offset2)
-    }
-
-    pub fn push(&mut self, el: El) {
-        if self.len == self.cap {
-            self.grow();
+#[macro_export]
+macro_rules! soa {
+    // Naming: head ident, head type, tail ident, tail type
+    ($hdi:ident : $hdt:ty, $($tli:ident : $tlt:ty),*) => {
+        #[derive(Copy, Clone, Debug, Default, Eq, PartialEq)]
+        pub struct El {
+            $hdi: $hdt,
+            $($tli : $tlt,)*
         }
 
-        unsafe {
-            self.foo.ptr.as_ptr().add(self.len).write(el.foo);
-            self.bar.ptr.as_ptr().add(self.len).write(el.bar);
-            self.baz.ptr.as_ptr().add(self.len).write(el.baz);
+        pub struct Soa {
+            len: usize,
+            cap: usize,
+            $hdi: crate::Unique<$hdt>,
+            $($tli: crate::Unique<$tlt>,)*
         }
 
-        self.len += 1;
-    }
+        pub struct SoaMuts<'a> {
+            soa: &'a mut Soa,
+        }
 
-    pub fn pop(&mut self) -> Option<El> {
-        if self.len == 0 {
-            None
-        } else {
-            self.len -= 1;
-            Some(unsafe {
-                El {
-                    foo: self.foo.ptr.as_ptr().add(self.len).read(),
-                    bar: self.bar.ptr.as_ptr().add(self.len).read(),
-                    baz: self.baz.ptr.as_ptr().add(self.len).read(),
+        struct Offsets {
+            $($tli: usize,)*
+        }
+
+        impl Offsets {
+            pub const fn new() -> Self {
+                Self {
+                    $($tli: 0,)*
                 }
-            })
+            }
         }
-    }
 
-    pub fn insert(&mut self, index: usize, el: El) {
-        assert!(index <= self.len, "index out of bounds");
-        if self.cap == self.len {
-            self.grow();
-        }
-        self.len += 1;
-        unsafe {
-            let foo = self.foo.ptr.as_ptr();
-            let bar = self.bar.ptr.as_ptr();
-            let baz = self.baz.ptr.as_ptr();
-            std::ptr::copy(foo.add(index), foo.add(index + 1), self.len - index);
-            std::ptr::copy(bar.add(index), bar.add(index + 1), self.len - index);
-            std::ptr::copy(baz.add(index), baz.add(index + 1), self.len - index);
-            foo.add(index).write(el.foo);
-            bar.add(index).write(el.bar);
-            baz.add(index).write(el.baz);
-        }
-    }
+        impl Soa {
+            pub const fn new() -> Self {
+                Self {
+                    len: 0,
+                    cap: 0,
+                    $hdi: crate::Unique::dangling(),
+                    $($tli: crate::Unique::dangling(),)*
+                }
+            }
 
-    pub fn remove(&mut self, index: usize) -> El {
-        assert!(index <= self.len, "index out of bounds");
-        self.len -= 1;
-        unsafe {
-            let foo = self.foo.ptr.as_ptr();
-            let bar = self.bar.ptr.as_ptr();
-            let baz = self.baz.ptr.as_ptr();
-            let out = El {
-                foo: foo.add(index).read(),
-                bar: bar.add(index).read(),
-                baz: baz.add(index).read(),
-            };
-            std::ptr::copy(foo.add(index + 1), foo.add(index), self.len - index);
-            std::ptr::copy(bar.add(index + 1), bar.add(index), self.len - index);
-            std::ptr::copy(baz.add(index + 1), baz.add(index), self.len - index);
-            out
-        }
-    }
+            fn resize(&mut self, cap: usize) {
+                let (layout, offsets) = Self::layout_and_offsets(cap);
 
-    pub fn foo(&self) -> &[u64] {
-        unsafe { std::slice::from_raw_parts(self.foo.ptr.as_ptr(), self.len) }
-    }
-
-    pub fn foo_mut(&mut self) -> &mut [u64] {
-        unsafe { std::slice::from_raw_parts_mut(self.foo.ptr.as_ptr(), self.len) }
-    }
-
-    pub fn bar(&self) -> &[u8] {
-        unsafe { std::slice::from_raw_parts(self.bar.ptr.as_ptr(), self.len) }
-    }
-
-    pub fn bar_mut(&mut self) -> &mut [u8] {
-        unsafe { std::slice::from_raw_parts_mut(self.bar.ptr.as_ptr(), self.len) }
-    }
-
-    pub fn baz(&self) -> &[[u32; 2]] {
-        unsafe { std::slice::from_raw_parts(self.baz.ptr.as_ptr(), self.len) }
-    }
-
-    pub fn baz_mut(&mut self) -> &mut [[u32; 2]] {
-        unsafe { std::slice::from_raw_parts_mut(self.baz.ptr.as_ptr(), self.len) }
-    }
-}
-
-pub struct SoaIntoIter {
-    buf: Unique<u64>,
-    cap: usize,
-    foo_start: *const u64,
-    foo_end: *const u64,
-    bar_start: *const u8,
-    bar_end: *const u8,
-    baz_start: *const [u32; 2],
-    baz_end: *const [u32; 2],
-}
-
-impl Iterator for SoaIntoIter {
-    type Item = El;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        if self.foo_start == self.foo_end {
-            None
-        } else {
-            unsafe {
-                let out = El {
-                    foo: self.foo_start.read(),
-                    bar: self.bar_start.read(),
-                    baz: self.baz_start.read(),
+                let ptr = if self.cap == 0 {
+                    unsafe { std::alloc::alloc(layout) }
+                } else {
+                    let (old_layout, _) = Self::layout_and_offsets(self.cap);
+                    let old_ptr = self.$hdi.ptr.as_ptr() as *mut u8;
+                    unsafe { std::alloc::realloc(old_ptr, old_layout, layout.size()) }
                 };
-                self.foo_start = self.foo_start.offset(1);
-                self.bar_start = self.bar_start.offset(1);
-                self.baz_start = self.baz_start.offset(1);
-                Some(out)
+
+                assert_ne!(ptr as *const u8, std::ptr::null());
+                self.$hdi = unsafe { crate::Unique::new(ptr) };
+                $(self.$tli = unsafe { crate::Unique::new(ptr.add(offsets.$tli)) };)*
+                self.cap = cap;
+            }
+
+            fn grow(&mut self) {
+                let cap = if self.cap == 0 { 4 } else { self.cap * 2 };
+                self.resize(cap);
+            }
+
+            fn layout_and_offsets(cap: usize) -> (std::alloc::Layout, Offsets) {
+                let layout = std::alloc::Layout::array::<$hdt>(cap).unwrap();
+                $(let (layout, $tli) = layout.extend(std::alloc::Layout::array::<$tlt>(cap).unwrap()).unwrap();)*
+                let offsets = Offsets {
+                    $($tli,)*
+                };
+                (layout, offsets)
+            }
+
+            pub fn push(&mut self, el: El) {
+                if self.len == self.cap {
+                    self.grow();
+                }
+
+                unsafe {
+                    self.$hdi.ptr.as_ptr().add(self.len).write(el.$hdi);
+                    $(self.$tli.ptr.as_ptr().add(self.len).write(el.$tli);)*
+                }
+
+                self.len += 1;
+            }
+
+            pub fn pop(&mut self) -> Option<El> {
+                if self.len == 0 {
+                    None
+                } else {
+                    self.len -= 1;
+                    Some(unsafe {
+                        El {
+                            $hdi: self.$hdi.ptr.as_ptr().add(self.len).read(),
+                            $($tli: self.$tli.ptr.as_ptr().add(self.len).read(),)*
+                        }
+                    })
+                }
+            }
+
+            pub fn insert(&mut self, index: usize, el: El) {
+                assert!(index <= self.len, "index out of bounds");
+                if self.cap == self.len {
+                    self.grow();
+                }
+                self.len += 1;
+                unsafe {
+                    let $hdi = self.$hdi.ptr.as_ptr();
+                    $(let $tli = self.$tli.ptr.as_ptr();)*
+                    std::ptr::copy($hdi.add(index), $hdi.add(index + 1), self.len - index);
+                    $(std::ptr::copy($tli.add(index), $tli.add(index + 1), self.len - index);)*
+                    $hdi.add(index).write(el.$hdi);
+                    $($tli.add(index).write(el.$tli);)*
+                }
+            }
+
+            pub fn remove(&mut self, index: usize) -> El {
+                assert!(index <= self.len, "index out of bounds");
+                self.len -= 1;
+                unsafe {
+                    let $hdi = self.$hdi.ptr.as_ptr();
+                    $(let $tli = self.$tli.ptr.as_ptr();)*
+                    let out = El {
+                        $hdi: $hdi.add(index).read(),
+                        $($tli: $tli.add(index).read(),)*
+                    };
+                    std::ptr::copy($hdi.add(index + 1), $hdi.add(index), self.len - index);
+                    $(std::ptr::copy($tli.add(index + 1), $tli.add(index), self.len - index);)*
+                    out
+                }
+            }
+
+            pub fn $hdi(&self) -> &[$hdt] {
+                unsafe { std::slice::from_raw_parts(self.$hdi.ptr.as_ptr(), self.len) }
+            }
+
+            $(
+            pub fn $tli(&self) -> &[$tlt] {
+                unsafe { std::slice::from_raw_parts(self.$tli.ptr.as_ptr(), self.len) }
+            }
+            )*
+
+            pub fn muts(&mut self) -> SoaMuts {
+                SoaMuts {
+                    soa: self,
+                }
             }
         }
-    }
 
-    fn size_hint(&self) -> (usize, Option<usize>) {
-        let len = (self.foo_end as usize - self.foo_start as usize) / mem::size_of::<u64>();
-        (len, Some(len))
-    }
-}
-
-impl DoubleEndedIterator for SoaIntoIter {
-    fn next_back(&mut self) -> Option<Self::Item> {
-        if self.foo_start == self.foo_end {
-            None
-        } else {
-            unsafe {
-                self.foo_end = self.foo_end.offset(-1);
-                self.bar_end = self.bar_end.offset(-1);
-                self.baz_end = self.baz_end.offset(-1);
-                Some(El {
-                    foo: self.foo_end.read(),
-                    bar: self.bar_end.read(),
-                    baz: self.baz_end.read(),
-                })
+        impl Drop for Soa {
+            fn drop(&mut self) {
+                if self.cap > 0 {
+                    while let Some(_) = self.pop() {}
+                    let (layout, _) = Self::layout_and_offsets(self.cap);
+                    unsafe {
+                        std::alloc::dealloc(self.$hdi.ptr.as_ptr() as *mut u8, layout);
+                    }
+                }
             }
         }
-    }
-}
 
-impl IntoIterator for Soa {
-    type Item = El;
+        impl<'a> SoaMuts<'a> {
+            pub fn $hdi(&mut self) -> &mut [$hdt] {
+                unsafe { std::slice::from_raw_parts_mut(self.soa.$hdi.ptr.as_ptr(), self.soa.len) }
+            }
 
-    type IntoIter = SoaIntoIter;
+            $(
+            pub fn $tli(&mut self) -> &mut [$tlt] {
+                unsafe { std::slice::from_raw_parts_mut(self.soa.$tli.ptr.as_ptr(), self.soa.len) }
+            }
+            )*
+        }
 
-    fn into_iter(self) -> Self::IntoIter {
-        let soa = ManuallyDrop::new(self);
-        unsafe {
-            SoaIntoIter {
-                buf: soa.foo,
-                cap: soa.cap,
-                foo_start: soa.foo.ptr.as_ptr(),
-                foo_end: soa.foo.ptr.as_ptr().add(soa.len),
-                bar_start: soa.bar.ptr.as_ptr(),
-                bar_end: soa.bar.ptr.as_ptr().add(soa.len),
-                baz_start: soa.baz.ptr.as_ptr(),
-                baz_end: soa.baz.ptr.as_ptr().add(soa.len),
+        pub struct SoaIntoIter {
+            buf: crate::Unique<u64>,
+            cap: usize,
+            $hdi: *const $hdt,
+            end: *const $hdt,
+            $($tli: *const $tlt,)*
+        }
+
+        impl Iterator for SoaIntoIter {
+            type Item = El;
+
+            fn next(&mut self) -> Option<Self::Item> {
+                if self.$hdi == self.end {
+                    None
+                } else {
+                    unsafe {
+                        let out = El {
+                            $hdi: self.$hdi.read(),
+                            $($tli: self.$tli.read(),)*
+                        };
+                        self.$hdi = self.$hdi.offset(1);
+                        $(self.$tli = self.$tli.offset(1);)*
+                        Some(out)
+                    }
+                }
+            }
+
+            fn size_hint(&self) -> (usize, Option<usize>) {
+                let len = (self.end as usize - self.$hdi as usize) / std::mem::size_of::<u64>();
+                (len, Some(len))
             }
         }
-    }
-}
 
-impl Drop for SoaIntoIter {
-    fn drop(&mut self) {
-        if self.cap > 0 {
-            for _ in &mut *self {}
-            let (layout, _, _) = Soa::layout_and_offsets(self.cap);
-            unsafe {
-                alloc::dealloc(self.buf.ptr.as_ptr() as *mut u8, layout);
+        impl IntoIterator for Soa {
+            type Item = El;
+
+            type IntoIter = SoaIntoIter;
+
+            fn into_iter(self) -> Self::IntoIter {
+                let soa = std::mem::ManuallyDrop::new(self);
+                unsafe {
+                    SoaIntoIter {
+                        buf: soa.$hdi,
+                        cap: soa.cap,
+                        $hdi: soa.$hdi.ptr.as_ptr(),
+                        end: soa.$hdi.ptr.as_ptr().add(soa.len),
+                        $($tli: soa.$tli.ptr.as_ptr(),)*
+                    }
+                }
             }
         }
-    }
-}
 
-impl Drop for Soa {
-    fn drop(&mut self) {
-        if self.cap > 0 {
-            while let Some(_) = self.pop() {}
-            let (layout, _, _) = Self::layout_and_offsets(self.cap);
-            unsafe {
-                alloc::dealloc(self.foo.ptr.as_ptr() as *mut u8, layout);
+        impl Drop for SoaIntoIter {
+            fn drop(&mut self) {
+                if self.cap > 0 {
+                    for _ in &mut *self {}
+                    let (layout, _) = Soa::layout_and_offsets(self.cap);
+                    unsafe {
+                        std::alloc::dealloc(self.buf.ptr.as_ptr() as *mut u8, layout);
+                    }
+                }
             }
         }
     }
@@ -287,6 +281,8 @@ impl Drop for Soa {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    soa! {foo: u64, bar: u8, baz: [u32; 2]}
 
     const A: El = El {
         foo: 20,
@@ -348,13 +344,6 @@ mod tests {
             let mut soa = soa().into_iter();
             assert_eq!(soa.next(), Some(A));
             assert_eq!(soa.next(), Some(B));
-            assert_eq!(soa.next(), None);
-        }
-
-        {
-            let mut soa = soa().into_iter().rev();
-            assert_eq!(soa.next(), Some(B));
-            assert_eq!(soa.next(), Some(A));
             assert_eq!(soa.next(), None);
         }
     }
