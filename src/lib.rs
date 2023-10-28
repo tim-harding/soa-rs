@@ -1,42 +1,13 @@
-use derive_macro::Soa;
-use std::{marker::PhantomData, ptr::NonNull};
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-struct Unique<T> {
-    ptr: NonNull<T>,
-    _owns_t: PhantomData<T>,
-}
-
-unsafe impl<T: Send> Send for Unique<T> {}
-unsafe impl<T: Sync> Sync for Unique<T> {}
-
-impl<T> Unique<T> {
-    pub const fn dangling() -> Self {
-        Self {
-            ptr: NonNull::dangling(),
-            _owns_t: PhantomData,
-        }
-    }
-
-    /// SAFETY: Ensure that T is non-null
-    pub const unsafe fn new(ptr: *mut u8) -> Self {
-        Self {
-            ptr: unsafe { NonNull::new_unchecked(ptr as *mut T) },
-            _owns_t: PhantomData,
-        }
-    }
-}
-
-#[derive(Soa, Debug, Clone, Copy, PartialEq, Eq)]
-pub struct El {
-    foo: u64,
-    bar: u8,
-    baz: [u32; 2],
-}
-
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use derive_macro::Soa;
+
+    #[derive(Soa, Debug, Clone, Copy, PartialEq, Eq)]
+    struct El {
+        foo: u64,
+        bar: u8,
+        baz: [u32; 2],
+    }
 
     const A: El = El {
         foo: 20,
