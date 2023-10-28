@@ -1,5 +1,5 @@
 use proc_macro::TokenStream;
-use quote::quote;
+use quote::{format_ident, quote};
 use syn::{parse_macro_input, Data, DeriveInput, Expr, Fields, Lit};
 
 #[proc_macro_derive(Soa, attributes(module_name))]
@@ -31,6 +31,7 @@ pub fn soa(input: TokenStream) -> TokenStream {
         Data::Struct(s) => s,
         Data::Enum(_) | Data::Union(_) => return TokenStream::new(),
     };
+    let vis = input.vis;
     let fields = match strukt.fields {
         Fields::Named(fields) => fields,
         Fields::Unnamed(_) | Fields::Unit => return TokenStream::new(),
@@ -57,8 +58,16 @@ pub fn soa(input: TokenStream) -> TokenStream {
         )
     };
 
+    let mut_ident_head = ident_head
+        .clone()
+        .map(|ident| format_ident!("{}_mut", ident));
+    let mut_ident_tail: Vec<_> = ident_tail
+        .iter()
+        .map(|ident| ident.clone().map(|ident| format_ident!("{}_mut", ident)))
+        .collect();
+
     let implementation = quote! {
-        pub struct Soa {
+        #vis struct Soa {
             len: usize,
             cap: usize,
             #ident_head: crate::Unique<#ty_head>,
@@ -188,7 +197,15 @@ pub fn soa(input: TokenStream) -> TokenStream {
             }
             )*
 
-            // TODO: Add mut slices
+            #vis_head fn #mut_ident_head(&mut self) -> &mut [#ty_head] {
+                unsafe { std::slice::from_raw_parts_mut(self.#ident_head.ptr.as_ptr(), self.len) }
+            }
+
+            #(
+            #vis_tail fn #mut_ident_tail(&mut self) -> &mut [#ty_tail] {
+                unsafe { std::slice::from_raw_parts_mut(self.#ident_tail.ptr.as_ptr(), self.len) }
+            }
+            )*
         }
 
         impl Drop for Soa {
@@ -203,7 +220,7 @@ pub fn soa(input: TokenStream) -> TokenStream {
             }
         }
 
-        pub struct SoaIntoIter {
+        #vis struct SoaIntoIter {
             buf: crate::Unique<u64>,
             cap: usize,
             #ident_head: *const #ty_head,
@@ -268,6 +285,5 @@ pub fn soa(input: TokenStream) -> TokenStream {
         }
     };
 
-    // TODO: Add module
     implementation.into()
 }
