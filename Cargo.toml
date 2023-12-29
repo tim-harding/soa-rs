@@ -6,10 +6,11 @@ license = "MIT"
 description = "Structure-of-arrays derive macro"
 homepage = "https://github.com/tim-harding/soapy"
 repository = "https://github.com/tim-harding/soapy"
-repository = "https://github.com/tim-harding/soapy"
 readme = "README.md"
 
 [workspace]
+members = ["soapy-derive", "soapy-shared"]
 
 [dependencies]
 soapy-derive = { path = "soapy-derive" }
+soapy-shared = { path = "soapy-shared" }

@@ -45,37 +45,11 @@ pub fn soa(input: TokenStream) -> TokenStream {
         .collect();
 
     let implementation = quote! {
-        #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-        struct Unique<T> {
-            ptr: ::std::ptr::NonNull<T>,
-            _owns_t: ::std::marker::PhantomData<T>,
-        }
-
-        unsafe impl<T: ::std::marker::Send> ::std::marker::Send for Unique<T> {}
-        unsafe impl<T: ::std::marker::Sync> ::std::marker::Sync for Unique<T> {}
-
-        impl<T> Unique<T> {
-            pub const fn dangling() -> Self {
-                Self {
-                    ptr: ::std::ptr::NonNull::dangling(),
-                    _owns_t: ::std::marker::PhantomData,
-                }
-            }
-
-            /// SAFETY: Ensure that T is non-null
-            pub const unsafe fn new(ptr: *mut u8) -> Self {
-                Self {
-                    ptr: unsafe { ::std::ptr::NonNull::new_unchecked(ptr as *mut T) },
-                    _owns_t: ::std::marker::PhantomData,
-                }
-            }
-        }
-
         #vis struct Soa {
             len: usize,
             cap: usize,
-            #ident_head: Unique<#ty_head>,
-            #(#ident_tail: Unique<#ty_tail>,)*
+            #ident_head: ::soapy_shared::Unique<#ty_head>,
+            #(#ident_tail: ::soapy_shared::Unique<#ty_tail>,)*
         }
 
         struct Offsets {
@@ -95,8 +69,8 @@ pub fn soa(input: TokenStream) -> TokenStream {
                 Self {
                     len: 0,
                     cap: 0,
-                    #ident_head: Unique::dangling(),
-                    #(#ident_tail: Unique::dangling(),)*
+                    #ident_head: ::soapy_shared::Unique::dangling(),
+                    #(#ident_tail: ::soapy_shared::Unique::dangling(),)*
                 }
             }
 
@@ -107,13 +81,13 @@ pub fn soa(input: TokenStream) -> TokenStream {
                     unsafe { ::std::alloc::alloc(layout) }
                 } else {
                     let (old_layout, _) = Self::layout_and_offsets(self.cap);
-                    let old_ptr = self.#ident_head.ptr.as_ptr() as *mut u8;
+                    let old_ptr = self.#ident_head.as_ptr() as *mut u8;
                     unsafe { ::std::alloc::realloc(old_ptr, old_layout, layout.size()) }
                 };
 
                 assert_ne!(ptr as *const u8, ::std::ptr::null());
-                self.#ident_head = unsafe { Unique::new(ptr) };
-                #(self.#ident_tail = unsafe { Unique::new(ptr.add(offsets.#ident_tail)) };)*
+                self.#ident_head = unsafe { ::soapy_shared::Unique::new(ptr) };
+                #(self.#ident_tail = unsafe { ::soapy_shared::Unique::new(ptr.add(offsets.#ident_tail)) };)*
                 self.cap = cap;
             }
 
@@ -138,8 +112,8 @@ pub fn soa(input: TokenStream) -> TokenStream {
                 }
 
                 unsafe {
-                    self.#ident_head.ptr.as_ptr().add(self.len).write(el.#ident_head);
-                    #(self.#ident_tail.ptr.as_ptr().add(self.len).write(el.#ident_tail);)*
+                    self.#ident_head.as_ptr().add(self.len).write(el.#ident_head);
+                    #(self.#ident_tail.as_ptr().add(self.len).write(el.#ident_tail);)*
                 }
 
                 self.len += 1;
@@ -152,8 +126,8 @@ pub fn soa(input: TokenStream) -> TokenStream {
                     self.len -= 1;
                     Some(unsafe {
                         El {
-                            #ident_head: self.#ident_head.ptr.as_ptr().add(self.len).read(),
-                            #(#ident_tail: self.#ident_tail.ptr.as_ptr().add(self.len).read(),)*
+                            #ident_head: self.#ident_head.as_ptr().add(self.len).read(),
+                            #(#ident_tail: self.#ident_tail.as_ptr().add(self.len).read(),)*
                         }
                     })
                 }
@@ -166,8 +140,8 @@ pub fn soa(input: TokenStream) -> TokenStream {
                 }
                 self.len += 1;
                 unsafe {
-                    let #ident_head = self.#ident_head.ptr.as_ptr();
-                    #(let #ident_tail = self.#ident_tail.ptr.as_ptr();)*
+                    let #ident_head = self.#ident_head.as_ptr();
+                    #(let #ident_tail = self.#ident_tail.as_ptr();)*
                     ::std::ptr::copy(#ident_head.add(index), #ident_head.add(index + 1), self.len - index);
                     #(::std::ptr::copy(#ident_tail.add(index), #ident_tail.add(index + 1), self.len - index);)*
                     #ident_head.add(index).write(el.#ident_head);
@@ -179,8 +153,8 @@ pub fn soa(input: TokenStream) -> TokenStream {
                 assert!(index <= self.len, "index out of bounds");
                 self.len -= 1;
                 unsafe {
-                    let #ident_head = self.#ident_head.ptr.as_ptr();
-                    #(let #ident_tail = self.#ident_tail.ptr.as_ptr();)*
+                    let #ident_head = self.#ident_head.as_ptr();
+                    #(let #ident_tail = self.#ident_tail.as_ptr();)*
                     let out = El {
                         #ident_head: #ident_head.add(index).read(),
                         #(#ident_tail: #ident_tail.add(index).read(),)*
@@ -192,22 +166,22 @@ pub fn soa(input: TokenStream) -> TokenStream {
             }
 
             #vis_head fn #ident_head(&self) -> &[#ty_head] {
-                unsafe { ::std::slice::from_raw_parts(self.#ident_head.ptr.as_ptr(), self.len) }
+                unsafe { ::std::slice::from_raw_parts(self.#ident_head.as_ptr(), self.len) }
             }
 
             #(
             #vis_tail fn #ident_tail(&self) -> &[#ty_tail] {
-                unsafe { ::std::slice::from_raw_parts(self.#ident_tail.ptr.as_ptr(), self.len) }
+                unsafe { ::std::slice::from_raw_parts(self.#ident_tail.as_ptr(), self.len) }
             }
             )*
 
             #vis_head fn #mut_ident_head(&mut self) -> &mut [#ty_head] {
-                unsafe { ::std::slice::from_raw_parts_mut(self.#ident_head.ptr.as_ptr(), self.len) }
+                unsafe { ::std::slice::from_raw_parts_mut(self.#ident_head.as_ptr(), self.len) }
             }
 
             #(
             #vis_tail fn #mut_ident_tail(&mut self) -> &mut [#ty_tail] {
-                unsafe { ::std::slice::from_raw_parts_mut(self.#ident_tail.ptr.as_ptr(), self.len) }
+                unsafe { ::std::slice::from_raw_parts_mut(self.#ident_tail.as_ptr(), self.len) }
             }
             )*
         }
@@ -218,14 +192,14 @@ pub fn soa(input: TokenStream) -> TokenStream {
                     while let Some(_) = self.pop() {}
                     let (layout, _) = Self::layout_and_offsets(self.cap);
                     unsafe {
-                        ::std::alloc::dealloc(self.#ident_head.ptr.as_ptr() as *mut u8, layout);
+                        ::std::alloc::dealloc(self.#ident_head.as_ptr() as *mut u8, layout);
                     }
                 }
             }
         }
 
         #vis struct SoaIntoIter {
-            buf: Unique<u64>,
+            buf: ::soapy_shared::Unique<u64>,
             cap: usize,
             #ident_head: *const #ty_head,
             end: *const #ty_head,
@@ -268,9 +242,9 @@ pub fn soa(input: TokenStream) -> TokenStream {
                     SoaIntoIter {
                         buf: soa.#ident_head,
                         cap: soa.cap,
-                        #ident_head: soa.#ident_head.ptr.as_ptr(),
-                        end: soa.#ident_head.ptr.as_ptr().add(soa.len),
-                        #(#ident_tail: soa.#ident_tail.ptr.as_ptr(),)*
+                        #ident_head: soa.#ident_head.as_ptr(),
+                        end: soa.#ident_head.as_ptr().add(soa.len),
+                        #(#ident_tail: soa.#ident_tail.as_ptr(),)*
                     }
                 }
             }
@@ -282,7 +256,7 @@ pub fn soa(input: TokenStream) -> TokenStream {
                     for _ in &mut *self {}
                     let (layout, _) = Soa::layout_and_offsets(self.cap);
                     unsafe {
-                        ::std::alloc::dealloc(self.buf.ptr.as_ptr() as *mut u8, layout);
+                        ::std::alloc::dealloc(self.buf.as_ptr() as *mut u8, layout);
                     }
                 }
             }
