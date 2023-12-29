@@ -2,6 +2,12 @@
 name = "soapy"
 version = "0.1.0"
 edition = "2021"
+license = "MIT"
+description = "Structure-of-arrays derive macro"
+homepage = "https://github.com/tim-harding/soapy"
+repository = "https://github.com/tim-harding/soapy"
+repository = "https://github.com/tim-harding/soapy"
+readme = "README.md"
 
 [workspace]
 
