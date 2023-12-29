@@ -49,7 +49,10 @@ pub fn soa(input: TokenStream) -> TokenStream {
     let offsets_ident = format_ident!("{}SoaOffsets", ident);
     let into_iter_ident = format_ident!("{}SoaIntoIter", ident);
 
+    let soa_doc = format!("A growable array of [`{ident}`]");
+
     let implementation = quote! {
+        #[doc = #soa_doc]
         #vis struct #soa_ident {
             len: usize,
             cap: usize,
@@ -57,19 +60,15 @@ pub fn soa(input: TokenStream) -> TokenStream {
             #(#ident_tail: ::soapy_shared::Unique<#ty_tail>,)*
         }
 
+        /// Byte offsets for the array for each field array in the SOA
+        /// allocation.
         struct #offsets_ident {
             #(#ident_tail: usize,)*
         }
 
-        impl #offsets_ident {
-            pub const fn new() -> Self {
-                Self {
-                    #(#ident_tail: 0,)*
-                }
-            }
-        }
-
         impl #soa_ident {
+            /// Constructs a new, empty container. The container will not
+            /// allocate until elements are pushed onto it.
             pub const fn new() -> Self {
                 Self {
                     len: 0,
