@@ -2,6 +2,11 @@
 name = "soapy-derive"
 version = "0.1.0"
 edition = "2021"
+license = "MIT"
+description = "Proc macro derive for soapy"
+homepage = "https://github.com/tim-harding/soapy"
+repository = "https://github.com/tim-harding/soapy"
+readme = "../README.md"
 
 [lib]
 proc-macro = true

@@ -2,5 +2,10 @@
 name = "soapy-shared"
 version = "0.1.0"
 edition = "2021"
+license = "MIT"
+description = "Custom types used by soapy macros"
+homepage = "https://github.com/tim-harding/soapy"
+repository = "https://github.com/tim-harding/soapy"
+readme = "../README.md"
 
 [dependencies]
