@@ -12,5 +12,5 @@ readme = "README.md"
 members = ["soapy-derive", "soapy-shared"]
 
 [dependencies]
-soapy-derive = { path = "soapy-derive" }
-soapy-shared = { path = "soapy-shared" }
+soapy-derive = { path = "soapy-derive", version = "0.1.0" }
+soapy-shared = { path = "soapy-shared", version = "0.1.0" }
