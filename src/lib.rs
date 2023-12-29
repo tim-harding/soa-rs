@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod tests {
-    use derive_macro::Soa;
+    use soapy_derive::Soa;
 
     #[derive(Soa, Debug, Clone, Copy, PartialEq, Eq)]
     struct El {

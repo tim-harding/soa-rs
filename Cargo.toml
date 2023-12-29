@@ -6,4 +6,4 @@ edition = "2021"
 [workspace]
 
 [dependencies]
-derive-macro = { path = "derive-macro" }
+soapy-derive = { path = "soapy-derive" }
