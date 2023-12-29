@@ -1,3 +1,5 @@
+pub use soapy_derive::Soa;
+
 #[cfg(test)]
 mod tests {
     use soapy_derive::Soa;
