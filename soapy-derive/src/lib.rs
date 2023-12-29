@@ -44,19 +44,24 @@ pub fn soa(input: TokenStream) -> TokenStream {
         .map(|ident| ident.clone().map(|ident| format_ident!("{}_mut", ident)))
         .collect();
 
+    let ident = input.ident;
+    let soa_ident = format_ident!("{}Soa", ident);
+    let offsets_ident = format_ident!("{}SoaOffsets", ident);
+    let into_iter_ident = format_ident!("{}SoaIntoIter", ident);
+
     let implementation = quote! {
-        #vis struct Soa {
+        #vis struct #soa_ident {
             len: usize,
             cap: usize,
             #ident_head: ::soapy_shared::Unique<#ty_head>,
             #(#ident_tail: ::soapy_shared::Unique<#ty_tail>,)*
         }
 
-        struct Offsets {
+        struct #offsets_ident {
             #(#ident_tail: usize,)*
         }
 
-        impl Offsets {
+        impl #offsets_ident {
             pub const fn new() -> Self {
                 Self {
                     #(#ident_tail: 0,)*
@@ -64,7 +69,7 @@ pub fn soa(input: TokenStream) -> TokenStream {
             }
         }
 
-        impl Soa {
+        impl #soa_ident {
             pub const fn new() -> Self {
                 Self {
                     len: 0,
@@ -96,36 +101,36 @@ pub fn soa(input: TokenStream) -> TokenStream {
                 self.resize(cap);
             }
 
-            fn layout_and_offsets(cap: usize) -> (::std::alloc::Layout, Offsets) {
+            fn layout_and_offsets(cap: usize) -> (::std::alloc::Layout, #offsets_ident) {
                 use ::std::alloc::Layout;
                 let layout = Layout::array::<#ty_head>(cap).unwrap();
                 #(let (layout, #ident_tail) = layout.extend(Layout::array::<#ty_tail>(cap).unwrap()).unwrap();)*
-                let offsets = Offsets {
+                let offsets = #offsets_ident {
                     #(#ident_tail,)*
                 };
                 (layout, offsets)
             }
 
-            pub fn push(&mut self, el: El) {
+            pub fn push(&mut self, value: #ident) {
                 if self.len == self.cap {
                     self.grow();
                 }
 
                 unsafe {
-                    self.#ident_head.as_ptr().add(self.len).write(el.#ident_head);
-                    #(self.#ident_tail.as_ptr().add(self.len).write(el.#ident_tail);)*
+                    self.#ident_head.as_ptr().add(self.len).write(value.#ident_head);
+                    #(self.#ident_tail.as_ptr().add(self.len).write(value.#ident_tail);)*
                 }
 
                 self.len += 1;
             }
 
-            pub fn pop(&mut self) -> Option<El> {
+            pub fn pop(&mut self) -> Option<#ident> {
                 if self.len == 0 {
                     None
                 } else {
                     self.len -= 1;
                     Some(unsafe {
-                        El {
+                        #ident {
                             #ident_head: self.#ident_head.as_ptr().add(self.len).read(),
                             #(#ident_tail: self.#ident_tail.as_ptr().add(self.len).read(),)*
                         }
@@ -133,7 +138,7 @@ pub fn soa(input: TokenStream) -> TokenStream {
                 }
             }
 
-            pub fn insert(&mut self, index: usize, el: El) {
+            pub fn insert(&mut self, index: usize, value: #ident) {
                 assert!(index <= self.len, "index out of bounds");
                 if self.cap == self.len {
                     self.grow();
@@ -144,18 +149,18 @@ pub fn soa(input: TokenStream) -> TokenStream {
                     #(let #ident_tail = self.#ident_tail.as_ptr();)*
                     ::std::ptr::copy(#ident_head.add(index), #ident_head.add(index + 1), self.len - index);
                     #(::std::ptr::copy(#ident_tail.add(index), #ident_tail.add(index + 1), self.len - index);)*
-                    #ident_head.add(index).write(el.#ident_head);
-                    #(#ident_tail.add(index).write(el.#ident_tail);)*
+                    #ident_head.add(index).write(value.#ident_head);
+                    #(#ident_tail.add(index).write(value.#ident_tail);)*
                 }
             }
 
-            pub fn remove(&mut self, index: usize) -> El {
+            pub fn remove(&mut self, index: usize) -> #ident {
                 assert!(index <= self.len, "index out of bounds");
                 self.len -= 1;
                 unsafe {
                     let #ident_head = self.#ident_head.as_ptr();
                     #(let #ident_tail = self.#ident_tail.as_ptr();)*
-                    let out = El {
+                    let out = #ident {
                         #ident_head: #ident_head.add(index).read(),
                         #(#ident_tail: #ident_tail.add(index).read(),)*
                     };
@@ -186,7 +191,7 @@ pub fn soa(input: TokenStream) -> TokenStream {
             )*
         }
 
-        impl Drop for Soa {
+        impl Drop for #soa_ident {
             fn drop(&mut self) {
                 if self.cap > 0 {
                     while let Some(_) = self.pop() {}
@@ -198,7 +203,7 @@ pub fn soa(input: TokenStream) -> TokenStream {
             }
         }
 
-        #vis struct SoaIntoIter {
+        #vis struct #into_iter_ident {
             buf: ::soapy_shared::Unique<u64>,
             cap: usize,
             #ident_head: *const #ty_head,
@@ -206,15 +211,15 @@ pub fn soa(input: TokenStream) -> TokenStream {
             #(#ident_tail: *const #ty_tail,)*
         }
 
-        impl Iterator for SoaIntoIter {
-            type Item = El;
+        impl Iterator for #into_iter_ident {
+            type Item = #ident;
 
             fn next(&mut self) -> Option<Self::Item> {
                 if self.#ident_head == self.end {
                     None
                 } else {
                     unsafe {
-                        let out = El {
+                        let out = #ident {
                             #ident_head: self.#ident_head.read(),
                             #(#ident_tail: self.#ident_tail.read(),)*
                         };
@@ -231,15 +236,15 @@ pub fn soa(input: TokenStream) -> TokenStream {
             }
         }
 
-        impl IntoIterator for Soa {
-            type Item = El;
+        impl IntoIterator for #soa_ident {
+            type Item = #ident;
 
-            type IntoIter = SoaIntoIter;
+            type IntoIter = #into_iter_ident;
 
             fn into_iter(self) -> Self::IntoIter {
                 let soa = ::std::mem::ManuallyDrop::new(self);
                 unsafe {
-                    SoaIntoIter {
+                    #into_iter_ident {
                         buf: soa.#ident_head,
                         cap: soa.cap,
                         #ident_head: soa.#ident_head.as_ptr(),
@@ -250,11 +255,11 @@ pub fn soa(input: TokenStream) -> TokenStream {
             }
         }
 
-        impl Drop for SoaIntoIter {
+        impl Drop for #into_iter_ident {
             fn drop(&mut self) {
                 if self.cap > 0 {
                     for _ in &mut *self {}
-                    let (layout, _) = Soa::layout_and_offsets(self.cap);
+                    let (layout, _) = #soa_ident::layout_and_offsets(self.cap);
                     unsafe {
                         ::std::alloc::dealloc(self.buf.as_ptr() as *mut u8, layout);
                     }

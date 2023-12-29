@@ -29,8 +29,8 @@ mod tests {
         baz: [0, 0],
     };
 
-    fn soa() -> Soa {
-        let mut soa = Soa::new();
+    fn soa() -> ElSoa {
+        let mut soa = ElSoa::new();
         soa.push(A);
         soa.push(B);
         soa
