@@ -1,10 +1,10 @@
-pub use soapy_derive::Soa;
+pub use soapy_derive::Soapy;
 
 #[cfg(test)]
 mod tests {
-    use soapy_derive::Soa;
+    use crate::Soapy;
 
-    #[derive(Soa, Debug, Clone, Copy, PartialEq, Eq)]
+    #[derive(Soapy, Debug, Clone, Copy, PartialEq, Eq)]
     struct El {
         foo: u64,
         bar: u8,
@@ -28,50 +28,4 @@ mod tests {
         bar: 0,
         baz: [0, 0],
     };
-
-    fn soa() -> ElSoa {
-        let mut soa = ElSoa::new();
-        soa.push(A);
-        soa.push(B);
-        soa
-    }
-
-    #[test]
-    fn push_and_pop() {
-        let mut soa = soa();
-        assert_eq!(soa.pop(), Some(B));
-        assert_eq!(soa.pop(), Some(A));
-        assert_eq!(soa.pop(), None);
-    }
-
-    #[test]
-    fn iterators() {
-        let soa = soa();
-        assert_eq!(soa.foo(), &[20, 10]);
-        assert_eq!(soa.bar(), &[10, 5]);
-        assert_eq!(soa.baz(), &[[6, 4], [3, 2]]);
-    }
-
-    #[test]
-    fn insert_and_remove() {
-        let mut soa = soa();
-        soa.insert(1, ZERO);
-        assert_eq!(soa.foo(), &[20, 0, 10]);
-        assert_eq!(soa.bar(), &[10, 0, 5]);
-        assert_eq!(soa.baz(), &[[6, 4], [0, 0], [3, 2]]);
-        assert_eq!(soa.remove(1), ZERO);
-        assert_eq!(soa.foo(), &[20, 10]);
-        assert_eq!(soa.bar(), &[10, 5]);
-        assert_eq!(soa.baz(), &[[6, 4], [3, 2]]);
-    }
-
-    #[test]
-    fn into_iter() {
-        {
-            let mut soa = soa().into_iter();
-            assert_eq!(soa.next(), Some(A));
-            assert_eq!(soa.next(), Some(B));
-            assert_eq!(soa.next(), None);
-        }
-    }
 }

@@ -1,41 +1,25 @@
-use std::{marker::PhantomData, ptr::NonNull};
+mod soa;
+pub use soa::Soa;
 
-/// A wrapper around a raw pointer with several properties:
-/// - [Covariant](https://doc.rust-lang.org/nomicon/subtyping.html#variance) over T
-/// - Owns a T
-/// - [`Send`]/[`Sync`] if T is [`Send`]/[`Sync`]
-/// - Never null
-/// This can be replaced by [`core::ptr::Unique`] when it is stabilized.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct Unique<T> {
-    ptr: NonNull<T>,
-    _owns_t: PhantomData<T>,
+pub trait Soapy {
+    type SoaRaw: SoaRaw;
 }
 
-unsafe impl<T: Send> Send for Unique<T> {}
-unsafe impl<T: Sync> Sync for Unique<T> {}
+pub trait SoaRaw {
+    type Item: Sized;
+    type Fields<'a>
+    where
+        Self: 'a;
+    type FieldsMut<'a>
+    where
+        Self: 'a;
 
-impl<T> Unique<T> {
-    /// Creates a new [`Unique`] that is invalid but well-aligned. Intended for
-    /// uninitialized memory.
-    pub const fn dangling() -> Self {
-        Self {
-            ptr: NonNull::dangling(),
-            _owns_t: PhantomData,
-        }
-    }
-
-    /// Aquires the underlying pointer
-    pub fn as_ptr(self) -> *mut T {
-        self.ptr.as_ptr()
-    }
-
-    /// Creates a new [`Unique`]
-    /// SAFETY: Ensure that T is non-null
-    pub const unsafe fn new(ptr: *mut u8) -> Self {
-        Self {
-            ptr: unsafe { NonNull::new_unchecked(ptr as *mut T) },
-            _owns_t: PhantomData,
-        }
-    }
+    fn new() -> Self;
+    fn fields(&self, len: usize) -> Self::Fields<'_>;
+    fn fields_mut<'a>(&'a mut self, len: usize) -> Self::FieldsMut<'a>;
+    unsafe fn realloc(&mut self, old_capacity: usize, new_capacity: usize);
+    unsafe fn dealloc(&mut self, capacity: usize);
+    unsafe fn copy(&mut self, src: usize, dst: usize, count: usize);
+    unsafe fn set(&mut self, index: usize, element: Self::Item);
+    unsafe fn get(&self, index: usize) -> Self::Item;
 }
