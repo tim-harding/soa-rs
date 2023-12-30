@@ -55,6 +55,7 @@ pub fn soa(input: TokenStream) -> TokenStream {
             type SoaRaw = #raw;
         }
 
+        #[derive(Copy, Clone)]
         struct #offsets {
             #(#ident_tail: usize,)*
         }
@@ -77,15 +78,6 @@ pub fn soa(input: TokenStream) -> TokenStream {
                 (layout, offsets)
             }
 
-            unsafe fn realloc(
-                self,
-                old_layout: ::std::alloc::Layout,
-                new_layout: ::std::alloc::Layout,
-            ) -> *mut u8 {
-                let old_ptr = self.#ident_head.as_ptr() as *mut u8;
-                ::std::alloc::realloc(old_ptr, old_layout, new_layout.size())
-            }
-
             unsafe fn with_offsets(ptr: *mut u8, offsets: #offsets) -> Self {
                 Self {
                     #ident_head: ::std::ptr::NonNull::new_unchecked(ptr as *mut #ty_head),
@@ -98,8 +90,7 @@ pub fn soa(input: TokenStream) -> TokenStream {
             }
         }
 
-        impl ::soapy_shared::SoaRaw for #raw {
-            type Item = #element;
+        impl ::soapy_shared::SoaRaw<#element> for #raw {
             type Fields<'a> = #fields<'a> where Self: 'a;
             type FieldsMut<'a> = #fields_mut<'a> where Self: 'a;
 
@@ -123,67 +114,53 @@ pub fn soa(input: TokenStream) -> TokenStream {
                 }
             }
 
-            unsafe fn resize(self, old_capacity: usize, new_capacity: usize, len: usize) -> Self {
-                assert!(len <= old_capacity);
-                assert!(len <= new_capacity);
-                match old_capacity.cmp(new_capacity) {
-                    ::std::cmp::Ordering::Equal => self,
-
-                    // Grow
-                    ::std::cmp::Ordering::Less => {
-                        let (new_layout, new_offsets) = Self::layout_and_offsets(new_capacity);
-                        match old_capacity {
-                            // No previous allocation
-                            0 => {
-                                let ptr = ::std::alloc::alloc(new_layout);
-                                assert_ne!(ptr as *const u8, ::std::ptr::null());
-                                Self::with_offsets(ptr, new_offsets)
-                            }
-
-                            // Grow allocation
-                            _ => {
-                                let (old_layout, old_offsets) = Self::layout_and_offsets(old_capacity);
-                                // Grow allocation first
-                                let ptr = self.realloc(old_layout, new_layout);
-                                assert_ne!(ptr as *const u8, ::std::ptr::null());
-                                // Pointer may have moved, can't reuse self
-                                let old = Self::with_offsets(ptr, old_offsets);
-                                let new = Self::with_offsets(ptr, new_offsets);
-                                // Copy do destination in reverse order to avoid
-                                // overwriting data
-                                #(::std::ptr::copy(old.#rev_idents, new.#rev_idents, len);)*
-                                new
-                            }
-                        }
-                    }
-
-                    // Shrink
-                    ::std::cmp::Ordering::Greater => {
-                        let (old_layout, _) = Self::layout_and_offsets(old_capacity);
-                        match new_capacity {
-                            // Deallocate
-                            0 => {
-                                let ptr = self.#ident_head.as_ptr() as *mut u8;
-                                ::std::alloc::dealloc(ptr, old_layout);
-                                Self::new()
-                            }
-
-                            // Move data and reallocate
-                            _ => {
-                                let (new_layout, new_offsets) = Self::layout_and_offsets(new_capacity);
-                                // Move data before reallocating as some data
-                                // may be past the end of the new allocation.
-                                // Copy from front to back to avoid overwriting data.
-                                let dst = Self::with_offsets(self.#ident_head, new_offsets);
-                                #(::std::ptr::copy(self.#idents, dst.#idents, len);)*
-                                let ptr = self.realloc(old_layout, new_layout);
-                                assert_ne!(ptr as *const u8, ::std::ptr::null());
-                                // Pointer may have moved, can't reuse dst
-                                Self::with_offsets(ptr, new_offsets)
-                            }
-                        }
-                    }
+            unsafe fn grow(&mut self, old_capacity: usize, new_capacity: usize, length: usize) {
+                let (new_layout, new_offsets) = Self::layout_and_offsets(new_capacity);
+                *self = if old_capacity == 0 {
+                    let ptr = ::std::alloc::alloc(new_layout);
+                    assert_ne!(ptr as *const u8, ::std::ptr::null());
+                    Self::with_offsets(ptr, new_offsets)
+                } else {
+                    let (old_layout, old_offsets) = Self::layout_and_offsets(old_capacity);
+                    // Grow allocation first
+                    let ptr = self.#ident_head.as_ptr() as *mut u8;
+                    let ptr = ::std::alloc::realloc(ptr, old_layout, new_layout.size());
+                    assert_ne!(ptr as *const u8, ::std::ptr::null());
+                    // Pointer may have moved, can't reuse self
+                    let old = Self::with_offsets(ptr, old_offsets);
+                    let new = Self::with_offsets(ptr, new_offsets);
+                    // Copy do destination in reverse order to avoid
+                    // overwriting data
+                    #(::std::ptr::copy(old.#rev_idents.as_ptr(), new.#rev_idents.as_ptr(), length);)*
+                    new
                 }
+            }
+
+            unsafe fn shrink(&mut self, old_capacity: usize, new_capacity: usize, length: usize) {
+                let (old_layout, _) = Self::layout_and_offsets(old_capacity);
+                *self = match new_capacity {
+                    // Deallocate
+                    0 => {
+                        let ptr = self.#ident_head.as_ptr() as *mut u8;
+                        ::std::alloc::dealloc(ptr, old_layout);
+                        Self::new()
+                    }
+
+                    // Move data and reallocate
+                    _ => {
+                        let (new_layout, new_offsets) = Self::layout_and_offsets(new_capacity);
+                        // Move data before reallocating as some data
+                        // may be past the end of the new allocation.
+                        // Copy from front to back to avoid overwriting data.
+                        let dst = Self::with_offsets(self.#ident_head.as_ptr() as *mut u8, new_offsets);
+                        #(::std::ptr::copy(self.#idents.as_ptr(), dst.#idents.as_ptr(), length);)*
+                        let ptr = self.#ident_head.as_ptr() as *mut u8;
+                        let ptr = ::std::alloc::realloc(ptr, old_layout, new_layout.size());
+                        assert_ne!(ptr as *const u8, ::std::ptr::null());
+                        // Pointer may have moved, can't reuse dst
+                        Self::with_offsets(ptr, new_offsets)
+                    }
+                };
             }
 
             unsafe fn dealloc(&mut self, capacity: usize) {
@@ -198,7 +175,7 @@ pub fn soa(input: TokenStream) -> TokenStream {
                 )*
             }
 
-            unsafe fn set(&mut self, index: usize, element: Self::Item) {
+            unsafe fn set(&mut self, index: usize, element: #element) {
                 #(self.#idents.as_ptr().add(index).write(element.#idents);)*
             }
 
