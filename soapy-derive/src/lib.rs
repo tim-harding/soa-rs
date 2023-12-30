@@ -26,7 +26,7 @@ pub fn soa(input: TokenStream) -> TokenStream {
         let mut ty_tail = Vec::with_capacity(fields.len() - 1);
         for field in fields {
             vis_tail.push(field.vis);
-            ident_tail.push(field.ident.unwrap());
+            ident_tail.push(field.ident.unwrap()); // TODO: No unwrap
             ty_tail.push(field.ty);
         }
         (
@@ -35,6 +35,14 @@ pub fn soa(input: TokenStream) -> TokenStream {
             (head.ty, ty_tail),
         )
     };
+
+    // TODO: Do I need to collect? Does iterator work?
+    let idents: Vec<_> = std::iter::once(&ident_head)
+        .chain(ident_tail.iter())
+        .cloned()
+        .collect();
+
+    let rev_idents: Vec<_> = idents.iter().cloned().rev().collect();
 
     let element = input.ident;
     let offsets = format_ident!("{element}SoaOffsets");
@@ -54,7 +62,6 @@ pub fn soa(input: TokenStream) -> TokenStream {
         #vis struct #raw {
             #ident_head: ::std::ptr::NonNull<#ty_head>,
             #(#ident_tail: ::std::ptr::NonNull<#ty_tail>,)*
-            _owns_t: ::std::marker::PhantomData<#element>,
         }
 
         impl #raw {
@@ -69,6 +76,26 @@ pub fn soa(input: TokenStream) -> TokenStream {
                 };
                 (layout, offsets)
             }
+
+            unsafe fn realloc(
+                self,
+                old_layout: ::std::alloc::Layout,
+                new_layout: ::std::alloc::Layout,
+            ) -> *mut u8 {
+                let old_ptr = self.#ident_head.as_ptr() as *mut u8;
+                ::std::alloc::realloc(old_ptr, old_layout, new_layout.size())
+            }
+
+            unsafe fn with_offsets(ptr: *mut u8, offsets: #offsets) -> Self {
+                Self {
+                    #ident_head: ::std::ptr::NonNull::new_unchecked(ptr as *mut #ty_head),
+                    #(
+                    #ident_tail: ::std::ptr::NonNull::new_unchecked(
+                        ptr.add(offsets.#ident_tail) as *mut #ty_tail,
+                    ),
+                    )*
+                }
+            }
         }
 
         impl ::soapy_shared::SoaRaw for #raw {
@@ -78,9 +105,7 @@ pub fn soa(input: TokenStream) -> TokenStream {
 
             fn new() -> Self {
                 Self {
-                    #ident_head: ::std::ptr::NonNull::dangling(),
-                    #(#ident_tail: ::std::ptr::NonNull::dangling(),)*
-                    _owns_t: ::std::marker::PhantomData,
+                    #(#idents: ::std::ptr::NonNull::dangling(),)*
                 }
             }
 
@@ -98,23 +123,67 @@ pub fn soa(input: TokenStream) -> TokenStream {
                 }
             }
 
-            unsafe fn realloc(&mut self, old_capacity: usize, new_capacity: usize) {
-                let (layout, offsets) = Self::layout_and_offsets(new_capacity);
+            unsafe fn resize(self, old_capacity: usize, new_capacity: usize, len: usize) -> Self {
+                assert!(len <= old_capacity);
+                assert!(len <= new_capacity);
+                match old_capacity.cmp(new_capacity) {
+                    ::std::cmp::Ordering::Equal => self,
 
-                let ptr = if old_capacity == 0 {
-                    ::std::alloc::alloc(layout)
-                } else {
-                    let (old_layout, _) = Self::layout_and_offsets(old_capacity);
-                    let old_ptr = self.#ident_head.as_ptr() as *mut u8;
-                    ::std::alloc::realloc(old_ptr, old_layout, layout.size())
-                };
+                    // Grow
+                    ::std::cmp::Ordering::Less => {
+                        let (new_layout, new_offsets) = Self::layout_and_offsets(new_capacity);
+                        match old_capacity {
+                            // No previous allocation
+                            0 => {
+                                let ptr = ::std::alloc::alloc(new_layout);
+                                assert_ne!(ptr as *const u8, ::std::ptr::null());
+                                Self::with_offsets(ptr, new_offsets)
+                            }
 
-                assert_ne!(ptr as *const u8, ::std::ptr::null());
-                self.#ident_head = ::std::ptr::NonNull::new_unchecked(ptr as *mut #ty_head);
-                #(
-                let offset_ptr = ptr.add(offsets.#ident_tail) as *mut #ty_tail;
-                self.#ident_tail = ::std::ptr::NonNull::new_unchecked(offset_ptr);
-                )*
+                            // Grow allocation
+                            _ => {
+                                let (old_layout, old_offsets) = Self::layout_and_offsets(old_capacity);
+                                // Grow allocation first
+                                let ptr = self.realloc(old_layout, new_layout);
+                                assert_ne!(ptr as *const u8, ::std::ptr::null());
+                                // Pointer may have moved, can't reuse self
+                                let old = Self::with_offsets(ptr, old_offsets);
+                                let new = Self::with_offsets(ptr, new_offsets);
+                                // Copy do destination in reverse order to avoid
+                                // overwriting data
+                                #(::std::ptr::copy(old.#rev_idents, new.#rev_idents, len);)*
+                                new
+                            }
+                        }
+                    }
+
+                    // Shrink
+                    ::std::cmp::Ordering::Greater => {
+                        let (old_layout, _) = Self::layout_and_offsets(old_capacity);
+                        match new_capacity {
+                            // Deallocate
+                            0 => {
+                                let ptr = self.#ident_head.as_ptr() as *mut u8;
+                                ::std::alloc::dealloc(ptr, old_layout);
+                                Self::new()
+                            }
+
+                            // Move data and reallocate
+                            _ => {
+                                let (new_layout, new_offsets) = Self::layout_and_offsets(new_capacity);
+                                // Move data before reallocating as some data
+                                // may be past the end of the new allocation.
+                                // Copy from front to back to avoid overwriting data.
+                                let dst = Self::with_offsets(self.#ident_head, new_offsets);
+                                #(::std::ptr::copy(self.#idents, dst.#idents, len);)*
+                                let ptr = self.realloc(old_layout, new_layout);
+                                assert_ne!(ptr as *const u8, ::std::ptr::null());
+                                // Pointer may have moved, can't reuse dst
+                                Self::with_offsets(ptr, new_offsets)
+                            }
+                        }
+                    }
+                }
             }
 
             unsafe fn dealloc(&mut self, capacity: usize) {
@@ -123,21 +192,19 @@ pub fn soa(input: TokenStream) -> TokenStream {
             }
 
             unsafe fn copy(&mut self, src: usize, dst: usize, count: usize) {
-                let #ident_head = self.#ident_head.as_ptr();
-                #(let #ident_tail = self.#ident_tail.as_ptr();)*
-                ::std::ptr::copy(#ident_head.add(src), #ident_head.add(dst), count);
-                #(::std::ptr::copy(#ident_tail.add(src), #ident_tail.add(dst), count);)*
+                #(
+                let #idents = self.#idents.as_ptr();
+                ::std::ptr::copy(#idents.add(src), #idents.add(dst), count);
+                )*
             }
 
             unsafe fn set(&mut self, index: usize, element: Self::Item) {
-                self.#ident_head.as_ptr().add(index).write(element.#ident_head);
-                #(self.#ident_tail.as_ptr().add(index).write(element.#ident_tail);)*
+                #(self.#idents.as_ptr().add(index).write(element.#idents);)*
             }
 
             unsafe fn get(&self, index: usize) -> #element {
                 #element {
-                    #ident_head: self.#ident_head.as_ptr().add(index).read(),
-                    #(#ident_tail: self.#ident_tail.as_ptr().add(index).read(),)*
+                    #(#idents: self.#idents.as_ptr().add(index).read(),)*
                 }
             }
         }

@@ -17,7 +17,7 @@ pub trait SoaRaw {
     fn new() -> Self;
     fn fields(&self, len: usize) -> Self::Fields<'_>;
     fn fields_mut<'a>(&'a mut self, len: usize) -> Self::FieldsMut<'a>;
-    unsafe fn realloc(&mut self, old_capacity: usize, new_capacity: usize);
+    unsafe fn resize(self, old_capacity: usize, new_capacity: usize) -> Self;
     unsafe fn dealloc(&mut self, capacity: usize);
     unsafe fn copy(&mut self, src: usize, dst: usize, count: usize);
     unsafe fn set(&mut self, index: usize, element: Self::Item);
