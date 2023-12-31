@@ -54,3 +54,16 @@ where
         self.capacity = new_capacity;
     }
 }
+
+impl<T> Drop for Soa<T>
+where
+    T: Soapy,
+{
+    fn drop(&mut self) {
+        if self.capacity == 0 {
+            return;
+        }
+        while let Some(_) = self.pop() {}
+        unsafe { self.raw.dealloc(self.capacity) };
+    }
+}
