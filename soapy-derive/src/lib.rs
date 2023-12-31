@@ -27,7 +27,7 @@ fn soa_inner(input: DeriveInput) -> Result<TokenStream2, SoapyError> {
     match data {
         Data::Struct(strukt) => match strukt.fields {
             Fields::Named(fields) => named_fields_struct(ident, vis, fields),
-            Fields::Unit => unit_struct(ident),
+            Fields::Unit => unit_struct(ident, vis),
             // TODO: Support unnamed fields
             Fields::Unnamed(_) => Err(SoapyError::UnnamedFields),
         },
@@ -45,7 +45,7 @@ fn named_fields_struct(
         let mut fields = fields.into_iter();
         let Some(head) = fields.next() else {
             // No fields is equivalent to a unit struct
-            return unit_struct(ident);
+            return unit_struct(ident, vis);
         };
         let mut vis_tail = Vec::with_capacity(fields.len() - 1);
         let mut ident_tail = Vec::with_capacity(fields.len() - 1);
@@ -250,8 +250,34 @@ fn named_fields_struct(
     })
 }
 
-fn unit_struct(_ident: Ident) -> Result<TokenStream2, SoapyError> {
-    todo!()
+fn unit_struct(ident: Ident, vis: Visibility) -> Result<TokenStream2, SoapyError> {
+    let raw = format_ident!("{ident}SoaRaw");
+
+    Ok(quote! {
+        impl ::soapy_shared::Soapy for #ident {
+            type SoaRaw = #raw;
+        }
+
+        #[derive(Copy, Clone)]
+        #vis struct #raw;
+
+        impl ::soapy_shared::SoaRaw<#ident> for #raw {
+            type Fields<'a> = ();
+            type FieldsMut<'a> = ();
+
+            fn new() -> Self { Self }
+            fn fields(&self, len: usize) -> Self::Fields<'_> { () }
+            fn fields_mut(&mut self, len: usize) -> Self::FieldsMut<'_> { () }
+            unsafe fn grow(&mut self, old_capacity: usize, new_capacity: usize, length: usize) { }
+            unsafe fn shrink(&mut self, old_capacity: usize, new_capacity: usize, length: usize) { }
+            unsafe fn dealloc(&mut self, capacity: usize) {}
+            unsafe fn copy(&mut self, src: usize, dst: usize, count: usize) { }
+            unsafe fn set(&mut self, index: usize, element: #ident) { }
+            unsafe fn get(&self, index: usize) -> #ident {
+                #ident
+            }
+        }
+    })
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
