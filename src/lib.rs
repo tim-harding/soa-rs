@@ -46,11 +46,47 @@ mod tests {
 
     const ABCDE: [El; 5] = [A, B, C, D, E];
 
-    #[derive(Soapy, Debug, Clone, Copy, PartialEq, Eq)]
+    #[derive(Soapy, Debug, Clone, Copy, PartialEq, Eq, Default)]
     struct Unit;
 
+    #[derive(Soapy, Debug, Clone, Copy, PartialEq, Eq, Default)]
+    struct Empty {}
+
+    // #[derive(Soapy, Debug, Clone, Copy, PartialEq, Eq, Default)]
+    // struct EmptyTuple();
+
+    #[derive(Soapy, Debug, Clone, Copy, PartialEq, Eq, Default)]
+    struct ZstFields {
+        a: Unit,
+        b: (),
+    }
+
     #[test]
-    pub fn no_fields() {
+    pub fn zst_fields() {
+        let mut soa = Soa::new();
+        for _ in 0..5 {
+            soa.push(ZstFields::default());
+        }
+        for _ in 0..5 {
+            assert_eq!(soa.pop(), Some(ZstFields::default()));
+        }
+        assert_eq!(soa.pop(), None);
+    }
+
+    #[test]
+    pub fn empty_struct() {
+        let mut soa = Soa::new();
+        for _ in 0..5 {
+            soa.push(Empty {});
+        }
+        for _ in 0..5 {
+            assert_eq!(soa.pop(), Some(Empty {}));
+        }
+        assert_eq!(soa.pop(), None);
+    }
+
+    #[test]
+    pub fn unit_struct() {
         let mut soa = Soa::new();
         for _ in 0..5 {
             soa.push(Unit);

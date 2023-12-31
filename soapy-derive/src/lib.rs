@@ -27,7 +27,7 @@ fn soa_inner(input: DeriveInput) -> Result<TokenStream2, SoapyError> {
     match data {
         Data::Struct(strukt) => match strukt.fields {
             Fields::Named(fields) => named_fields_struct(ident, vis, fields),
-            Fields::Unit => unit_struct(ident, vis),
+            Fields::Unit => zst_struct(ident, vis, ZstKind::Unit),
             // TODO: Support unnamed fields
             Fields::Unnamed(_) => Err(SoapyError::UnnamedFields),
         },
@@ -45,7 +45,7 @@ fn named_fields_struct(
         let mut fields = fields.into_iter();
         let Some(head) = fields.next() else {
             // No fields is equivalent to a unit struct
-            return unit_struct(ident, vis);
+            return zst_struct(ident, vis, ZstKind::Empty);
         };
         let mut vis_tail = Vec::with_capacity(fields.len() - 1);
         let mut ident_tail = Vec::with_capacity(fields.len() - 1);
@@ -250,8 +250,13 @@ fn named_fields_struct(
     })
 }
 
-fn unit_struct(ident: Ident, vis: Visibility) -> Result<TokenStream2, SoapyError> {
+fn zst_struct(ident: Ident, vis: Visibility, kind: ZstKind) -> Result<TokenStream2, SoapyError> {
     let raw = format_ident!("{ident}SoaRaw");
+    let unit_construct = match kind {
+        ZstKind::Unit => quote! {},
+        ZstKind::Empty => quote! { {} },
+        ZstKind::EmptyTuple => quote! { () },
+    };
 
     Ok(quote! {
         impl ::soapy_shared::Soapy for #ident {
@@ -274,10 +279,20 @@ fn unit_struct(ident: Ident, vis: Visibility) -> Result<TokenStream2, SoapyError
             unsafe fn copy(&mut self, src: usize, dst: usize, count: usize) { }
             unsafe fn set(&mut self, index: usize, element: #ident) { }
             unsafe fn get(&self, index: usize) -> #ident {
-                #ident
+                #ident #unit_construct
             }
         }
     })
+}
+
+enum ZstKind {
+    /// struct Unit;
+    Unit,
+    /// struct Unit {};
+    Empty,
+    #[allow(unused)]
+    /// struct Unit();
+    EmptyTuple,
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
