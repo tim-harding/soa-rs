@@ -1,32 +1,58 @@
 use proc_macro::TokenStream;
-use quote::{format_ident, quote};
-use syn::{parse_macro_input, Data, DeriveInput, Fields};
+use proc_macro2::TokenStream as TokenStream2;
+use quote::{format_ident, quote, quote_spanned};
+use std::fmt::{self, Display, Formatter};
+use syn::{parse_macro_input, Data, DeriveInput, Fields, FieldsNamed, Ident, Visibility};
 
 #[proc_macro_derive(Soapy)]
 pub fn soa(input: TokenStream) -> TokenStream {
     let input: DeriveInput = parse_macro_input!(input);
-    let strukt = match input.data {
-        Data::Struct(s) => s,
-        Data::Enum(_) | Data::Union(_) => return TokenStream::new(),
-    };
-    let vis = input.vis;
-    let fields = match strukt.fields {
-        Fields::Named(fields) => fields,
-        Fields::Unnamed(_) | Fields::Unit => return TokenStream::new(),
+    let span = input.ident.span();
+    match soa_inner(input) {
+        Ok(tokens) => tokens,
+        Err(e) => {
+            let s: &str = e.into();
+            quote_spanned! {
+                span => compile_error!(#s);
+            }
+        }
     }
-    .named;
+    .into()
+}
 
+fn soa_inner(input: DeriveInput) -> Result<TokenStream2, SoapyError> {
+    let DeriveInput {
+        ident, vis, data, ..
+    } = input;
+    match data {
+        Data::Struct(strukt) => match strukt.fields {
+            Fields::Named(fields) => named_fields_struct(ident, vis, fields),
+            Fields::Unit => unit_struct(ident),
+            // TODO: Support unnamed fields
+            Fields::Unnamed(_) => Err(SoapyError::UnnamedFields),
+        },
+        Data::Enum(_) | Data::Union(_) => Err(SoapyError::NotAStruct),
+    }
+}
+
+fn named_fields_struct(
+    ident: Ident,
+    vis: Visibility,
+    fields: FieldsNamed,
+) -> Result<TokenStream2, SoapyError> {
+    let fields = fields.named;
     let ((vis_head, vis_tail), (ident_head, ident_tail), (ty_head, ty_tail)) = {
         let mut fields = fields.into_iter();
         let Some(head) = fields.next() else {
-            return TokenStream::new();
+            // No fields is equivalent to a unit struct
+            return unit_struct(ident);
         };
         let mut vis_tail = Vec::with_capacity(fields.len() - 1);
         let mut ident_tail = Vec::with_capacity(fields.len() - 1);
         let mut ty_tail = Vec::with_capacity(fields.len() - 1);
         for field in fields {
             vis_tail.push(field.vis);
-            ident_tail.push(field.ident.unwrap()); // TODO: No unwrap
+            ident_tail.push(field.ident.unwrap());
             ty_tail.push(field.ty);
         }
         (
@@ -36,7 +62,6 @@ pub fn soa(input: TokenStream) -> TokenStream {
         )
     };
 
-    // TODO: Do I need to collect? Does iterator work?
     let idents: Vec<_> = std::iter::once(&ident_head)
         .chain(ident_tail.iter())
         .cloned()
@@ -44,14 +69,13 @@ pub fn soa(input: TokenStream) -> TokenStream {
 
     let rev_idents: Vec<_> = idents.iter().cloned().rev().collect();
 
-    let element = input.ident;
-    let offsets = format_ident!("{element}SoaOffsets");
-    let fields = format_ident!("{element}SoaFields");
-    let fields_mut = format_ident!("{element}SoaFieldsMut");
-    let raw = format_ident!("{element}SoaRaw");
+    let offsets = format_ident!("{ident}SoaOffsets");
+    let fields = format_ident!("{ident}SoaFields");
+    let fields_mut = format_ident!("{ident}SoaFieldsMut");
+    let raw = format_ident!("{ident}SoaRaw");
 
-    let implementation = quote! {
-        impl ::soapy_shared::Soapy for #element {
+    Ok(quote! {
+        impl ::soapy_shared::Soapy for #ident {
             type SoaRaw = #raw;
         }
 
@@ -91,7 +115,7 @@ pub fn soa(input: TokenStream) -> TokenStream {
             }
         }
 
-        impl ::soapy_shared::SoaRaw<#element> for #raw {
+        impl ::soapy_shared::SoaRaw<#ident> for #raw {
             type Fields<'a> = #fields<'a> where Self: 'a;
             type FieldsMut<'a> = #fields_mut<'a> where Self: 'a;
 
@@ -165,6 +189,9 @@ pub fn soa(input: TokenStream) -> TokenStream {
             }
 
             unsafe fn dealloc(&mut self, capacity: usize) {
+                if capacity == 0 || ::std::mem::size_of::<#ident>() == 0 {
+                    return;
+                }
                 let (layout, _) = Self::layout_and_offsets(capacity);
                 ::std::alloc::dealloc(self.#ident_head.as_ptr() as *mut u8, layout);
             }
@@ -176,12 +203,12 @@ pub fn soa(input: TokenStream) -> TokenStream {
                 )*
             }
 
-            unsafe fn set(&mut self, index: usize, element: #element) {
+            unsafe fn set(&mut self, index: usize, element: #ident) {
                 #(self.#idents.as_ptr().add(index).write(element.#idents);)*
             }
 
-            unsafe fn get(&self, index: usize) -> #element {
-                #element {
+            unsafe fn get(&self, index: usize) -> #ident {
+                #ident {
                     #(#idents: self.#idents.as_ptr().add(index).read(),)*
                 }
             }
@@ -220,7 +247,33 @@ pub fn soa(input: TokenStream) -> TokenStream {
             }
             )*
         }
-    };
+    })
+}
 
-    implementation.into()
+fn unit_struct(_ident: Ident) -> Result<TokenStream2, SoapyError> {
+    todo!()
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+enum SoapyError {
+    NotAStruct,
+    UnnamedFields,
+}
+
+impl std::error::Error for SoapyError {}
+
+impl Display for SoapyError {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        let s: &str = (*self).into();
+        write!(f, "{}", s)
+    }
+}
+
+impl From<SoapyError> for &str {
+    fn from(value: SoapyError) -> Self {
+        match value {
+            SoapyError::NotAStruct => "Soapy only applies to structs",
+            SoapyError::UnnamedFields => "Soapy only applies to structs with named fields",
+        }
+    }
 }

@@ -46,6 +46,21 @@ mod tests {
 
     const ABCDE: [El; 5] = [A, B, C, D, E];
 
+    // #[derive(Soapy, Debug, Clone, Copy, PartialEq, Eq)]
+    // struct Zst;
+    //
+    // #[test]
+    // pub fn no_fields() {
+    //     let mut soa = Soa::new();
+    //     for _ in 0..5 {
+    //         soa.push(Zst);
+    //     }
+    //     for _ in 0..5 {
+    //         assert_eq!(soa.pop(), Some(Zst));
+    //     }
+    //     assert_eq!(soa.pop(), None);
+    // }
+
     #[test]
     pub fn push_and_pop() {
         let mut soa = Soa::new();

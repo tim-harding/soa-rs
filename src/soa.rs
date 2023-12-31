@@ -1,8 +1,5 @@
-// TODO: ZSTs
-
-use std::mem::ManuallyDrop;
-
 use soapy_shared::{SoaRaw, Soapy};
+use std::mem::{size_of, ManuallyDrop};
 
 pub struct Soa<T>
 where
@@ -20,7 +17,7 @@ where
     pub fn new() -> Self {
         Self {
             len: 0,
-            cap: 0,
+            cap: if size_of::<T>() == 0 { usize::MAX } else { 0 },
             raw: T::SoaRaw::new(),
         }
     }
@@ -82,9 +79,6 @@ where
     T: Soapy,
 {
     fn drop(&mut self) {
-        if self.cap == 0 {
-            return;
-        }
         while let Some(_) = self.pop() {}
         unsafe { self.raw.dealloc(self.cap) };
     }
@@ -152,9 +146,6 @@ where
     T: Soapy,
 {
     fn drop(&mut self) {
-        if self.cap == 0 {
-            return;
-        }
         while let Some(_) = self.next() {}
         unsafe { self.raw.dealloc(self.cap) };
     }
