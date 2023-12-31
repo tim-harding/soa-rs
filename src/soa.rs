@@ -40,6 +40,26 @@ where
         }
     }
 
+    pub fn insert(&mut self, index: usize, element: T) {
+        assert!(index <= self.len, "index out of bounds");
+        self.maybe_grow();
+        unsafe {
+            self.raw.copy(index, index + 1, self.len - index);
+            self.raw.set(index, element);
+        }
+        self.len += 1;
+    }
+
+    pub fn remove(&mut self, index: usize) -> T {
+        assert!(index < self.len, "index out of bounds");
+        self.len -= 1;
+        unsafe {
+            let out = self.raw.get(index);
+            self.raw.copy(index + 1, index, self.len - index);
+            out
+        }
+    }
+
     fn maybe_grow(&mut self) {
         if self.len < self.capacity {
             return;
