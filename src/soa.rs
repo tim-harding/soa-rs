@@ -1,5 +1,7 @@
 // TODO: ZSTs
 
+use std::mem::ManuallyDrop;
+
 use soapy_shared::{SoaRaw, Soapy};
 
 pub struct Soa<T>
@@ -7,7 +9,7 @@ where
     T: Soapy,
 {
     len: usize,
-    capacity: usize,
+    cap: usize,
     raw: T::SoaRaw,
 }
 
@@ -18,7 +20,7 @@ where
     pub fn new() -> Self {
         Self {
             len: 0,
-            capacity: 0,
+            cap: 0,
             raw: T::SoaRaw::new(),
         }
     }
@@ -61,17 +63,17 @@ where
     }
 
     fn maybe_grow(&mut self) {
-        if self.len < self.capacity {
+        if self.len < self.cap {
             return;
         }
-        let new_capacity = match self.capacity {
+        let new_capacity = match self.cap {
             0 => 4,
             cap => cap * 2,
         };
         unsafe {
-            self.raw.grow(self.capacity, new_capacity, self.len);
+            self.raw.grow(self.cap, new_capacity, self.len);
         }
-        self.capacity = new_capacity;
+        self.cap = new_capacity;
     }
 }
 
@@ -80,10 +82,80 @@ where
     T: Soapy,
 {
     fn drop(&mut self) {
-        if self.capacity == 0 {
+        if self.cap == 0 {
             return;
         }
         while let Some(_) = self.pop() {}
-        unsafe { self.raw.dealloc(self.capacity) };
+        unsafe { self.raw.dealloc(self.cap) };
+    }
+}
+
+impl<T> IntoIterator for Soa<T>
+where
+    T: Soapy,
+{
+    type Item = T;
+
+    type IntoIter = IntoIter<T>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        // Make sure not to drop self and free the buffer
+        let soa = ManuallyDrop::new(self);
+
+        let len = soa.len;
+        let cap = soa.cap;
+        let raw = soa.raw;
+
+        IntoIter {
+            start: 0,
+            end: len,
+            raw,
+            cap,
+        }
+    }
+}
+
+pub struct IntoIter<T>
+where
+    T: Soapy,
+{
+    raw: T::SoaRaw,
+    cap: usize,
+    start: usize,
+    end: usize,
+}
+
+impl<T> Iterator for IntoIter<T>
+where
+    T: Soapy,
+{
+    type Item = T;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.start >= self.end {
+            None
+        } else {
+            let out = unsafe { self.raw.get(self.start) };
+            self.start += 1;
+            Some(out)
+        }
+    }
+
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        let len = self.end - self.start;
+        (len, Some(len))
+    }
+}
+
+impl<T> Drop for IntoIter<T>
+where
+    T: Soapy,
+{
+    fn drop(&mut self) {
+        if self.cap == 0 {
+            return;
+        }
+        while let Some(_) = self.next() {}
+        unsafe { self.raw.dealloc(self.cap) };
     }
 }

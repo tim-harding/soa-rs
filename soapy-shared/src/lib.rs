@@ -2,7 +2,7 @@ pub trait Soapy: Sized {
     type SoaRaw: SoaRaw<Self>;
 }
 
-pub trait SoaRaw<T> {
+pub trait SoaRaw<T>: Copy + Clone {
     type Fields<'a>
     where
         Self: 'a;

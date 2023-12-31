@@ -44,16 +44,15 @@ mod tests {
         baz: [18, 19],
     };
 
-    const ELEMENTS: [El; 5] = [A, B, C, D, E];
-    const ALL_A: [El; 3] = [A, A, A];
+    const ABCDE: [El; 5] = [A, B, C, D, E];
 
     #[test]
     pub fn push_and_pop() {
         let mut soa = Soa::new();
-        for element in ELEMENTS.into_iter() {
+        for element in ABCDE.into_iter() {
             soa.push(element);
         }
-        for element in ELEMENTS.into_iter().rev() {
+        for element in ABCDE.into_iter().rev() {
             assert_eq!(Some(element), soa.pop());
         }
     }
@@ -68,13 +67,11 @@ mod tests {
 
     fn test_insert(index: usize, expected: [El; 4]) {
         let mut soa = Soa::new();
-        for element in ALL_A.into_iter() {
+        for element in [A, A, A].into_iter() {
             soa.push(element);
         }
         soa.insert(index, B);
-        for element in expected.into_iter().rev() {
-            assert_eq!(Some(element), soa.pop());
-        }
+        assert!(soa.into_iter().eq(expected.into_iter()));
     }
 
     #[test]
@@ -88,12 +85,10 @@ mod tests {
 
     fn test_remove(index: usize, expected_return: El, expected_contents: [El; 4]) {
         let mut soa = Soa::new();
-        for element in ELEMENTS.into_iter() {
+        for element in ABCDE.into_iter() {
             soa.push(element);
         }
         assert_eq!(expected_return, soa.remove(index));
-        for element in expected_contents.into_iter().rev() {
-            assert_eq!(Some(element), soa.pop());
-        }
+        assert!(soa.into_iter().eq(expected_contents.into_iter()));
     }
 }

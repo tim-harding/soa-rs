@@ -60,6 +60,7 @@ pub fn soa(input: TokenStream) -> TokenStream {
             #(#ident_tail: usize,)*
         }
 
+        #[derive(Copy, Clone)]
         #vis struct #raw {
             #ident_head: ::std::ptr::NonNull<#ty_head>,
             #(#ident_tail: ::std::ptr::NonNull<#ty_tail>,)*
