@@ -1,6 +1,3 @@
-mod soa;
-pub use soa::Soa;
-
 pub trait Soapy: Sized {
     type SoaRaw: SoaRaw<Self>;
 }

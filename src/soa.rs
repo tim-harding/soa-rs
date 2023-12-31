@@ -1,6 +1,6 @@
 // TODO: ZSTs
 
-use crate::{SoaRaw, Soapy};
+use soapy_shared::{SoaRaw, Soapy};
 
 pub struct Soa<T>
 where
@@ -24,24 +24,33 @@ where
     }
 
     pub fn push(&mut self, element: T) {
-        if self.len == self.capacity {
-            self.grow();
-        }
+        self.maybe_grow();
         unsafe {
             self.raw.set(self.len, element);
         }
+        self.len += 1;
     }
 
-    fn grow(&mut self) {
+    pub fn pop(&mut self) -> Option<T> {
+        if self.len == 0 {
+            None
+        } else {
+            self.len -= 1;
+            Some(unsafe { self.raw.get(self.len) })
+        }
+    }
+
+    fn maybe_grow(&mut self) {
+        if self.len < self.capacity {
+            return;
+        }
         let new_capacity = match self.capacity {
             0 => 4,
             cap => cap * 2,
         };
-
         unsafe {
             self.raw.grow(self.capacity, new_capacity, self.len);
         }
-
         self.capacity = new_capacity;
     }
 }
