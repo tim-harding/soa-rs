@@ -1,5 +1,5 @@
 pub trait Soapy: Sized {
-    type SoaRaw: SoaRaw<Self>;
+    type RawSoa: RawSoa<Self>;
 }
 
 /// A low-level utility providing fundamental operations needed by `Soa<T>`
@@ -22,7 +22,7 @@ pub trait Soapy: Sized {
 /// made, or
 /// - the same value as was used for `new_capacity` in previous calls
 /// to [`SoaRaw::grow`] and [`SoaRaw::shrink`]
-pub trait SoaRaw<T>: Copy + Clone {
+pub trait RawSoa<T>: Copy + Clone {
     /// For each field with type `F` in `T`, `Slices` has a field with type
     /// `&[F]`
     type Slices<'a>

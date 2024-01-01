@@ -75,7 +75,7 @@ fn fields_struct(
     let offsets = format_ident!("{ident}SoaOffsets");
     let slices = format_ident!("{ident}SoaSlices");
     let slices_mut = format_ident!("{ident}SoaSlicesMut");
-    let raw = format_ident!("{ident}SoaRaw");
+    let raw = format_ident!("{ident}RawSoa");
 
     let raw_body = match kind {
         FieldKind::Named => quote! {
@@ -148,7 +148,7 @@ fn fields_struct(
 
     Ok(quote! {
         impl ::soapy_shared::Soapy for #ident {
-            type SoaRaw = #raw;
+            type RawSoa = #raw;
         }
 
         #[derive(Copy, Clone)]
@@ -183,7 +183,7 @@ fn fields_struct(
             }
         }
 
-        impl ::soapy_shared::SoaRaw<#ident> for #raw {
+        impl ::soapy_shared::RawSoa<#ident> for #raw {
             type Slices<'a> = #slices<'a> where Self: 'a;
             type SlicesMut<'a> = #slices_mut<'a> where Self: 'a;
 
@@ -291,7 +291,7 @@ fn fields_struct(
 }
 
 fn zst_struct(ident: Ident, vis: Visibility, kind: ZstKind) -> Result<TokenStream2, SoapyError> {
-    let raw = format_ident!("{ident}SoaRaw");
+    let raw = format_ident!("{ident}RawSoa");
     let unit_construct = match kind {
         ZstKind::Unit => quote! {},
         ZstKind::Empty => quote! { {} },
@@ -300,13 +300,13 @@ fn zst_struct(ident: Ident, vis: Visibility, kind: ZstKind) -> Result<TokenStrea
 
     Ok(quote! {
         impl ::soapy_shared::Soapy for #ident {
-            type SoaRaw = #raw;
+            type RawSoa = #raw;
         }
 
         #[derive(Copy, Clone)]
         #vis struct #raw;
 
-        impl ::soapy_shared::SoaRaw<#ident> for #raw {
+        impl ::soapy_shared::RawSoa<#ident> for #raw {
             type Slices<'a> = ();
             type SlicesMut<'a> = ();
 

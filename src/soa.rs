@@ -1,4 +1,4 @@
-use soapy_shared::{SoaRaw, Soapy};
+use soapy_shared::{RawSoa, Soapy};
 use std::mem::{size_of, ManuallyDrop};
 
 pub struct Soa<T>
@@ -7,7 +7,7 @@ where
 {
     len: usize,
     cap: usize,
-    raw: T::SoaRaw,
+    raw: T::RawSoa,
 }
 
 impl<T> Soa<T>
@@ -18,7 +18,7 @@ where
         Self {
             len: 0,
             cap: if size_of::<T>() == 0 { usize::MAX } else { 0 },
-            raw: T::SoaRaw::dangling(),
+            raw: T::RawSoa::dangling(),
         }
     }
 
@@ -113,7 +113,7 @@ pub struct IntoIter<T>
 where
     T: Soapy,
 {
-    raw: T::SoaRaw,
+    raw: T::RawSoa,
     cap: usize,
     start: usize,
     end: usize,
