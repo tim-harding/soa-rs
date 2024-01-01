@@ -157,6 +157,9 @@ fn fields_struct(
         #[derive(Copy, Clone)]
         #vis struct #raw #raw_body
 
+        #vis struct #slices<'a> #slices_def
+        #vis struct #slices_mut<'a> #slices_mut_def
+
         impl #raw {
             fn layout_and_offsets(cap: usize) -> (::std::alloc::Layout, #offsets) {
                 let layout = ::std::alloc::Layout::array::<#ty_head>(cap).unwrap();
@@ -191,11 +194,23 @@ fn fields_struct(
             }
 
             fn slices(&self, len: usize) -> Self::Slices<'_> {
-                #slices::new(self, len)
+                #slices {
+                    #(
+                    #ident_all: unsafe {
+                        ::std::slice::from_raw_parts(self.#ident_all.as_ptr(), len)
+                    },
+                    )*
+                }
             }
 
             fn slices_mut(&mut self, len: usize) -> Self::SlicesMut<'_> {
-                #slices_mut::new(self, len)
+                #slices_mut {
+                    #(
+                    #ident_all: unsafe {
+                        ::std::slice::from_raw_parts_mut(self.#ident_all.as_ptr(), len)
+                    },
+                    )*
+                }
             }
 
             unsafe fn grow(&mut self, old_capacity: usize, new_capacity: usize, length: usize) {
@@ -272,34 +287,6 @@ fn fields_struct(
                 }
             }
         }
-
-        #vis struct #slices<'a> #slices_def
-
-        impl<'a> #slices<'a> {
-            fn new(raw: &'a #raw, len: usize) -> Self {
-                Self {
-                    #(
-                    #ident_all: unsafe {
-                        ::std::slice::from_raw_parts(raw.#ident_all.as_ptr(), len)
-                    },
-                    )*
-                }
-            }
-        }
-
-        #vis struct #slices_mut<'a> #slices_mut_def
-
-        impl<'a> #slices_mut<'a> {
-            fn new(raw: &'a mut #raw, len: usize) -> Self {
-                Self {
-                    #(
-                    #ident_all: unsafe {
-                        ::std::slice::from_raw_parts_mut(raw.#ident_all.as_ptr(), len)
-                    },
-                    )*
-                }
-            }
-        }
     })
 }
 
@@ -331,9 +318,7 @@ fn zst_struct(ident: Ident, vis: Visibility, kind: ZstKind) -> Result<TokenStrea
             unsafe fn dealloc(&mut self, capacity: usize) {}
             unsafe fn copy(&mut self, src: usize, dst: usize, count: usize) { }
             unsafe fn set(&mut self, index: usize, element: #ident) { }
-            unsafe fn get(&self, index: usize) -> #ident {
-                #ident #unit_construct
-            }
+            unsafe fn get(&self, index: usize) -> #ident { #ident #unit_construct }
         }
     })
 }
