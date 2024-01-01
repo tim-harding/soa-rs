@@ -18,7 +18,7 @@ where
         Self {
             len: 0,
             cap: if size_of::<T>() == 0 { usize::MAX } else { 0 },
-            raw: T::SoaRaw::new(),
+            raw: T::SoaRaw::dangling(),
         }
     }
 

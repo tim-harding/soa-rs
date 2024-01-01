@@ -187,7 +187,7 @@ fn fields_struct(
             type Slices<'a> = #slices<'a> where Self: 'a;
             type SlicesMut<'a> = #slices_mut<'a> where Self: 'a;
 
-            fn new() -> Self {
+            fn dangling() -> Self {
                 Self {
                     #(#ident_all: ::std::ptr::NonNull::dangling(),)*
                 }
@@ -242,7 +242,7 @@ fn fields_struct(
                     0 => {
                         let ptr = self.#ident_head.as_ptr() as *mut u8;
                         ::std::alloc::dealloc(ptr, old_layout);
-                        Self::new()
+                        Self::dangling()
                     }
 
                     // Move data and reallocate
@@ -310,7 +310,7 @@ fn zst_struct(ident: Ident, vis: Visibility, kind: ZstKind) -> Result<TokenStrea
             type Slices<'a> = ();
             type SlicesMut<'a> = ();
 
-            fn new() -> Self { Self }
+            fn dangling() -> Self { Self }
             fn slices(&self, len: usize) -> Self::Slices<'_> { () }
             fn slices_mut(&mut self, len: usize) -> Self::SlicesMut<'_> { () }
             unsafe fn grow(&mut self, old_capacity: usize, new_capacity: usize, length: usize) { }

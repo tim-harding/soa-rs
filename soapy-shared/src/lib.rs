@@ -11,7 +11,7 @@ pub trait SoaRaw<T>: Copy + Clone {
     where
         Self: 'a;
 
-    fn new() -> Self;
+    fn dangling() -> Self;
     fn slices(&self, len: usize) -> Self::Slices<'_>;
     fn slices_mut(&mut self, len: usize) -> Self::SlicesMut<'_>;
     unsafe fn grow(&mut self, old_capacity: usize, new_capacity: usize, length: usize);
