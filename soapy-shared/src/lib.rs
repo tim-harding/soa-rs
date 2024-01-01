@@ -7,8 +7,13 @@ pub trait SoaRaw<T>: Copy + Clone {
     where
         Self: 'a;
 
+    type SlicesMut<'a>
+    where
+        Self: 'a;
+
     fn new() -> Self;
     fn slices(&self, len: usize) -> Self::Slices<'_>;
+    fn slices_mut(&mut self, len: usize) -> Self::SlicesMut<'_>;
     unsafe fn grow(&mut self, old_capacity: usize, new_capacity: usize, length: usize);
     unsafe fn shrink(&mut self, old_capacity: usize, new_capacity: usize, length: usize);
     unsafe fn dealloc(&mut self, capacity: usize);

@@ -74,6 +74,7 @@ fn fields_struct(
 
     let offsets = format_ident!("{ident}SoaOffsets");
     let slices = format_ident!("{ident}SoaSlices");
+    let slices_mut = format_ident!("{ident}SoaSlicesMut");
     let raw = format_ident!("{ident}SoaRaw");
 
     let raw_body = match kind {
@@ -89,7 +90,6 @@ fn fields_struct(
         FieldKind::Named => quote! {
             { #(#ident_tail: usize),* }
         },
-
         FieldKind::Unnamed => {
             let tuple_fields = std::iter::repeat(quote! { usize }).take(fields_len - 1);
             quote! {
@@ -102,9 +102,17 @@ fn fields_struct(
         FieldKind::Named => quote! {
             { #(#vis_all #ident_all: &'a [#ty_all]),* }
         },
-
         FieldKind::Unnamed => quote! {
             ( #(#vis_all &'a [#ty_all]),* );
+        },
+    };
+
+    let slices_mut_def = match kind {
+        FieldKind::Named => quote! {
+            { #(#vis_all #ident_all: &'a mut [#ty_all]),* }
+        },
+        FieldKind::Unnamed => quote! {
+            ( #(#vis_all &'a mut [#ty_all]),* );
         },
     };
 
@@ -174,6 +182,7 @@ fn fields_struct(
 
         impl ::soapy_shared::SoaRaw<#ident> for #raw {
             type Slices<'a> = #slices<'a> where Self: 'a;
+            type SlicesMut<'a> = #slices_mut<'a> where Self: 'a;
 
             fn new() -> Self {
                 Self {
@@ -183,6 +192,10 @@ fn fields_struct(
 
             fn slices(&self, len: usize) -> Self::Slices<'_> {
                 #slices::new(self, len)
+            }
+
+            fn slices_mut(&mut self, len: usize) -> Self::SlicesMut<'_> {
+                #slices_mut::new(self, len)
             }
 
             unsafe fn grow(&mut self, old_capacity: usize, new_capacity: usize, length: usize) {
@@ -273,6 +286,20 @@ fn fields_struct(
                 }
             }
         }
+
+        #vis struct #slices_mut<'a> #slices_mut_def
+
+        impl<'a> #slices_mut<'a> {
+            fn new(raw: &'a mut #raw, len: usize) -> Self {
+                Self {
+                    #(
+                    #ident_all: unsafe {
+                        ::std::slice::from_raw_parts_mut(raw.#ident_all.as_ptr(), len)
+                    },
+                    )*
+                }
+            }
+        }
     })
 }
 
@@ -294,9 +321,11 @@ fn zst_struct(ident: Ident, vis: Visibility, kind: ZstKind) -> Result<TokenStrea
 
         impl ::soapy_shared::SoaRaw<#ident> for #raw {
             type Slices<'a> = ();
+            type SlicesMut<'a> = ();
 
             fn new() -> Self { Self }
             fn slices(&self, len: usize) -> Self::Slices<'_> { () }
+            fn slices_mut(&mut self, len: usize) -> Self::SlicesMut<'_> { () }
             unsafe fn grow(&mut self, old_capacity: usize, new_capacity: usize, length: usize) { }
             unsafe fn shrink(&mut self, old_capacity: usize, new_capacity: usize, length: usize) { }
             unsafe fn dealloc(&mut self, capacity: usize) {}
