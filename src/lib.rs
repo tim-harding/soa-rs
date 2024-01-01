@@ -52,13 +52,26 @@ mod tests {
     #[derive(Soapy, Debug, Clone, Copy, PartialEq, Eq, Default)]
     struct Empty {}
 
-    // #[derive(Soapy, Debug, Clone, Copy, PartialEq, Eq, Default)]
-    // struct EmptyTuple();
+    #[derive(Soapy, Debug, Clone, Copy, PartialEq, Eq, Default)]
+    struct EmptyTuple();
 
     #[derive(Soapy, Debug, Clone, Copy, PartialEq, Eq, Default)]
     struct ZstFields {
         a: Unit,
         b: (),
+    }
+
+    #[derive(Soapy, Debug, Clone, Copy, PartialEq, Eq, Default)]
+    struct Tuple(u8, u16, u32);
+
+    #[test]
+    pub fn tuple() {
+        let mut soa = Soa::new();
+        let elements = [Tuple(0, 1, 2), Tuple(3, 4, 5), Tuple(6, 7, 8)];
+        for element in elements {
+            soa.push(element);
+        }
+        assert!(elements.into_iter().eq(soa.into_iter()));
     }
 
     #[test]
@@ -69,6 +82,18 @@ mod tests {
         }
         for _ in 0..5 {
             assert_eq!(soa.pop(), Some(ZstFields::default()));
+        }
+        assert_eq!(soa.pop(), None);
+    }
+
+    #[test]
+    pub fn empty_tuple() {
+        let mut soa = Soa::new();
+        for _ in 0..5 {
+            soa.push(EmptyTuple());
+        }
+        for _ in 0..5 {
+            assert_eq!(soa.pop(), Some(EmptyTuple()));
         }
         assert_eq!(soa.pop(), None);
     }

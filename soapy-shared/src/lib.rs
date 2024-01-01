@@ -3,17 +3,12 @@ pub trait Soapy: Sized {
 }
 
 pub trait SoaRaw<T>: Copy + Clone {
-    type Fields<'a>
-    where
-        Self: 'a;
-
-    type FieldsMut<'a>
+    type Slices<'a>
     where
         Self: 'a;
 
     fn new() -> Self;
-    fn fields(&self, len: usize) -> Self::Fields<'_>;
-    fn fields_mut<'a>(&'a mut self, len: usize) -> Self::FieldsMut<'a>;
+    fn slices(&self, len: usize) -> Self::Slices<'_>;
     unsafe fn grow(&mut self, old_capacity: usize, new_capacity: usize, length: usize);
     unsafe fn shrink(&mut self, old_capacity: usize, new_capacity: usize, length: usize);
     unsafe fn dealloc(&mut self, capacity: usize);

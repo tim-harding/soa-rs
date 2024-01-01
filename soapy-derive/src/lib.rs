@@ -1,8 +1,11 @@
 use proc_macro::TokenStream;
 use proc_macro2::TokenStream as TokenStream2;
-use quote::{format_ident, quote, quote_spanned};
+use quote::{format_ident, quote, quote_spanned, ToTokens};
 use std::fmt::{self, Display, Formatter};
-use syn::{parse_macro_input, Data, DeriveInput, Fields, FieldsNamed, Ident, Visibility};
+use syn::{
+    parse_macro_input, punctuated::Punctuated, token::Comma, Data, DeriveInput, Field, Fields,
+    Ident, Index, Visibility,
+};
 
 #[proc_macro_derive(Soapy)]
 pub fn soa(input: TokenStream) -> TokenStream {
@@ -26,53 +29,121 @@ fn soa_inner(input: DeriveInput) -> Result<TokenStream2, SoapyError> {
     } = input;
     match data {
         Data::Struct(strukt) => match strukt.fields {
-            Fields::Named(fields) => named_fields_struct(ident, vis, fields),
+            Fields::Named(fields) => fields_struct(ident, vis, fields.named, FieldKind::Named),
             Fields::Unit => zst_struct(ident, vis, ZstKind::Unit),
-            // TODO: Support unnamed fields
-            Fields::Unnamed(_) => Err(SoapyError::UnnamedFields),
+            Fields::Unnamed(fields) => {
+                fields_struct(ident, vis, fields.unnamed, FieldKind::Unnamed)
+            }
         },
         Data::Enum(_) | Data::Union(_) => Err(SoapyError::NotAStruct),
     }
 }
 
-fn named_fields_struct(
+fn fields_struct(
     ident: Ident,
     vis: Visibility,
-    fields: FieldsNamed,
+    fields: Punctuated<Field, Comma>,
+    kind: FieldKind,
 ) -> Result<TokenStream2, SoapyError> {
-    let fields = fields.named;
-    let ((vis_head, vis_tail), (ident_head, ident_tail), (ty_head, ty_tail)) = {
-        let mut fields = fields.into_iter();
-        let Some(head) = fields.next() else {
-            // No fields is equivalent to a unit struct
-            return zst_struct(ident, vis, ZstKind::Empty);
-        };
-        let mut vis_tail = Vec::with_capacity(fields.len() - 1);
-        let mut ident_tail = Vec::with_capacity(fields.len() - 1);
-        let mut ty_tail = Vec::with_capacity(fields.len() - 1);
-        for field in fields {
-            vis_tail.push(field.vis);
-            ident_tail.push(field.ident.unwrap());
-            ty_tail.push(field.ty);
+    let fields_len = fields.len();
+    let (vis_all, (ty_all, ident_all)): (Vec<_>, (Vec<_>, Vec<FieldIdent>)) = fields
+        .into_iter()
+        .enumerate()
+        .map(|(i, field)| (field.vis, (field.ty, (i, field.ident).into())))
+        .unzip();
+    let ident_rev: Vec<_> = ident_all.iter().cloned().rev().collect();
+
+    let (_vis_head, ident_head, ty_head) = match (
+        vis_all.first().cloned(),
+        ty_all.first().cloned(),
+        ident_all.first().cloned(),
+    ) {
+        (Some(vis), Some(ty), Some(ident)) => (vis, ident, ty),
+        _ => {
+            let zst_kind = match kind {
+                FieldKind::Named => ZstKind::Empty,
+                FieldKind::Unnamed => ZstKind::EmptyTuple,
+            };
+            return zst_struct(ident, vis, zst_kind);
         }
-        (
-            (head.vis, vis_tail),
-            (head.ident.unwrap(), ident_tail),
-            (head.ty, ty_tail),
-        )
     };
 
-    let idents: Vec<_> = std::iter::once(&ident_head)
-        .chain(ident_tail.iter())
-        .cloned()
-        .collect();
-
-    let rev_idents: Vec<_> = idents.iter().cloned().rev().collect();
+    let _vis_tail: Vec<_> = vis_all.iter().skip(1).cloned().collect();
+    let ty_tail: Vec<_> = ty_all.iter().skip(1).cloned().collect();
+    let ident_tail: Vec<_> = ident_all.iter().skip(1).cloned().collect();
 
     let offsets = format_ident!("{ident}SoaOffsets");
-    let fields = format_ident!("{ident}SoaFields");
-    let fields_mut = format_ident!("{ident}SoaFieldsMut");
+    let slices = format_ident!("{ident}SoaSlices");
     let raw = format_ident!("{ident}SoaRaw");
+
+    let raw_body = match kind {
+        FieldKind::Named => quote! {
+            {
+                #(#vis_all #ident_all: ::std::ptr::NonNull<#ty_all>,)*
+            }
+        },
+
+        FieldKind::Unnamed => {
+            quote! {
+                (#(#vis_all ::std::ptr::NonNull<#ty_all>),*);
+            }
+        }
+    };
+
+    let offsets_body = match kind {
+        FieldKind::Named => quote! {
+            {
+                #(#ident_tail: usize),*
+            }
+        },
+
+        FieldKind::Unnamed => {
+            let tuple_fields = (0..fields_len - 1).map(|_| quote! { usize });
+            quote! {
+                (#(#tuple_fields),*);
+            }
+        }
+    };
+
+    let slices_def = match kind {
+        FieldKind::Named => quote! {
+            {#(#vis_all #ident_all: &'a [#ty_all]),*}
+        },
+
+        FieldKind::Unnamed => quote! {
+            (#(#vis_all &'a [#ty_all]),*);
+        },
+    };
+
+    let offsets_vars: Vec<_> = ident_tail
+        .iter()
+        .enumerate()
+        .map(|(i, ident)| match ident {
+            FieldIdent::Named(ident) => ident.clone(),
+            FieldIdent::Unnamed(_) => format_ident!("f{}", i),
+        })
+        .collect();
+
+    let offsets_idents: Vec<FieldIdent> = ident_tail
+        .iter()
+        .enumerate()
+        .map(|(i, ident)| {
+            let ident = match ident {
+                FieldIdent::Named(ident) => Some(ident.clone()),
+                FieldIdent::Unnamed(_) => None,
+            };
+            (i, ident).into()
+        })
+        .collect();
+
+    let construct_offsets = match kind {
+        FieldKind::Named => quote! {
+            { #(#offsets_vars),* }
+        },
+        FieldKind::Unnamed => quote! {
+            ( #(#offsets_vars),* )
+        },
+    };
 
     Ok(quote! {
         impl ::soapy_shared::Soapy for #ident {
@@ -80,26 +151,19 @@ fn named_fields_struct(
         }
 
         #[derive(Copy, Clone)]
-        struct #offsets {
-            #(#ident_tail: usize,)*
-        }
+        struct #offsets #offsets_body
 
         #[derive(Copy, Clone)]
-        #vis struct #raw {
-            #ident_head: ::std::ptr::NonNull<#ty_head>,
-            #(#ident_tail: ::std::ptr::NonNull<#ty_tail>,)*
-        }
+        #vis struct #raw #raw_body
 
         impl #raw {
             fn layout_and_offsets(cap: usize) -> (::std::alloc::Layout, #offsets) {
                 let layout = ::std::alloc::Layout::array::<#ty_head>(cap).unwrap();
                 #(
                 let array = ::std::alloc::Layout::array::<#ty_tail>(cap).unwrap();
-                let (layout, #ident_tail) = layout.extend(array).unwrap();
+                let (layout, #offsets_vars) = layout.extend(array).unwrap();
                 )*
-                let offsets = #offsets {
-                    #(#ident_tail,)*
-                };
+                let offsets = #offsets #construct_offsets;
                 (layout, offsets)
             }
 
@@ -107,36 +171,25 @@ fn named_fields_struct(
                 Self {
                     #ident_head: ::std::ptr::NonNull::new_unchecked(ptr as *mut #ty_head),
                     #(
-                    #ident_tail: ::std::ptr::NonNull::new_unchecked(
-                        ptr.add(offsets.#ident_tail) as *mut #ty_tail,
-                    ),
+                        #ident_tail: ::std::ptr::NonNull::new_unchecked(
+                            ptr.add(offsets.#offsets_idents) as *mut #ty_tail,
+                        ),
                     )*
                 }
             }
         }
 
         impl ::soapy_shared::SoaRaw<#ident> for #raw {
-            type Fields<'a> = #fields<'a> where Self: 'a;
-            type FieldsMut<'a> = #fields_mut<'a> where Self: 'a;
+            type Slices<'a> = #slices<'a> where Self: 'a;
 
             fn new() -> Self {
                 Self {
-                    #(#idents: ::std::ptr::NonNull::dangling(),)*
+                    #(#ident_all: ::std::ptr::NonNull::dangling(),)*
                 }
             }
 
-            fn fields(&self, len: usize) -> Self::Fields<'_> {
-                #fields {
-                    raw: self,
-                    len,
-                }
-            }
-
-            fn fields_mut(&mut self, len: usize) -> Self::FieldsMut<'_> {
-                #fields_mut {
-                    raw: self,
-                    len,
-                }
+            fn slices(&self, len: usize) -> Self::Slices<'_> {
+                #slices::new(self, len)
             }
 
             unsafe fn grow(&mut self, old_capacity: usize, new_capacity: usize, length: usize) {
@@ -156,7 +209,7 @@ fn named_fields_struct(
                     let new = Self::with_offsets(ptr, new_offsets);
                     // Copy do destination in reverse order to avoid
                     // overwriting data
-                    #(::std::ptr::copy(old.#rev_idents.as_ptr(), new.#rev_idents.as_ptr(), length);)*
+                    #(::std::ptr::copy(old.#ident_rev.as_ptr(), new.#ident_rev.as_ptr(), length);)*
                     new
                 }
             }
@@ -178,7 +231,7 @@ fn named_fields_struct(
                         // may be past the end of the new allocation.
                         // Copy from front to back to avoid overwriting data.
                         let dst = Self::with_offsets(self.#ident_head.as_ptr() as *mut u8, new_offsets);
-                        #(::std::ptr::copy(self.#idents.as_ptr(), dst.#idents.as_ptr(), length);)*
+                        #(::std::ptr::copy(self.#ident_all.as_ptr(), dst.#ident_all.as_ptr(), length);)*
                         let ptr = self.#ident_head.as_ptr() as *mut u8;
                         let ptr = ::std::alloc::realloc(ptr, old_layout, new_layout.size());
                         assert_ne!(ptr as *const u8, ::std::ptr::null());
@@ -198,54 +251,34 @@ fn named_fields_struct(
 
             unsafe fn copy(&mut self, src: usize, dst: usize, count: usize) {
                 #(
-                let #idents = self.#idents.as_ptr();
-                ::std::ptr::copy(#idents.add(src), #idents.add(dst), count);
+                let ptr = self.#ident_all.as_ptr();
+                ::std::ptr::copy(ptr.add(src), ptr.add(dst), count);
                 )*
             }
 
             unsafe fn set(&mut self, index: usize, element: #ident) {
-                #(self.#idents.as_ptr().add(index).write(element.#idents);)*
+                #(self.#ident_all.as_ptr().add(index).write(element.#ident_all);)*
             }
 
             unsafe fn get(&self, index: usize) -> #ident {
                 #ident {
-                    #(#idents: self.#idents.as_ptr().add(index).read(),)*
+                    #(#ident_all: self.#ident_all.as_ptr().add(index).read(),)*
                 }
             }
         }
 
-        pub struct #fields<'a> {
-            raw: &'a #raw,
-            len: usize,
-        }
+        #vis struct #slices<'a> #slices_def
 
-        impl<'a> #fields<'a> {
-            #vis_head fn #ident_head(&self) -> &[#ty_head] {
-                unsafe { ::std::slice::from_raw_parts(self.raw.#ident_head.as_ptr(), self.len) }
+        impl<'a> #slices<'a> {
+            fn new(raw: &'a #raw, len: usize) -> Self {
+                Self {
+                    #(
+                    #ident_all: unsafe {
+                        ::std::slice::from_raw_parts(raw.#ident_all.as_ptr(), len)
+                    },
+                    )*
+                }
             }
-
-            #(
-            #vis_tail fn #ident_tail(&self) -> &[#ty_tail] {
-                unsafe { ::std::slice::from_raw_parts(self.raw.#ident_tail.as_ptr(), self.len) }
-            }
-            )*
-        }
-
-        pub struct #fields_mut<'a> {
-            raw: &'a mut #raw,
-            len: usize,
-        }
-
-        impl<'a> #fields_mut<'a> {
-            #vis_head fn #ident_head(&mut self) -> &mut [#ty_head] {
-                unsafe { ::std::slice::from_raw_parts_mut(self.raw.#ident_head.as_ptr(), self.len) }
-            }
-
-            #(
-            #vis_tail fn #ident_tail(&mut self) -> &mut [#ty_tail] {
-                unsafe { ::std::slice::from_raw_parts_mut(self.raw.#ident_tail.as_ptr(), self.len) }
-            }
-            )*
         }
     })
 }
@@ -267,12 +300,10 @@ fn zst_struct(ident: Ident, vis: Visibility, kind: ZstKind) -> Result<TokenStrea
         #vis struct #raw;
 
         impl ::soapy_shared::SoaRaw<#ident> for #raw {
-            type Fields<'a> = ();
-            type FieldsMut<'a> = ();
+            type Slices<'a> = ();
 
             fn new() -> Self { Self }
-            fn fields(&self, len: usize) -> Self::Fields<'_> { () }
-            fn fields_mut(&mut self, len: usize) -> Self::FieldsMut<'_> { () }
+            fn slices(&self, len: usize) -> Self::Slices<'_> { () }
             unsafe fn grow(&mut self, old_capacity: usize, new_capacity: usize, length: usize) { }
             unsafe fn shrink(&mut self, old_capacity: usize, new_capacity: usize, length: usize) { }
             unsafe fn dealloc(&mut self, capacity: usize) {}
@@ -283,6 +314,36 @@ fn zst_struct(ident: Ident, vis: Visibility, kind: ZstKind) -> Result<TokenStrea
             }
         }
     })
+}
+
+#[derive(Clone, PartialEq, Eq)]
+enum FieldIdent {
+    Named(Ident),
+    Unnamed(Index),
+}
+
+impl From<(usize, Option<Ident>)> for FieldIdent {
+    fn from(value: (usize, Option<Ident>)) -> Self {
+        match value {
+            (_, Some(ident)) => Self::Named(ident),
+            (i, None) => Self::Unnamed(Index::from(i)),
+        }
+    }
+}
+
+impl ToTokens for FieldIdent {
+    fn to_tokens(&self, tokens: &mut TokenStream2) {
+        match self {
+            FieldIdent::Named(ident) => ident.to_tokens(tokens),
+            FieldIdent::Unnamed(i) => i.to_tokens(tokens),
+        }
+    }
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
+enum FieldKind {
+    Named,
+    Unnamed,
 }
 
 enum ZstKind {
@@ -298,7 +359,6 @@ enum ZstKind {
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 enum SoapyError {
     NotAStruct,
-    UnnamedFields,
 }
 
 impl std::error::Error for SoapyError {}
@@ -314,7 +374,6 @@ impl From<SoapyError> for &str {
     fn from(value: SoapyError) -> Self {
         match value {
             SoapyError::NotAStruct => "Soapy only applies to structs",
-            SoapyError::UnnamedFields => "Soapy only applies to structs with named fields",
         }
     }
 }
