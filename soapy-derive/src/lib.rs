@@ -78,40 +78,33 @@ fn fields_struct(
 
     let raw_body = match kind {
         FieldKind::Named => quote! {
-            {
-                #(#vis_all #ident_all: ::std::ptr::NonNull<#ty_all>,)*
-            }
+            { #(#vis_all #ident_all: ::std::ptr::NonNull<#ty_all>,)* }
         },
-
-        FieldKind::Unnamed => {
-            quote! {
-                (#(#vis_all ::std::ptr::NonNull<#ty_all>),*);
-            }
-        }
+        FieldKind::Unnamed => quote! {
+            ( #(#vis_all ::std::ptr::NonNull<#ty_all>),* );
+        },
     };
 
     let offsets_body = match kind {
         FieldKind::Named => quote! {
-            {
-                #(#ident_tail: usize),*
-            }
+            { #(#ident_tail: usize),* }
         },
 
         FieldKind::Unnamed => {
-            let tuple_fields = (0..fields_len - 1).map(|_| quote! { usize });
+            let tuple_fields = std::iter::repeat(quote! { usize }).take(fields_len - 1);
             quote! {
-                (#(#tuple_fields),*);
+                ( #(#tuple_fields),* );
             }
         }
     };
 
     let slices_def = match kind {
         FieldKind::Named => quote! {
-            {#(#vis_all #ident_all: &'a [#ty_all]),*}
+            { #(#vis_all #ident_all: &'a [#ty_all]),* }
         },
 
         FieldKind::Unnamed => quote! {
-            (#(#vis_all &'a [#ty_all]),*);
+            ( #(#vis_all &'a [#ty_all]),* );
         },
     };
 
