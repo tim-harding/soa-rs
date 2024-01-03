@@ -311,6 +311,56 @@ where
     }
 }
 
+impl<T, const N: usize> From<[T; N]> for Soa<T>
+where
+    T: Soapy,
+{
+    /// Allocate a `Soa<T>` and move `value`'s items into it.
+    fn from(value: [T; N]) -> Self {
+        value.into_iter().collect()
+    }
+}
+
+impl<T, const N: usize> From<&[T; N]> for Soa<T>
+where
+    T: Soapy + Clone,
+{
+    /// Allocate a `Soa<T>` and fill it by cloning `value`'s items.
+    fn from(value: &[T; N]) -> Self {
+        value.iter().cloned().collect()
+    }
+}
+
+impl<T, const N: usize> From<&mut [T; N]> for Soa<T>
+where
+    T: Soapy + Clone,
+{
+    /// Allocate a `Soa<T>` and fill it by cloning `value`'s items.
+    fn from(value: &mut [T; N]) -> Self {
+        value.iter().cloned().collect()
+    }
+}
+
+impl<T> From<&[T]> for Soa<T>
+where
+    T: Soapy + Clone,
+{
+    /// Allocate a `Soa<T>` and fill it by cloning `value`'s items.
+    fn from(value: &[T]) -> Self {
+        value.iter().cloned().collect()
+    }
+}
+
+impl<T> From<&mut [T]> for Soa<T>
+where
+    T: Soapy + Clone,
+{
+    /// Allocate a `Soa<T>` and fill it by cloning `value`'s items.
+    fn from(value: &mut [T]) -> Self {
+        value.iter().cloned().collect()
+    }
+}
+
 pub struct IntoIter<T>
 where
     T: Soapy,
