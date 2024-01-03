@@ -213,67 +213,54 @@ fn fields_struct(
                 }
             }
 
-            unsafe fn grow(&mut self, old_capacity: usize, new_capacity: usize, length: usize) {
+            unsafe fn alloc(&mut self, capacity: usize) {
+                let (new_layout, new_offsets) = Self::layout_and_offsets(capacity);
+                let ptr = ::std::alloc::alloc(new_layout);
+                assert_ne!(ptr as *const u8, ::std::ptr::null());
+                *self = Self::with_offsets(ptr, new_offsets);
+            }
+
+            unsafe fn realloc_grow(&mut self, old_capacity: usize, new_capacity: usize, length: usize) {
                 let (new_layout, new_offsets) = Self::layout_and_offsets(new_capacity);
-                *self = if old_capacity == 0 {
-                    let ptr = ::std::alloc::alloc(new_layout);
-                    assert_ne!(ptr as *const u8, ::std::ptr::null());
-                    Self::with_offsets(ptr, new_offsets)
-                } else {
-                    let (old_layout, old_offsets) = Self::layout_and_offsets(old_capacity);
-                    // Grow allocation first
-                    let ptr = self.#ident_head.as_ptr() as *mut u8;
-                    let ptr = ::std::alloc::realloc(ptr, old_layout, new_layout.size());
-                    assert_ne!(ptr as *const u8, ::std::ptr::null());
-                    // Pointer may have moved, can't reuse self
-                    let old = Self::with_offsets(ptr, old_offsets);
-                    let new = Self::with_offsets(ptr, new_offsets);
-                    // Copy do destination in reverse order to avoid
-                    // overwriting data
-                    #(::std::ptr::copy(old.#ident_rev.as_ptr(), new.#ident_rev.as_ptr(), length);)*
-                    new
-                }
+                let (old_layout, old_offsets) = Self::layout_and_offsets(old_capacity);
+                // Grow allocation first
+                let ptr = self.#ident_head.as_ptr() as *mut u8;
+                let ptr = ::std::alloc::realloc(ptr, old_layout, new_layout.size());
+                assert_ne!(ptr as *const u8, ::std::ptr::null());
+                // Pointer may have moved, can't reuse self
+                let old = Self::with_offsets(ptr, old_offsets);
+                let new = Self::with_offsets(ptr, new_offsets);
+                // Copy do destination in reverse order to avoid
+                // overwriting data
+                #(::std::ptr::copy(old.#ident_rev.as_ptr(), new.#ident_rev.as_ptr(), length);)*
+                *self = new;
             }
 
-            unsafe fn shrink(&mut self, old_capacity: usize, new_capacity: usize, length: usize) {
+            unsafe fn realloc_shrink(&mut self, old_capacity: usize, new_capacity: usize, length: usize) {
                 let (old_layout, _) = Self::layout_and_offsets(old_capacity);
-                *self = match new_capacity {
-                    // Deallocate
-                    0 => {
-                        let ptr = self.#ident_head.as_ptr() as *mut u8;
-                        ::std::alloc::dealloc(ptr, old_layout);
-                        Self::dangling()
-                    }
-
-                    // Move data and reallocate
-                    _ => {
-                        let (new_layout, new_offsets) = Self::layout_and_offsets(new_capacity);
-                        // Move data before reallocating as some data
-                        // may be past the end of the new allocation.
-                        // Copy from front to back to avoid overwriting data.
-                        let dst = Self::with_offsets(self.#ident_head.as_ptr() as *mut u8, new_offsets);
-                        #(::std::ptr::copy(self.#ident_all.as_ptr(), dst.#ident_all.as_ptr(), length);)*
-                        let ptr = self.#ident_head.as_ptr() as *mut u8;
-                        let ptr = ::std::alloc::realloc(ptr, old_layout, new_layout.size());
-                        assert_ne!(ptr as *const u8, ::std::ptr::null());
-                        // Pointer may have moved, can't reuse dst
-                        Self::with_offsets(ptr, new_offsets)
-                    }
-                };
+                let (new_layout, new_offsets) = Self::layout_and_offsets(new_capacity);
+                // Move data before reallocating as some data
+                // may be past the end of the new allocation.
+                // Copy from front to back to avoid overwriting data.
+                let ptr = self.#ident_head.as_ptr() as *mut u8;
+                let dst = Self::with_offsets(ptr, new_offsets);
+                #(::std::ptr::copy(self.#ident_all.as_ptr(), dst.#ident_all.as_ptr(), length);)*
+                let ptr = ::std::alloc::realloc(ptr, old_layout, new_layout.size());
+                assert_ne!(ptr as *const u8, ::std::ptr::null());
+                // Pointer may have moved, can't reuse dst
+                *self = Self::with_offsets(ptr, new_offsets);
             }
 
-            unsafe fn dealloc(&mut self, capacity: usize) {
-                if capacity == 0 || ::std::mem::size_of::<#ident>() == 0 {
-                    return;
-                }
-                let (layout, _) = Self::layout_and_offsets(capacity);
-                ::std::alloc::dealloc(self.#ident_head.as_ptr() as *mut u8, layout);
+            unsafe fn dealloc(&mut self, old_capacity: usize) {
+                let (layout, _) = Self::layout_and_offsets(old_capacity);
+                let ptr = self.#ident_head.as_ptr() as *mut u8;
+                ::std::alloc::dealloc(ptr, layout);
             }
 
             unsafe fn copy(&mut self, src: usize, dst: usize, count: usize) {
                 #(
-                let ptr = self.#ident_all.as_ptr();
-                ::std::ptr::copy(ptr.add(src), ptr.add(dst), count);
+                    let ptr = self.#ident_all.as_ptr();
+                    ::std::ptr::copy(ptr.add(src), ptr.add(dst), count);
                 )*
             }
 
@@ -313,9 +300,10 @@ fn zst_struct(ident: Ident, vis: Visibility, kind: ZstKind) -> Result<TokenStrea
             fn dangling() -> Self { Self }
             fn slices(&self, len: usize) -> Self::Slices<'_> { () }
             fn slices_mut(&mut self, len: usize) -> Self::SlicesMut<'_> { () }
-            unsafe fn grow(&mut self, old_capacity: usize, new_capacity: usize, length: usize) { }
-            unsafe fn shrink(&mut self, old_capacity: usize, new_capacity: usize, length: usize) { }
-            unsafe fn dealloc(&mut self, capacity: usize) {}
+            unsafe fn alloc(&mut self, capacity: usize) { }
+            unsafe fn realloc_grow(&mut self, old_capacity: usize, new_capacity: usize, length: usize) { }
+            unsafe fn realloc_shrink(&mut self, old_capacity: usize, new_capacity: usize, length: usize) { }
+            unsafe fn dealloc(&mut self, old_capacity: usize) { }
             unsafe fn copy(&mut self, src: usize, dst: usize, count: usize) { }
             unsafe fn set(&mut self, index: usize, element: #ident) { }
             unsafe fn get(&self, index: usize) -> #ident { #ident #unit_construct }

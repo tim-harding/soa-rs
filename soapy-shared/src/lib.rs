@@ -30,10 +30,10 @@ pub trait Soapy: Sized {
 ///
 /// In the method documentation, it is established that `PREV_CAP` is
 ///
-/// - 0 if no previous calls to [`SoaRaw::grow`] or [`SoaRaw::shrink`] have been
+/// - 0 if no previous calls to [`RawSoa::grow`] or [`RawSoa::shrink`] have been
 /// made, or
 /// - the same value as was used for `new_capacity` in previous calls
-/// to [`SoaRaw::grow`] and [`SoaRaw::shrink`]
+/// to [`RawSoa::grow`] and [`RawSoa::shrink`]
 pub trait RawSoa<T>: Copy + Clone {
     /// For each field with type `F` in `T`, `Slices` has a field with type
     /// `&[F]`
@@ -57,50 +57,64 @@ pub trait RawSoa<T>: Copy + Clone {
     /// Constructs safe, mutable slices of the arrays managed by `Self`.
     fn slices_mut(&mut self, len: usize) -> Self::SlicesMut<'_>;
 
+    /// Allocates room for `capacity` elements.
+    ///
+    /// # Safety
+    ///
+    /// The caller must ensure that
+    ///
+    /// - `capacity > 0`
+    /// - `PREV_CAP == 0` (Otherwise use [`RawSoa::grow`])
+    unsafe fn alloc(&mut self, capacity: usize);
+
     /// Grows the allocation with room for `old_capacity` elements to fit
     /// `new_capacity` elements and moves `length` number of array elements to
     /// their new locations.
     ///
     /// # Safety
     ///
-    /// The caller must verify that
+    /// The caller must ensure that
     ///
     /// - `size_of::<T>() > 0`
     /// - `new_capacity > old_capacity`
     /// - `length <= old_capacity`
     /// - `old_capacity == PREV_CAP`
-    unsafe fn grow(&mut self, old_capacity: usize, new_capacity: usize, length: usize);
+    /// - `PREV_CAP > 0` (Otherwise use [`RawSoa::alloc`])
+    unsafe fn realloc_grow(&mut self, old_capacity: usize, new_capacity: usize, length: usize);
 
     /// Shrinks the allocation with room for `old_capacity` elements to fit
     /// `new_capacity` elements and moves `length` number of array elements to
-    /// their new locations. Deallocates if new_capacity is 0.
+    /// their new locations.
     ///
     /// # Safety
     ///
-    /// The caller must verify that
+    /// The caller must ensure that
     ///
     /// - `size_of::<T>() > 0`
     /// - `new_capacity < old_capacity`
     /// - `length <= new_capacity`
     /// - `old_capacity == PREV_CAP`
-    unsafe fn shrink(&mut self, old_capacity: usize, new_capacity: usize, length: usize);
+    /// - `PREV_CAP > 0` (Otherwise use [`RawSoa::dealloc`])
+    unsafe fn realloc_shrink(&mut self, old_capacity: usize, new_capacity: usize, length: usize);
 
     /// Deallocates the allocation with room for `capacity` elements.
     ///
     /// # Safety
     ///
     /// It is not valid to use `Self` after calling this method as the array
-    /// pointers are not updated. The caller must verify that
+    /// pointers are not updated. The caller must ensure that
     ///
+    /// - `size_of::<T>() > 0`
     /// - `old_capacity == PREV_CAP`
-    unsafe fn dealloc(&mut self, capacity: usize);
+    /// - `PREV_CAP > 0`
+    unsafe fn dealloc(&mut self, old_capacity: usize);
 
     /// Copies `count` elements from `src` index to `dst` index in each of the
     /// arrays.
     ///
     /// # Safety
     ///
-    /// The caller must verify that
+    /// The caller must ensure that
     ///
     /// - `src < PREV_CAP`
     /// - `dst < PREV_CAP`
@@ -112,7 +126,7 @@ pub trait RawSoa<T>: Copy + Clone {
     ///
     /// # Safety
     ///
-    /// The caller must verify that
+    /// The caller must ensure that
     ///
     /// - `index < PREV_CAP`
     unsafe fn set(&mut self, index: usize, element: T);
@@ -124,7 +138,7 @@ pub trait RawSoa<T>: Copy + Clone {
     /// After calling `get`, the element at `index` should be treated as having
     /// been moved out of `Self` and into the caller. Therefore, it is no longer
     /// valid to reference this array element either by value or by reference.
-    /// The caller must verify that
+    /// The caller must ensure that
     ///
     /// - `index < PREV_CAP`
     unsafe fn get(&self, index: usize) -> T;

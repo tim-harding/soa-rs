@@ -1,6 +1,8 @@
 use soapy_shared::{RawSoa, Soapy};
 use std::mem::{size_of, ManuallyDrop};
 
+const INIT_CAP: usize = 4;
+
 pub struct Soa<T>
 where
     T: Soapy,
@@ -60,17 +62,21 @@ where
     }
 
     fn maybe_grow(&mut self) {
-        if self.len < self.cap {
+        if self.len < self.cap || size_of::<T>() == 0 {
             return;
         }
-        let new_capacity = match self.cap {
-            0 => 4,
-            cap => cap * 2,
-        };
-        unsafe {
-            self.raw.grow(self.cap, new_capacity, self.len);
+
+        match self.cap {
+            0 => unsafe {
+                self.cap = INIT_CAP;
+                self.raw.alloc(INIT_CAP);
+            },
+            old_cap => unsafe {
+                let new_cap = old_cap * 2;
+                self.raw.realloc_grow(old_cap, new_cap, self.len);
+                self.cap = new_cap;
+            },
         }
-        self.cap = new_capacity;
     }
 }
 
@@ -80,7 +86,7 @@ where
 {
     fn drop(&mut self) {
         while let Some(_) = self.pop() {}
-        unsafe { self.raw.dealloc(self.cap) };
+        dealloc(&mut self.raw, self.cap);
     }
 }
 
@@ -147,6 +153,14 @@ where
 {
     fn drop(&mut self) {
         while let Some(_) = self.next() {}
-        unsafe { self.raw.dealloc(self.cap) };
+        dealloc(&mut self.raw, self.cap);
+    }
+}
+
+fn dealloc<T>(raw: &mut impl RawSoa<T>, old_capacity: usize) {
+    if size_of::<T>() > 0 && old_capacity > 0 {
+        unsafe {
+            raw.dealloc(old_capacity);
+        }
     }
 }
