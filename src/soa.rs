@@ -284,6 +284,33 @@ where
     }
 }
 
+impl<T> Extend<T> for Soa<T>
+where
+    T: Soapy,
+{
+    fn extend<I: IntoIterator<Item = T>>(&mut self, iter: I) {
+        for item in iter {
+            self.push(item);
+        }
+    }
+}
+
+impl<T> FromIterator<T> for Soa<T>
+where
+    T: Soapy,
+{
+    fn from_iter<I: IntoIterator<Item = T>>(iter: I) -> Self {
+        let iter = iter.into_iter();
+        let (hint_min, hint_max) = iter.size_hint();
+        let cap = hint_max.unwrap_or(hint_min);
+        let mut out = Self::with_capacity(cap);
+        for item in iter {
+            out.push(item);
+        }
+        out
+    }
+}
+
 pub struct IntoIter<T>
 where
     T: Soapy,
