@@ -140,11 +140,11 @@ where
     pub fn remove(&mut self, index: usize) -> T {
         assert!(index < self.len, "index out of bounds");
         self.len -= 1;
+        let out = unsafe { self.raw.get(index) };
         unsafe {
-            let out = self.raw.get(index);
             self.raw.copy(index + 1, index, self.len - index);
-            out
         }
+        out
     }
 
     /// Reserves capacity for at least additional more elements to be inserted
@@ -177,7 +177,24 @@ where
         self.grow(new_cap);
     }
 
-    /// Grows the allocated capacity if `len == cap`
+    /// Shrinks the capacity of the container as much as possible.
+    pub fn shrink_to_fit(&mut self) {
+        self.shrink(self.len);
+    }
+
+    /// Shrinks the capacity of the vector with a lower bound.
+    ///
+    /// The capacity will remain at least as large as both the length and the
+    /// supplied value. If the current capacity is less than the lower limit,
+    /// this is a no-op.
+    pub fn shrink_to(&mut self, min_capacity: usize) {
+        let new_cap = self.len.max(min_capacity);
+        if new_cap < self.cap {
+            self.shrink(new_cap);
+        }
+    }
+
+    /// Grows the allocated capacity if `len == cap`.
     fn maybe_grow(&mut self) {
         if self.len < self.cap {
             return;
@@ -189,16 +206,45 @@ where
         self.grow(new_cap);
     }
 
-    fn grow(&mut self, new_cap: usize) {
-        debug_assert!(new_cap > self.cap);
-        match self.cap {
-            0 => {
-                self.raw = unsafe { T::RawSoa::alloc(new_cap) };
-            }
-            old_cap => unsafe {
-                self.raw.realloc_grow(old_cap, new_cap, self.len);
-            },
+    // Shrinks the allocated capacity.
+    fn shrink(&mut self, new_cap: usize) {
+        debug_assert!(new_cap <= self.cap);
+        if self.cap == 0 || new_cap == self.cap || size_of::<T>() == 0 {
+            return;
         }
+
+        if new_cap == 0 {
+            debug_assert!(self.cap > 0);
+            unsafe {
+                self.raw.dealloc(self.cap);
+            }
+            self.raw = T::RawSoa::dangling();
+        } else {
+            debug_assert!(new_cap < self.cap);
+            debug_assert!(self.len <= new_cap);
+            unsafe {
+                self.raw.realloc_shrink(self.cap, new_cap, self.len);
+            }
+        }
+
+        self.cap = new_cap;
+    }
+
+    /// Grows the allocated capacity.
+    fn grow(&mut self, new_cap: usize) {
+        debug_assert!(size_of::<T>() > 0);
+        debug_assert!(new_cap > self.cap);
+
+        if self.cap == 0 {
+            debug_assert!(new_cap > 0);
+            self.raw = unsafe { T::RawSoa::alloc(new_cap) };
+        } else {
+            debug_assert!(self.len <= self.cap);
+            unsafe {
+                self.raw.realloc_grow(self.cap, new_cap, self.len);
+            }
+        }
+
         self.cap = new_cap;
     }
 }

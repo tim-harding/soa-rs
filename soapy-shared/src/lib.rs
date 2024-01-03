@@ -2,7 +2,7 @@
 // - Generic test runner with different structs and array sizes
 // - Remove offsets struct
 // - Document panics for reallocating methods
-// - try_reserve
+// - try_reserve and try_reserve_exact
 
 pub trait Soapy: Sized {
     type RawSoa: RawSoa<Self>;
@@ -72,6 +72,7 @@ pub trait RawSoa<T>: Copy + Clone {
     ///
     /// The caller must ensure that
     ///
+    /// - `size_of::<T>() > 0`
     /// - `capacity > 0`
     /// - `PREV_CAP == 0` (Otherwise use [`RawSoa::grow`])
     unsafe fn alloc(capacity: usize) -> Self;
@@ -87,8 +88,7 @@ pub trait RawSoa<T>: Copy + Clone {
     /// - `size_of::<T>() > 0`
     /// - `new_capacity > old_capacity`
     /// - `length <= old_capacity`
-    /// - `old_capacity == PREV_CAP`
-    /// - `PREV_CAP > 0` (Otherwise use [`RawSoa::alloc`])
+    /// - `old_capacity > 0` (Otherwise use [`RawSoa::alloc`])
     unsafe fn realloc_grow(&mut self, old_capacity: usize, new_capacity: usize, length: usize);
 
     /// Shrinks the allocation with room for `old_capacity` elements to fit
@@ -102,8 +102,7 @@ pub trait RawSoa<T>: Copy + Clone {
     /// - `size_of::<T>() > 0`
     /// - `new_capacity < old_capacity`
     /// - `length <= new_capacity`
-    /// - `old_capacity == PREV_CAP`
-    /// - `PREV_CAP > 0` (Otherwise use [`RawSoa::dealloc`])
+    /// - `old_capacity > 0` (Otherwise use [`RawSoa::dealloc`])
     unsafe fn realloc_shrink(&mut self, old_capacity: usize, new_capacity: usize, length: usize);
 
     /// Deallocates the allocation with room for `capacity` elements. The state
@@ -114,8 +113,7 @@ pub trait RawSoa<T>: Copy + Clone {
     /// `Self` no longer valid after calling this function. The caller must ensure that
     ///
     /// - `size_of::<T>() > 0`
-    /// - `old_capacity == PREV_CAP`
-    /// - `PREV_CAP > 0`
+    /// - `old_capacity > 0`
     unsafe fn dealloc(self, old_capacity: usize);
 
     /// Copies `count` elements from `src` index to `dst` index in each of the
