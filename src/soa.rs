@@ -10,6 +10,9 @@ where
     raw: T::RawSoa,
 }
 
+unsafe impl<T> Send for Soa<T> where T: Send + Soapy {}
+unsafe impl<T> Sync for Soa<T> where T: Sync + Soapy {}
+
 impl<T> Soa<T>
 where
     T: Soapy,
