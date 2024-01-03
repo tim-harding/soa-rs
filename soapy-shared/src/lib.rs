@@ -1,10 +1,5 @@
 // TODO:
-// - Split grow into separate functions to support e.g. with_capacity
-// - Ditto for shrink
-// - Move checks for dealloc safety to caller
 // - Use Allocator API
-// - Add inline annotations
-// - Add automatically_derived annotations
 // - Add safe methods on Soa with debug_assert
 // - Check with Miri
 // - Generic test runner with different structs and array sizes

@@ -147,20 +147,27 @@ fn fields_struct(
     };
 
     Ok(quote! {
+        #[automatically_derived]
         impl ::soapy_shared::Soapy for #ident {
             type RawSoa = #raw;
         }
 
+        #[automatically_derived]
         #[derive(Copy, Clone)]
         struct #offsets #offsets_body
 
+        #[automatically_derived]
         #[derive(Copy, Clone)]
         #vis struct #raw #raw_body
 
+        #[automatically_derived]
         #vis struct #slices<'a> #slices_def
+        #[automatically_derived]
         #vis struct #slices_mut<'a> #slices_mut_def
 
+        #[automatically_derived]
         impl #raw {
+            #[inline]
             fn layout_and_offsets(cap: usize) -> (::std::alloc::Layout, #offsets) {
                 let layout = ::std::alloc::Layout::array::<#ty_head>(cap).unwrap();
                 #(
@@ -171,6 +178,7 @@ fn fields_struct(
                 (layout, offsets)
             }
 
+            #[inline]
             unsafe fn with_offsets(ptr: *mut u8, offsets: #offsets) -> Self {
                 Self {
                     #ident_head: ::std::ptr::NonNull::new_unchecked(ptr as *mut #ty_head),
@@ -183,16 +191,19 @@ fn fields_struct(
             }
         }
 
+        #[automatically_derived]
         impl ::soapy_shared::RawSoa<#ident> for #raw {
             type Slices<'a> = #slices<'a> where Self: 'a;
             type SlicesMut<'a> = #slices_mut<'a> where Self: 'a;
 
+            #[inline]
             fn dangling() -> Self {
                 Self {
                     #(#ident_all: ::std::ptr::NonNull::dangling(),)*
                 }
             }
 
+            #[inline]
             fn slices(&self, len: usize) -> Self::Slices<'_> {
                 #slices {
                     #(
@@ -203,6 +214,7 @@ fn fields_struct(
                 }
             }
 
+            #[inline]
             fn slices_mut(&mut self, len: usize) -> Self::SlicesMut<'_> {
                 #slices_mut {
                     #(
@@ -213,6 +225,7 @@ fn fields_struct(
                 }
             }
 
+            #[inline]
             unsafe fn alloc(&mut self, capacity: usize) {
                 let (new_layout, new_offsets) = Self::layout_and_offsets(capacity);
                 let ptr = ::std::alloc::alloc(new_layout);
@@ -220,6 +233,7 @@ fn fields_struct(
                 *self = Self::with_offsets(ptr, new_offsets);
             }
 
+            #[inline]
             unsafe fn realloc_grow(&mut self, old_capacity: usize, new_capacity: usize, length: usize) {
                 let (new_layout, new_offsets) = Self::layout_and_offsets(new_capacity);
                 let (old_layout, old_offsets) = Self::layout_and_offsets(old_capacity);
@@ -236,6 +250,7 @@ fn fields_struct(
                 *self = new;
             }
 
+            #[inline]
             unsafe fn realloc_shrink(&mut self, old_capacity: usize, new_capacity: usize, length: usize) {
                 let (old_layout, _) = Self::layout_and_offsets(old_capacity);
                 let (new_layout, new_offsets) = Self::layout_and_offsets(new_capacity);
@@ -251,12 +266,14 @@ fn fields_struct(
                 *self = Self::with_offsets(ptr, new_offsets);
             }
 
+            #[inline]
             unsafe fn dealloc(&mut self, old_capacity: usize) {
                 let (layout, _) = Self::layout_and_offsets(old_capacity);
                 let ptr = self.#ident_head.as_ptr() as *mut u8;
                 ::std::alloc::dealloc(ptr, layout);
             }
 
+            #[inline]
             unsafe fn copy(&mut self, src: usize, dst: usize, count: usize) {
                 #(
                     let ptr = self.#ident_all.as_ptr();
@@ -264,10 +281,12 @@ fn fields_struct(
                 )*
             }
 
+            #[inline]
             unsafe fn set(&mut self, index: usize, element: #ident) {
                 #(self.#ident_all.as_ptr().add(index).write(element.#ident_all);)*
             }
 
+            #[inline]
             unsafe fn get(&self, index: usize) -> #ident {
                 #ident {
                     #(#ident_all: self.#ident_all.as_ptr().add(index).read(),)*
@@ -297,15 +316,25 @@ fn zst_struct(ident: Ident, vis: Visibility, kind: ZstKind) -> Result<TokenStrea
             type Slices<'a> = ();
             type SlicesMut<'a> = ();
 
+            #[inline]
             fn dangling() -> Self { Self }
+            #[inline]
             fn slices(&self, len: usize) -> Self::Slices<'_> { () }
+            #[inline]
             fn slices_mut(&mut self, len: usize) -> Self::SlicesMut<'_> { () }
+            #[inline]
             unsafe fn alloc(&mut self, capacity: usize) { }
+            #[inline]
             unsafe fn realloc_grow(&mut self, old_capacity: usize, new_capacity: usize, length: usize) { }
+            #[inline]
             unsafe fn realloc_shrink(&mut self, old_capacity: usize, new_capacity: usize, length: usize) { }
+            #[inline]
             unsafe fn dealloc(&mut self, old_capacity: usize) { }
+            #[inline]
             unsafe fn copy(&mut self, src: usize, dst: usize, count: usize) { }
+            #[inline]
             unsafe fn set(&mut self, index: usize, element: #ident) { }
+            #[inline]
             unsafe fn get(&self, index: usize) -> #ident { #ident #unit_construct }
         }
     })

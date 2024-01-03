@@ -67,15 +67,18 @@ where
         }
 
         match self.cap {
-            0 => unsafe {
+            0 => {
                 self.cap = INIT_CAP;
-                self.raw.alloc(INIT_CAP);
-            },
-            old_cap => unsafe {
-                let new_cap = old_cap * 2;
-                self.raw.realloc_grow(old_cap, new_cap, self.len);
-                self.cap = new_cap;
-            },
+                unsafe {
+                    self.raw.alloc(INIT_CAP);
+                }
+            }
+            old_cap => {
+                self.cap = old_cap * 2;
+                unsafe {
+                    self.raw.realloc_grow(old_cap, self.cap, self.len);
+                }
+            }
         }
     }
 }
