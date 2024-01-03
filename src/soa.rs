@@ -14,12 +14,10 @@ impl<T> Soa<T>
 where
     T: Soapy,
 {
-    const INIT_CAP: usize = if size_of::<T>() == 0 { usize::MAX } else { 0 };
-
     pub fn new() -> Self {
         Self {
             len: 0,
-            cap: Self::INIT_CAP,
+            cap: if size_of::<T>() == 0 { usize::MAX } else { 0 },
             raw: T::RawSoa::dangling(),
         }
     }
@@ -27,11 +25,21 @@ where
     pub fn with_capacity(capacity: usize) -> Self {
         match capacity {
             0 => Self::new(),
-            capacity => Self {
-                len: 0,
-                cap: capacity,
-                raw: unsafe { T::RawSoa::alloc(capacity) },
-            },
+            capacity => {
+                if size_of::<T>() == 0 {
+                    Self {
+                        len: 0,
+                        cap: usize::MAX,
+                        raw: T::RawSoa::dangling(),
+                    }
+                } else {
+                    Self {
+                        len: 0,
+                        cap: capacity,
+                        raw: unsafe { T::RawSoa::alloc(capacity) },
+                    }
+                }
+            }
         }
     }
 
@@ -110,9 +118,10 @@ where
     }
 
     fn maybe_grow(&mut self) {
-        if self.len < self.cap || size_of::<T>() == 0 {
+        if self.len < self.cap {
             return;
         }
+        debug_assert!(size_of::<T>() != 0);
 
         match self.cap {
             0 => {

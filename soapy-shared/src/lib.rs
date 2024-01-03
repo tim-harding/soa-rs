@@ -110,12 +110,12 @@ pub trait RawSoa<T>: Copy + Clone {
     ///
     /// # Safety
     ///
-    /// The caller must ensure that
+    /// `Self` no longer valid after calling this function. The caller must ensure that
     ///
     /// - `size_of::<T>() > 0`
     /// - `old_capacity == PREV_CAP`
     /// - `PREV_CAP > 0`
-    unsafe fn dealloc(&mut self, old_capacity: usize);
+    unsafe fn dealloc(self, old_capacity: usize);
 
     /// Copies `count` elements from `src` index to `dst` index in each of the
     /// arrays.

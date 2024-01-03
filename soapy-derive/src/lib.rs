@@ -279,10 +279,9 @@ fn fields_struct(
             }
 
             #[inline]
-            unsafe fn dealloc(&mut self, old_capacity: usize) {
+            unsafe fn dealloc(self, old_capacity: usize) {
                 let (layout, _) = Self::layout_and_offsets(old_capacity);
-                let ptr = self.#ident_head.as_ptr() as *mut u8;
-                *self = Self::dangling();
+                ::std::alloc::dealloc(self.as_ptr(), layout);
             }
 
             #[inline]
@@ -345,7 +344,7 @@ fn zst_struct(ident: Ident, vis: Visibility, kind: ZstKind) -> Result<TokenStrea
             #[inline]
             unsafe fn realloc_shrink(&mut self, old_capacity: usize, new_capacity: usize, length: usize) { }
             #[inline]
-            unsafe fn dealloc(&mut self, old_capacity: usize) { }
+            unsafe fn dealloc(self, old_capacity: usize) { }
             #[inline]
             unsafe fn copy(&mut self, src: usize, dst: usize, count: usize) { }
             #[inline]
