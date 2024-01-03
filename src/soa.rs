@@ -14,6 +14,8 @@ impl<T> Soa<T>
 where
     T: Soapy,
 {
+    const SMALL_CAPACITY: usize = 4;
+
     /// Constructs a new, empty `Soa<T>`.
     ///
     /// The container will not allocate until elements are pushed onto it.
@@ -145,28 +147,59 @@ where
         }
     }
 
+    /// Reserves capacity for at least additional more elements to be inserted
+    /// in the given `Soa<T>`. The collection may reserve more space to
+    /// speculatively avoid frequent reallocations. After calling reserve,
+    /// capacity will be greater than or equal to `self.len() + additional`. Does
+    /// nothing if capacity is already sufficient.
+    pub fn reserve(&mut self, additional: usize) {
+        if additional == 0 {
+            return;
+        }
+        let new_cap = (self.len + additional)
+            // Ensure exponential growth
+            .max(self.cap * 2)
+            .max(Self::SMALL_CAPACITY);
+        self.grow(new_cap);
+    }
+
+    /// Reserves the minimum capacity for at least additional more elements to
+    /// be inserted in the given `Soa<T>`. Unlike [`Soa::reserve`], this will not
+    /// deliberately over-allocate to speculatively avoid frequent allocations.
+    /// After calling `reserve_exact`, capacity will be greater than or equal to
+    /// self.len() + additional. Does nothing if the capacity is already
+    /// sufficient.
+    pub fn reserve_exact(&mut self, additional: usize) {
+        if additional == 0 {
+            return;
+        }
+        let new_cap = (additional + self.len).max(self.cap);
+        self.grow(new_cap);
+    }
+
     /// Grows the allocated capacity if `len == cap`
     fn maybe_grow(&mut self) {
         if self.len < self.cap {
             return;
         }
-        debug_assert!(size_of::<T>() != 0);
+        let new_cap = match self.cap {
+            0 => Self::SMALL_CAPACITY,
+            old_cap => old_cap * 2,
+        };
+        self.grow(new_cap);
+    }
 
+    fn grow(&mut self, new_cap: usize) {
+        debug_assert!(new_cap > self.cap);
         match self.cap {
             0 => {
-                const INIT_CAP: usize = 4;
-                self.cap = INIT_CAP;
-                unsafe {
-                    self.raw = T::RawSoa::alloc(INIT_CAP);
-                }
+                self.raw = unsafe { T::RawSoa::alloc(new_cap) };
             }
-            old_cap => {
-                self.cap = old_cap * 2;
-                unsafe {
-                    self.raw.realloc_grow(old_cap, self.cap, self.len);
-                }
-            }
+            old_cap => unsafe {
+                self.raw.realloc_grow(old_cap, new_cap, self.len);
+            },
         }
+        self.cap = new_cap;
     }
 }
 
