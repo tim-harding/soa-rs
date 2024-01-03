@@ -169,10 +169,11 @@ fn fields_struct(
         impl #raw {
             #[inline]
             fn layout_and_offsets(cap: usize) -> (::std::alloc::Layout, #offsets) {
+                // TODO: Replace unwraps with unwrap_unchecked
                 let layout = ::std::alloc::Layout::array::<#ty_head>(cap).unwrap();
                 #(
-                let array = ::std::alloc::Layout::array::<#ty_tail>(cap).unwrap();
-                let (layout, #offsets_vars) = layout.extend(array).unwrap();
+                    let array = ::std::alloc::Layout::array::<#ty_tail>(cap).unwrap();
+                    let (layout, #offsets_vars) = layout.extend(array).unwrap();
                 )*
                 let offsets = #offsets #construct_offsets;
                 (layout, offsets)
@@ -223,6 +224,17 @@ fn fields_struct(
                     },
                     )*
                 }
+            }
+
+            #[inline]
+            fn as_ptr(self) -> *mut u8 {
+                self.#ident_head.as_ptr() as *mut u8
+            }
+
+            #[inline]
+            unsafe fn from_parts(ptr: *mut u8, capacity: usize) -> Self {
+                let (_, offsets) = Self::layout_and_offsets(capacity);
+                Self::with_offsets(ptr, offsets)
             }
 
             #[inline]
@@ -319,9 +331,13 @@ fn zst_struct(ident: Ident, vis: Visibility, kind: ZstKind) -> Result<TokenStrea
             #[inline]
             fn dangling() -> Self { Self }
             #[inline]
+            fn as_ptr(self) -> *mut u8 { ::std::ptr::null::<u8>() as *mut _ }
+            #[inline]
             fn slices(&self, len: usize) -> Self::Slices<'_> { () }
             #[inline]
             fn slices_mut(&mut self, len: usize) -> Self::SlicesMut<'_> { () }
+            #[inline]
+            unsafe fn from_parts(ptr: *mut u8, capacity: usize) -> Self { Self }
             #[inline]
             unsafe fn alloc(capacity: usize) -> Self { Self }
             #[inline]
