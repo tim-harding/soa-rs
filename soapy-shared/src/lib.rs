@@ -1,7 +1,7 @@
 // TODO:
-// - Add safe methods on Soa with debug_assert
 // - Generic test runner with different structs and array sizes
 // - Remove offsets struct
+// - Document panics for reallocating methods
 
 pub trait Soapy: Sized {
     type RawSoa: RawSoa<Self>;

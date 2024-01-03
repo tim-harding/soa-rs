@@ -14,6 +14,9 @@ impl<T> Soa<T>
 where
     T: Soapy,
 {
+    /// Constructs a new, empty `Soa<T>`.
+    ///
+    /// The container will not allocate until elements are pushed onto it.
     pub fn new() -> Self {
         Self {
             len: 0,
@@ -22,6 +25,12 @@ where
         }
     }
 
+    /// Construct a new, empty `Soa<T>` with the specified capacity.
+    ///
+    /// The container will be able to hold `capacity` elements without
+    /// reallocating. If the `capacity` is 0, the container will not allocate.
+    /// Note that although the returned vector has the minimum capacity
+    /// specified, the vector will have a zero length.
     pub fn with_capacity(capacity: usize) -> Self {
         match capacity {
             0 => Self::new(),
@@ -41,6 +50,18 @@ where
                 }
             }
         }
+    }
+
+    /// Returns the number of elements in the vector, also referred to as its
+    /// length.
+    pub fn len(&self) -> usize {
+        self.len
+    }
+
+    /// Returns the total number of elements the container can hold without
+    /// reallocating.
+    pub fn capacity(&self) -> usize {
+        self.cap
     }
 
     /// Decomposes a `Soa<T>` into its raw components.
@@ -76,10 +97,7 @@ where
         }
     }
 
-    pub fn capacity(&self) -> usize {
-        self.cap
-    }
-
+    /// Appends an element to the back of a collection.
     pub fn push(&mut self, element: T) {
         self.maybe_grow();
         unsafe {
@@ -88,6 +106,8 @@ where
         self.len += 1;
     }
 
+    /// Removes the last element from a vector and returns it, or [`None`] if it
+    /// is empty.
     pub fn pop(&mut self) -> Option<T> {
         if self.len == 0 {
             None
@@ -97,6 +117,12 @@ where
         }
     }
 
+    /// Inserts an element at position `index`, shifting all elements after it
+    /// to the right.
+    ///
+    /// # Panics
+    ///
+    /// Panics if `index > len`
     pub fn insert(&mut self, index: usize, element: T) {
         assert!(index <= self.len, "index out of bounds");
         self.maybe_grow();
@@ -107,6 +133,8 @@ where
         self.len += 1;
     }
 
+    /// Removes and returns the element at position index within the vector,
+    /// shifting all elements after it to the left.
     pub fn remove(&mut self, index: usize) -> T {
         assert!(index < self.len, "index out of bounds");
         self.len -= 1;
@@ -117,6 +145,7 @@ where
         }
     }
 
+    /// Grows the allocated capacity if `len == cap`
     fn maybe_grow(&mut self) {
         if self.len < self.cap {
             return;
@@ -147,7 +176,7 @@ where
 {
     fn drop(&mut self) {
         while let Some(_) = self.pop() {}
-        dealloc(&mut self.raw, self.cap);
+        drop_raw(&mut self.raw, self.cap);
     }
 }
 
@@ -214,11 +243,11 @@ where
 {
     fn drop(&mut self) {
         while let Some(_) = self.next() {}
-        dealloc(&mut self.raw, self.cap);
+        drop_raw(&mut self.raw, self.cap);
     }
 }
 
-fn dealloc<T>(raw: &mut impl RawSoa<T>, old_capacity: usize) {
+fn drop_raw<T>(raw: &mut impl RawSoa<T>, old_capacity: usize) {
     if size_of::<T>() > 0 && old_capacity > 0 {
         unsafe {
             raw.dealloc(old_capacity);
