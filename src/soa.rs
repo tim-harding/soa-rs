@@ -1,8 +1,6 @@
 use soapy_shared::{RawSoa, Soapy};
 use std::mem::{size_of, ManuallyDrop};
 
-const INIT_CAP: usize = 4;
-
 pub struct Soa<T>
 where
     T: Soapy,
@@ -16,12 +14,29 @@ impl<T> Soa<T>
 where
     T: Soapy,
 {
+    const INIT_CAP: usize = if size_of::<T>() == 0 { usize::MAX } else { 0 };
+
     pub fn new() -> Self {
         Self {
             len: 0,
-            cap: if size_of::<T>() == 0 { usize::MAX } else { 0 },
+            cap: Self::INIT_CAP,
             raw: T::RawSoa::dangling(),
         }
+    }
+
+    pub fn with_capacity(capacity: usize) -> Self {
+        match capacity {
+            0 => Self::new(),
+            capacity => Self {
+                len: 0,
+                cap: capacity,
+                raw: unsafe { T::RawSoa::alloc(capacity) },
+            },
+        }
+    }
+
+    pub fn capacity(&self) -> usize {
+        self.cap
     }
 
     pub fn push(&mut self, element: T) {
@@ -68,9 +83,10 @@ where
 
         match self.cap {
             0 => {
+                const INIT_CAP: usize = 4;
                 self.cap = INIT_CAP;
                 unsafe {
-                    self.raw.alloc(INIT_CAP);
+                    self.raw = T::RawSoa::alloc(INIT_CAP);
                 }
             }
             old_cap => {

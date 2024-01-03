@@ -1,5 +1,4 @@
 // TODO:
-// - Use Allocator API
 // - Add safe methods on Soa with debug_assert
 // - Check with Miri
 // - Generic test runner with different structs and array sizes
@@ -60,7 +59,7 @@ pub trait RawSoa<T>: Copy + Clone {
     ///
     /// - `capacity > 0`
     /// - `PREV_CAP == 0` (Otherwise use [`RawSoa::grow`])
-    unsafe fn alloc(&mut self, capacity: usize);
+    unsafe fn alloc(capacity: usize) -> Self;
 
     /// Grows the allocation with room for `old_capacity` elements to fit
     /// `new_capacity` elements and moves `length` number of array elements to
@@ -92,12 +91,12 @@ pub trait RawSoa<T>: Copy + Clone {
     /// - `PREV_CAP > 0` (Otherwise use [`RawSoa::dealloc`])
     unsafe fn realloc_shrink(&mut self, old_capacity: usize, new_capacity: usize, length: usize);
 
-    /// Deallocates the allocation with room for `capacity` elements.
+    /// Deallocates the allocation with room for `capacity` elements. The state
+    /// after calling this method is equivalent to [`RawSoa::dangling`].
     ///
     /// # Safety
     ///
-    /// It is not valid to use `Self` after calling this method as the array
-    /// pointers are not updated. The caller must ensure that
+    /// The caller must ensure that
     ///
     /// - `size_of::<T>() > 0`
     /// - `old_capacity == PREV_CAP`

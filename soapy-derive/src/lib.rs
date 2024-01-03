@@ -226,11 +226,11 @@ fn fields_struct(
             }
 
             #[inline]
-            unsafe fn alloc(&mut self, capacity: usize) {
+            unsafe fn alloc(capacity: usize) -> Self {
                 let (new_layout, new_offsets) = Self::layout_and_offsets(capacity);
                 let ptr = ::std::alloc::alloc(new_layout);
                 assert_ne!(ptr as *const u8, ::std::ptr::null());
-                *self = Self::with_offsets(ptr, new_offsets);
+                Self::with_offsets(ptr, new_offsets)
             }
 
             #[inline]
@@ -270,7 +270,7 @@ fn fields_struct(
             unsafe fn dealloc(&mut self, old_capacity: usize) {
                 let (layout, _) = Self::layout_and_offsets(old_capacity);
                 let ptr = self.#ident_head.as_ptr() as *mut u8;
-                ::std::alloc::dealloc(ptr, layout);
+                *self = Self::dangling();
             }
 
             #[inline]
@@ -323,7 +323,7 @@ fn zst_struct(ident: Ident, vis: Visibility, kind: ZstKind) -> Result<TokenStrea
             #[inline]
             fn slices_mut(&mut self, len: usize) -> Self::SlicesMut<'_> { () }
             #[inline]
-            unsafe fn alloc(&mut self, capacity: usize) { }
+            unsafe fn alloc(capacity: usize) -> Self { Self }
             #[inline]
             unsafe fn realloc_grow(&mut self, old_capacity: usize, new_capacity: usize, length: usize) { }
             #[inline]
