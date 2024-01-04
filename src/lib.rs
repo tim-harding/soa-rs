@@ -210,11 +210,13 @@ mod tests {
         for el in soa.iter_mut() {
             *el.foo += 1;
             *el.bar += 2;
+            let [a, b] = *el.baz;
+            *el.baz = [a + 3, b + 4];
         }
         for (borrowed, owned) in soa.iter().zip(ABCDE.into_iter()) {
             assert_eq!(borrowed.foo, &(owned.foo + 1));
             assert_eq!(borrowed.bar, &(owned.bar + 2));
-            assert_eq!(borrowed.baz, &owned.baz);
+            assert_eq!(borrowed.baz, &[owned.baz[0] + 3, owned.baz[1] + 4]);
         }
     }
 

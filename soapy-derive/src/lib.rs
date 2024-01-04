@@ -102,37 +102,37 @@ fn fields_struct(
 
     let slices_def = match kind {
         FieldKind::Named => quote! {
-            { #(#vis_all #ident_all: &'a [#ty_all]),* }
+            { #(#[allow(unused)] #vis_all #ident_all: &'a [#ty_all]),* }
         },
         FieldKind::Unnamed => quote! {
-            ( #(#vis_all &'a [#ty_all]),* );
+            ( #(#[allow(unused)] #vis_all &'a [#ty_all]),* );
         },
     };
 
     let slices_mut_def = match kind {
         FieldKind::Named => quote! {
-            { #(#vis_all #ident_all: &'a mut [#ty_all]),* }
+            { #(#[allow(unused)] #vis_all #ident_all: &'a mut [#ty_all]),* }
         },
         FieldKind::Unnamed => quote! {
-            ( #(#vis_all &'a mut [#ty_all]),* );
+            ( #(#[allow(unused)] #vis_all &'a mut [#ty_all]),* );
         },
     };
 
     let item_ref_def = match kind {
         FieldKind::Named => quote! {
-            { #(#vis_all #ident_all: &'a #ty_all),* }
+            { #(#[allow(unused)] #vis_all #ident_all: &'a #ty_all),* }
         },
         FieldKind::Unnamed => quote! {
-            ( #(#vis_all &'a #ty_all),* );
+            ( #(#[allow(unused)] #vis_all &'a #ty_all),* );
         },
     };
 
     let item_ref_mut_def = match kind {
         FieldKind::Named => quote! {
-            { #(#vis_all #ident_all: &'a mut #ty_all),* }
+            { #(#[allow(unused)] #vis_all #ident_all: &'a mut #ty_all),* }
         },
         FieldKind::Unnamed => quote! {
-            ( #(#vis_all &'a mut #ty_all),* );
+            ( #(#[allow(unused)] #vis_all &'a mut #ty_all),* );
         },
     };
 
