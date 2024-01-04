@@ -15,7 +15,7 @@ pub use soapy_derive::Soapy;
 mod tests {
     use crate::{Soa, Soapy};
 
-    #[derive(Soapy, Debug, Clone, Copy, PartialEq, Eq)]
+    #[derive(Soapy, Debug, Clone, Copy, PartialEq, Eq, Hash)]
     struct El {
         foo: u64,
         bar: u8,
@@ -320,5 +320,20 @@ mod tests {
         let slice = format!("{:?}", ABCDE);
         let soa = format!("{:?}", Soa::from(ABCDE));
         assert_eq!(slice, soa);
+    }
+
+    #[test]
+    pub fn hashing() {
+        use std::collections::hash_map::DefaultHasher;
+        use std::hash::{Hash, Hasher};
+
+        let mut expected = DefaultHasher::new();
+        ABCDE.hash(&mut expected);
+
+        let mut actual = DefaultHasher::new();
+        let soa: Soa<_> = ABCDE.into();
+        soa.hash(&mut actual);
+
+        assert_eq!(actual.finish(), expected.finish());
     }
 }

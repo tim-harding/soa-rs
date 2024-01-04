@@ -621,3 +621,13 @@ where
         Self::new()
     }
 }
+
+impl<T> std::hash::Hash for Soa<T>
+where
+    T: Soapy + std::hash::Hash,
+{
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.len.hash(state);
+        self.for_each(|item| item.hash(state));
+    }
+}
