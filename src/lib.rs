@@ -260,4 +260,60 @@ mod tests {
         dst.clone_from(&src);
         assert_eq!(dst, src);
     }
+
+    #[test]
+    pub fn partial_ordering_and_equality() {
+        #[derive(Soapy, Debug, PartialEq, PartialOrd, Clone, Copy)]
+        struct F(f32);
+
+        let cases = [
+            (&[][..], &[][..]),
+            (&[F(1.), F(2.), F(3.)][..], &[F(1.), F(2.), F(3.)][..]),
+            (&[F(1.), F(2.), F(2.)][..], &[F(1.), F(2.), F(3.)][..]),
+            (&[F(1.), F(2.), F(4.)][..], &[F(1.), F(2.), F(3.)][..]),
+            (
+                &[F(1.), F(2.), F(3.)][..],
+                &[F(1.), F(2.), F(3.), F(0.)][..],
+            ),
+            (
+                &[F(1.), F(2.), F(3.), F(0.)][..],
+                &[F(1.), F(2.), F(3.)][..],
+            ),
+            (&[F(1.)][..], &[F(f32::NAN)][..]),
+        ];
+
+        for case in cases {
+            let (l, r) = case;
+            let expected_cmp = l.partial_cmp(r);
+            let expected_eq = l == r;
+            let l: Soa<_> = l.into();
+            let r: Soa<_> = r.into();
+            assert_eq!(l.partial_cmp(&r), expected_cmp);
+            assert_eq!(l == r, expected_eq);
+        }
+    }
+
+    #[test]
+    pub fn ordering() {
+        #[derive(Soapy, PartialEq, Eq, PartialOrd, Ord, Clone, Copy)]
+        struct F(u8);
+
+        let cases = [
+            (&[][..], &[][..]),
+            (&[F(1), F(2), F(3)][..], &[F(1), F(2), F(3)][..]),
+            (&[F(1), F(2), F(2)][..], &[F(1), F(2), F(3)][..]),
+            (&[F(1), F(2), F(4)][..], &[F(1), F(2), F(3)][..]),
+            (&[F(1), F(2), F(3)][..], &[F(1), F(2), F(3), F(0)][..]),
+            (&[F(1), F(2), F(3), F(0)][..], &[F(1), F(2), F(3)][..]),
+        ];
+
+        for case in cases {
+            let (l, r) = case;
+            let expected = l.cmp(r);
+            let l: Soa<_> = l.into();
+            let r: Soa<_> = r.into();
+            let actual = l.cmp(&r);
+            assert_eq!(actual, expected);
+        }
+    }
 }

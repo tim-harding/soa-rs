@@ -9,9 +9,11 @@
 
 use soapy_shared::{RawSoa, Soapy};
 use std::{
+    cmp::Ordering,
     fmt::{self, Formatter},
     marker::PhantomData,
     mem::{forget, size_of, ManuallyDrop},
+    ops::ControlFlow,
 };
 
 use crate::{IntoIter, Iter, IterMut};
@@ -274,19 +276,71 @@ where
         }
     }
 
-    /// Calls a closure on each element of the collection.
-    pub fn for_each<F>(&self, mut f: F)
+    pub fn try_fold<F, B>(&self, init: B, mut f: F) -> B
     where
-        F: FnMut(&T),
+        F: FnMut(B, &T) -> ControlFlow<B, B>,
     {
+        let mut acc = init;
         for i in 0..self.len {
             // SAFETY:
             // Okay to construct an element and take its reference, so long as
             // we don't run its destructor.
             let element = unsafe { self.raw.get(i) };
-            f(&element);
+            let result = f(acc, &element);
             forget(element);
+            match result {
+                ControlFlow::Continue(b) => acc = b,
+                ControlFlow::Break(b) => return b,
+            }
         }
+        acc
+    }
+
+    pub fn try_fold_zip<F, B, O>(&self, other: &Soa<O>, init: B, mut f: F) -> B
+    where
+        O: Soapy,
+        F: FnMut(B, &T, &O) -> ControlFlow<B, B>,
+    {
+        let mut acc = init;
+        let len = self.len.min(other.len);
+        for i in 0..len {
+            // SAFETY:
+            // Okay to construct an element and take its reference, so long as
+            // we don't run its destructor.
+            let a = unsafe { self.raw.get(i) };
+            let b = unsafe { other.raw.get(i) };
+            let result = f(acc, &a, &b);
+            forget(a);
+            forget(b);
+            match result {
+                ControlFlow::Continue(b) => acc = b,
+                ControlFlow::Break(b) => return b,
+            }
+        }
+        acc
+    }
+
+    /// Calls a closure on each element of the collection.
+    pub fn for_each<F>(&self, mut f: F)
+    where
+        F: FnMut(&T),
+    {
+        self.try_fold((), |_, item| {
+            f(item);
+            ControlFlow::Continue(())
+        })
+    }
+
+    /// Calls a closure on each element of the collection.
+    pub fn for_each_zip<F, O>(&self, other: &Soa<O>, mut f: F)
+    where
+        O: Soapy,
+        F: FnMut(&T, &O),
+    {
+        self.try_fold_zip(other, (), |_, a, b| {
+            f(a, b);
+            ControlFlow::Continue(())
+        })
     }
 
     /// Clears the vector, removing all values.
@@ -510,17 +564,13 @@ where
             return false;
         }
 
-        for i in 0..self.len {
-            let a = unsafe { self.raw.get(i) };
-            let b = unsafe { other.raw.get(i) };
-            if a != b {
-                return false;
+        self.try_fold_zip(other, true, |_, a, b| {
+            if a == b {
+                ControlFlow::Continue(true)
+            } else {
+                ControlFlow::Break(false)
             }
-            forget(a);
-            forget(b);
-        }
-
-        true
+        })
     }
 }
 
@@ -536,5 +586,39 @@ where
             list.entry(&item);
         });
         list.finish()
+    }
+}
+
+impl<T> PartialOrd for Soa<T>
+where
+    T: Soapy + PartialOrd,
+{
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        let element_wise = self.try_fold_zip(other, Some(Ordering::Equal), |_, a, b| {
+            match a.partial_cmp(b) {
+                ord @ (None | Some(Ordering::Less | Ordering::Greater)) => ControlFlow::Break(ord),
+                Some(Ordering::Equal) => ControlFlow::Continue(Some(Ordering::Equal)),
+            }
+        });
+        match element_wise {
+            ord @ (None | Some(Ordering::Less | Ordering::Greater)) => ord,
+            Some(Ordering::Equal) => Some(self.len.cmp(&other.len)),
+        }
+    }
+}
+
+impl<T> Ord for Soa<T>
+where
+    T: Soapy + Ord,
+{
+    fn cmp(&self, other: &Self) -> Ordering {
+        let element_wise = self.try_fold_zip(other, Ordering::Equal, |_, a, b| match a.cmp(b) {
+            ord @ (Ordering::Greater | Ordering::Less) => ControlFlow::Break(ord),
+            Ordering::Equal => ControlFlow::Continue(Ordering::Equal),
+        });
+        match element_wise {
+            ord @ (Ordering::Less | Ordering::Greater) => ord,
+            Ordering::Equal => self.len.cmp(&other.len),
+        }
     }
 }
