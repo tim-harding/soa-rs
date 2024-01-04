@@ -495,16 +495,6 @@ where
     }
 }
 
-impl<T> From<Vec<T>> for Soa<T>
-where
-    T: Soapy,
-{
-    /// Allocate a `Soa<T>` and move `value`'s items into it.
-    fn from(value: Vec<T>) -> Self {
-        value.into_iter().collect()
-    }
-}
-
 impl<T, const N: usize> From<[T; N]> for Soa<T>
 where
     T: Soapy,
@@ -552,16 +542,6 @@ where
     /// Allocate a `Soa<T>` and fill it by cloning `value`'s items.
     fn from(value: &mut [T]) -> Self {
         value.iter().cloned().collect()
-    }
-}
-
-impl<T> From<Box<[T]>> for Soa<T>
-where
-    T: Soapy + Clone,
-{
-    /// Allocate a `Soa<T>` and move `value`'s items into it.
-    fn from(value: Box<[T]>) -> Self {
-        (*value).into()
     }
 }
 
