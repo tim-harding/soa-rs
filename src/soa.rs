@@ -1,3 +1,12 @@
+// TODO:
+// - retain / retain_mut
+// - try_reserve / try_reserve_exact
+// - dedup_by / dedup_by_key
+//
+// - Generic test runner with different structs and array sizes
+// - Remove offsets struct
+// - Document panics for reallocating methods
+
 use soapy_shared::{RawSoa, Soapy};
 use std::{
     marker::PhantomData,
@@ -202,6 +211,35 @@ where
         }
     }
 
+    /// Shortens the vector, keeping the first len elements and dropping the rest.
+    ///
+    /// If len is greater or equal to the vector’s current length, this has no
+    /// effect. Note that this method has no effect on the allocated capacity of
+    /// the vector.
+    pub fn truncate(&mut self, len: usize) {
+        while len < self.len {
+            self.pop();
+        }
+    }
+
+    /// Removes an element from the vector and returns it.
+    ///
+    /// The removed element is replaced by the last element of the vector. This
+    /// does not preserve ordering, but is O(1). If you need to preserve the
+    /// element order, use remove instead.
+    ///
+    /// # Panics
+    ///
+    /// Panics if index is out of bounds.
+    pub fn swap_remove(&mut self, index: usize) -> T {
+        let out = unsafe { self.raw.get(index) };
+        let last = unsafe { self.raw.get(self.len - 1) };
+        unsafe {
+            self.raw.set(index, last);
+        }
+        out
+    }
+
     /// Returns an iterator over the elements.
     ///
     /// The iterator yields all items from start to end.
@@ -238,21 +276,6 @@ where
             let element = unsafe { self.raw.get(i) };
             f(&element);
             forget(element);
-        }
-    }
-
-    /// Calls a closure on each element of the collection, allowing for
-    /// modification.
-    pub fn for_each_mut<F>(&mut self, mut f: F)
-    where
-        F: FnMut(&mut T),
-    {
-        for i in 0..self.len {
-            let mut element = unsafe { self.raw.get(i) };
-            f(&mut element);
-            unsafe {
-                self.raw.set(i, element);
-            }
         }
     }
 
