@@ -240,6 +240,15 @@ where
         out
     }
 
+    /// Moves all the elements of other into self, leaving other empty.
+    pub fn append(&mut self, other: &mut Self) {
+        for i in 0..other.len {
+            let element = unsafe { other.raw.get(i) };
+            self.push(element);
+        }
+        other.len = 0;
+    }
+
     /// Returns an iterator over the elements.
     ///
     /// The iterator yields all items from start to end.
