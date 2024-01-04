@@ -160,7 +160,7 @@ pub trait RawSoa<T>: Copy + Clone {
     /// The caller must ensure that
     ///
     /// - `index < PREV_CAP`
-    unsafe fn get(&mut self, index: usize) -> T;
+    unsafe fn get(&self, index: usize) -> T;
 
     /// Gets a reference to the element at `index`.
     ///
@@ -178,5 +178,5 @@ pub trait RawSoa<T>: Copy + Clone {
     /// The caller must ensure that
     ///
     /// - `index < PREV_CAP`
-    unsafe fn get_mut<'a>(&mut self, index: usize) -> Self::ItemRefMut<'a>;
+    unsafe fn get_mut<'a>(&self, index: usize) -> Self::ItemRefMut<'a>;
 }

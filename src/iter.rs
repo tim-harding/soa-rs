@@ -8,7 +8,7 @@ where
     pub(crate) raw: T::RawSoa,
     pub(crate) start: usize,
     pub(crate) end: usize,
-    _marker: PhantomData<&'a T>,
+    pub(crate) _marker: PhantomData<&'a T>,
 }
 
 impl<'a, T> Iterator for Iter<'a, T>

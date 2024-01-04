@@ -1,12 +1,15 @@
+use std::marker::PhantomData;
+
 use soapy_shared::{RawSoa, Soapy};
 
 pub struct IterMut<'a, T>
 where
     T: Soapy,
 {
-    pub(crate) raw: &'a mut T::RawSoa,
+    pub(crate) raw: T::RawSoa,
     pub(crate) start: usize,
     pub(crate) end: usize,
+    pub(crate) _marker: PhantomData<&'a mut T>,
 }
 
 impl<'a, T> Iterator for IterMut<'a, T>

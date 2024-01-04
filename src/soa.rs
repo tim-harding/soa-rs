@@ -1,7 +1,10 @@
 use soapy_shared::{RawSoa, Soapy};
-use std::mem::{size_of, ManuallyDrop};
+use std::{
+    marker::PhantomData,
+    mem::{forget, size_of, ManuallyDrop},
+};
 
-use crate::IntoIter;
+use crate::{IntoIter, Iter, IterMut};
 
 pub struct Soa<T>
 where
@@ -199,6 +202,38 @@ where
         }
     }
 
+    /// Returns an iterator over the elements.
+    ///
+    /// The iterator yields all items from start to end.
+    pub fn iter(&self) -> Iter<T> {
+        Iter {
+            raw: self.raw,
+            start: 0,
+            end: self.len,
+            _marker: PhantomData,
+        }
+    }
+
+    /// Returns an iterator over the elements that allows modifying each value.
+    ///
+    /// The iterator yields all items from start to end.
+    pub fn iter_mut(&mut self) -> IterMut<T> {
+        IterMut {
+            raw: self.raw,
+            start: 0,
+            end: self.len,
+            _marker: PhantomData,
+        }
+    }
+
+    /// Clears the vector, removing all values.
+    ///
+    /// Note that this method has no effect on the allocated capacity of the
+    /// vector.
+    pub fn clear(&mut self) {
+        while let Some(_) = self.pop() {}
+    }
+
     /// Grows the allocated capacity if `len == cap`.
     fn maybe_grow(&mut self) {
         if self.len < self.cap {
@@ -289,6 +324,41 @@ where
             end: len,
             raw,
             cap,
+        }
+    }
+}
+
+impl<T> Clone for Soa<T>
+where
+    T: Soapy + Clone,
+{
+    fn clone(&self) -> Self {
+        let mut out = Self::with_capacity(self.len());
+        for i in 0..self.len() {
+            // SAFETY:
+            // Acceptable to construct an element by value so long as we don't
+            // run its destructor
+            let element = unsafe { self.raw.get(i) };
+            let clone = element.clone();
+            forget(element);
+            out.push(clone);
+        }
+        out
+    }
+
+    fn clone_from(&mut self, source: &Self) {
+        self.clear();
+        if self.cap < source.len {
+            self.reserve(source.len);
+        }
+        for i in 0..self.len() {
+            // SAFETY:
+            // Acceptable to construct an element by value so long as we don't
+            // run its destructor
+            let element = unsafe { source.raw.get(i) };
+            let clone = element.clone();
+            forget(element);
+            self.push(clone);
         }
     }
 }

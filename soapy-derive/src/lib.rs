@@ -324,7 +324,7 @@ fn fields_struct(
             }
 
             #[inline]
-            unsafe fn get(&mut self, index: usize) -> #ident {
+            unsafe fn get(&self, index: usize) -> #ident {
                 #ident {
                     #(#ident_all: self.#ident_all.as_ptr().add(index).read(),)*
                 }
@@ -338,7 +338,7 @@ fn fields_struct(
             }
 
             #[inline]
-            unsafe fn get_mut<'a>(&mut self, index: usize) -> #item_ref_mut<'a> {
+            unsafe fn get_mut<'a>(&self, index: usize) -> #item_ref_mut<'a> {
                 #item_ref_mut {
                     #(#ident_all: self.#ident_all.as_ptr().add(index).as_mut().unwrap_unchecked(),)*
                 }
@@ -392,11 +392,11 @@ fn zst_struct(ident: Ident, vis: Visibility, kind: ZstKind) -> Result<TokenStrea
             #[inline]
             unsafe fn set(&mut self, index: usize, element: #ident) { }
             #[inline]
-            unsafe fn get(&mut self, index: usize) -> #ident { #ident #unit_construct }
+            unsafe fn get(&self, index: usize) -> #ident { #ident #unit_construct }
             #[inline]
             unsafe fn get_ref<'a>(&self, index: usize) -> Self::ItemRef<'a> { () }
             #[inline]
-            unsafe fn get_mut<'a>(&mut self, index: usize) -> Self::ItemRefMut<'a> { () }
+            unsafe fn get_mut<'a>(&self, index: usize) -> Self::ItemRefMut<'a> { () }
         }
     })
 }
