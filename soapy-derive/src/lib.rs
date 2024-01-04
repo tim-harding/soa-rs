@@ -75,8 +75,8 @@ fn fields_struct(
     let offsets = format_ident!("{ident}SoaOffsets");
     let slices = format_ident!("{ident}SoaSlices");
     let slices_mut = format_ident!("{ident}SoaSlicesMut");
-    let iter_item = format_ident!("{ident}SoaIterItem");
-    let iter_item_mut = format_ident!("{ident}SoaIterItemMut");
+    let item_ref = format_ident!("{ident}SoaItemRef");
+    let item_ref_mut = format_ident!("{ident}SoaItemRefMut");
     let raw = format_ident!("{ident}RawSoa");
 
     let raw_body = match kind {
@@ -118,7 +118,7 @@ fn fields_struct(
         },
     };
 
-    let iter_item_def = match kind {
+    let item_ref_def = match kind {
         FieldKind::Named => quote! {
             { #(#vis_all #ident_all: &'a #ty_all),* }
         },
@@ -127,7 +127,7 @@ fn fields_struct(
         },
     };
 
-    let iter_item_mut_def = match kind {
+    let item_ref_mut_def = match kind {
         FieldKind::Named => quote! {
             { #(#vis_all #ident_all: &'a mut #ty_all),* }
         },
@@ -185,9 +185,9 @@ fn fields_struct(
         #[automatically_derived]
         #vis struct #slices_mut<'a> #slices_mut_def
         #[automatically_derived]
-        #vis struct #iter_item<'a> #iter_item_def
+        #vis struct #item_ref<'a> #item_ref_def
         #[automatically_derived]
-        #vis struct #iter_item_mut<'a> #iter_item_mut_def
+        #vis struct #item_ref_mut<'a> #item_ref_mut_def
 
         #[automatically_derived]
         impl #raw {
@@ -220,8 +220,8 @@ fn fields_struct(
         impl ::soapy_shared::RawSoa<#ident> for #raw {
             type Slices<'a> = #slices<'a> where Self: 'a;
             type SlicesMut<'a> = #slices_mut<'a> where Self: 'a;
-            type IterItem<'a> = #iter_item<'a> where Self: 'a;
-            type IterItemMut<'a> = #iter_item_mut<'a> where Self: 'a;
+            type ItemRef<'a> = #item_ref<'a> where Self: 'a;
+            type ItemRefMut<'a> = #item_ref_mut<'a> where Self: 'a;
 
             #[inline]
             fn dangling() -> Self {
@@ -324,9 +324,23 @@ fn fields_struct(
             }
 
             #[inline]
-            unsafe fn get(&self, index: usize) -> #ident {
+            unsafe fn get(&mut self, index: usize) -> #ident {
                 #ident {
                     #(#ident_all: self.#ident_all.as_ptr().add(index).read(),)*
+                }
+            }
+
+            #[inline]
+            unsafe fn get_ref<'a>(&self, index: usize) -> #item_ref<'a> {
+                #item_ref {
+                    #(#ident_all: self.#ident_all.as_ptr().add(index).as_ref().unwrap_unchecked(),)*
+                }
+            }
+
+            #[inline]
+            unsafe fn get_mut<'a>(&mut self, index: usize) -> #item_ref_mut<'a> {
+                #item_ref_mut {
+                    #(#ident_all: self.#ident_all.as_ptr().add(index).as_mut().unwrap_unchecked(),)*
                 }
             }
         }
@@ -352,8 +366,8 @@ fn zst_struct(ident: Ident, vis: Visibility, kind: ZstKind) -> Result<TokenStrea
         impl ::soapy_shared::RawSoa<#ident> for #raw {
             type Slices<'a> = ();
             type SlicesMut<'a> = ();
-            type IterItem<'a> = ();
-            type IterItemMut<'a> = ();
+            type ItemRef<'a> = ();
+            type ItemRefMut<'a> = ();
 
             #[inline]
             fn dangling() -> Self { Self }
@@ -378,7 +392,11 @@ fn zst_struct(ident: Ident, vis: Visibility, kind: ZstKind) -> Result<TokenStrea
             #[inline]
             unsafe fn set(&mut self, index: usize, element: #ident) { }
             #[inline]
-            unsafe fn get(&self, index: usize) -> #ident { #ident #unit_construct }
+            unsafe fn get(&mut self, index: usize) -> #ident { #ident #unit_construct }
+            #[inline]
+            unsafe fn get_ref<'a>(&self, index: usize) -> Self::ItemRef<'a> { () }
+            #[inline]
+            unsafe fn get_mut<'a>(&mut self, index: usize) -> Self::ItemRefMut<'a> { () }
         }
     })
 }
