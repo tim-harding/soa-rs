@@ -41,6 +41,18 @@ pub trait RawSoa<T>: Copy + Clone {
     where
         Self: 'a;
 
+    /// For each field with type `F` in `T`, `IterItem` has a field with type
+    /// `&F`
+    type IterItem<'a>
+    where
+        Self: 'a;
+
+    /// For each field with type `F` in `T`, `IterItemMut` has a field with type
+    /// `&mut F`
+    type IterItemMut<'a>
+    where
+        Self: 'a;
+
     /// Creates a `Self` with dangling pointers for all its fields and without
     /// allocating memory.
     fn dangling() -> Self;

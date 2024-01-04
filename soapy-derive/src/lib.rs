@@ -75,6 +75,8 @@ fn fields_struct(
     let offsets = format_ident!("{ident}SoaOffsets");
     let slices = format_ident!("{ident}SoaSlices");
     let slices_mut = format_ident!("{ident}SoaSlicesMut");
+    let iter_item = format_ident!("{ident}SoaIterItem");
+    let iter_item_mut = format_ident!("{ident}SoaIterItemMut");
     let raw = format_ident!("{ident}RawSoa");
 
     let raw_body = match kind {
@@ -113,6 +115,24 @@ fn fields_struct(
         },
         FieldKind::Unnamed => quote! {
             ( #(#vis_all &'a mut [#ty_all]),* );
+        },
+    };
+
+    let iter_item_def = match kind {
+        FieldKind::Named => quote! {
+            { #(#vis_all #ident_all: &'a #ty_all),* }
+        },
+        FieldKind::Unnamed => quote! {
+            ( #(#vis_all &'a #ty_all),* );
+        },
+    };
+
+    let iter_item_mut_def = match kind {
+        FieldKind::Named => quote! {
+            { #(#vis_all #ident_all: &'a mut #ty_all),* }
+        },
+        FieldKind::Unnamed => quote! {
+            ( #(#vis_all &'a mut #ty_all),* );
         },
     };
 
@@ -164,6 +184,10 @@ fn fields_struct(
         #vis struct #slices<'a> #slices_def
         #[automatically_derived]
         #vis struct #slices_mut<'a> #slices_mut_def
+        #[automatically_derived]
+        #vis struct #iter_item<'a> #iter_item_def
+        #[automatically_derived]
+        #vis struct #iter_item_mut<'a> #iter_item_mut_def
 
         #[automatically_derived]
         impl #raw {
@@ -196,6 +220,8 @@ fn fields_struct(
         impl ::soapy_shared::RawSoa<#ident> for #raw {
             type Slices<'a> = #slices<'a> where Self: 'a;
             type SlicesMut<'a> = #slices_mut<'a> where Self: 'a;
+            type IterItem<'a> = #iter_item<'a> where Self: 'a;
+            type IterItemMut<'a> = #iter_item_mut<'a> where Self: 'a;
 
             #[inline]
             fn dangling() -> Self {
@@ -326,6 +352,8 @@ fn zst_struct(ident: Ident, vis: Visibility, kind: ZstKind) -> Result<TokenStrea
         impl ::soapy_shared::RawSoa<#ident> for #raw {
             type Slices<'a> = ();
             type SlicesMut<'a> = ();
+            type IterItem<'a> = ();
+            type IterItemMut<'a> = ();
 
             #[inline]
             fn dangling() -> Self { Self }
