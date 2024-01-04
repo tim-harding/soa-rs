@@ -175,4 +175,16 @@ mod tests {
         assert_eq!(expected_return, soa.remove(index));
         assert!(soa.into_iter().eq(expected_contents.into_iter()));
     }
+
+    #[test]
+    pub fn with_capacity() {
+        let mut soa = Soa::with_capacity(5);
+        assert_eq!(soa.capacity(), 5);
+        assert_eq!(soa.len(), 0);
+        for element in ABCDE.into_iter() {
+            soa.push(element);
+        }
+        assert_eq!(soa.capacity(), 5);
+        assert_eq!(soa.len(), 5);
+    }
 }

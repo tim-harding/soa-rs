@@ -1,5 +1,4 @@
 use soapy_shared::{RawSoa, Soapy};
-use std::mem::size_of;
 
 pub struct Drain<T>
 where
