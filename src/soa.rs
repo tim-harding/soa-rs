@@ -226,6 +226,36 @@ where
         }
     }
 
+    /// Calls a closure on each element of the collection.
+    pub fn for_each<F>(&self, mut f: F)
+    where
+        F: FnMut(&T),
+    {
+        for i in 0..self.len {
+            // SAFETY:
+            // Okay to construct an element and take its reference, so long as
+            // we don't run its destructor.
+            let element = unsafe { self.raw.get(i) };
+            f(&element);
+            forget(element);
+        }
+    }
+
+    /// Calls a closure on each element of the collection, allowing for
+    /// modification.
+    pub fn for_each_mut<F>(&mut self, mut f: F)
+    where
+        F: FnMut(&mut T),
+    {
+        for i in 0..self.len {
+            let mut element = unsafe { self.raw.get(i) };
+            f(&mut element);
+            unsafe {
+                self.raw.set(i, element);
+            }
+        }
+    }
+
     /// Clears the vector, removing all values.
     ///
     /// Note that this method has no effect on the allocated capacity of the
@@ -334,15 +364,9 @@ where
 {
     fn clone(&self) -> Self {
         let mut out = Self::with_capacity(self.len());
-        for i in 0..self.len() {
-            // SAFETY:
-            // Acceptable to construct an element by value so long as we don't
-            // run its destructor
-            let element = unsafe { self.raw.get(i) };
-            let clone = element.clone();
-            forget(element);
-            out.push(clone);
-        }
+        self.for_each(|el| {
+            out.push(el.clone());
+        });
         out
     }
 
@@ -351,15 +375,9 @@ where
         if self.cap < source.len {
             self.reserve(source.len);
         }
-        for i in 0..self.len() {
-            // SAFETY:
-            // Acceptable to construct an element by value so long as we don't
-            // run its destructor
-            let element = unsafe { source.raw.get(i) };
-            let clone = element.clone();
-            forget(element);
-            self.push(clone);
-        }
+        source.for_each(|el| {
+            self.push(el.clone());
+        });
     }
 }
 

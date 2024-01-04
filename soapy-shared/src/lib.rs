@@ -3,6 +3,7 @@
 // - Remove offsets struct
 // - Document panics for reallocating methods
 // - try_reserve and try_reserve_exact
+// - Provide push iterator functions that mirror the original T
 
 pub trait Soapy: Sized {
     type RawSoa: RawSoa<Self>;
