@@ -555,6 +555,16 @@ where
     }
 }
 
+impl<T> From<Box<[T]>> for Soa<T>
+where
+    T: Soapy + Clone,
+{
+    /// Allocate a `Soa<T>` and move `value`'s items into it.
+    fn from(value: Box<[T]>) -> Self {
+        (*value).into()
+    }
+}
+
 impl<T> PartialEq for Soa<T>
 where
     T: Soapy + PartialEq,
@@ -620,5 +630,14 @@ where
             ord @ (Ordering::Less | Ordering::Greater) => ord,
             Ordering::Equal => self.len.cmp(&other.len),
         }
+    }
+}
+
+impl<T> Default for Soa<T>
+where
+    T: Soapy,
+{
+    fn default() -> Self {
+        Self::new()
     }
 }

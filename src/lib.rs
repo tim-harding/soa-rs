@@ -231,12 +231,14 @@ mod tests {
         let slice: &[El] = ABCDE.as_slice();
         let mut tmp = ABCDE;
         let slice_mut: &mut [El] = tmp.as_mut_slice();
+        let boxed: Box<[El]> = Box::new(ABCDE);
         assert_eq!(expected, vec.into());
         assert_eq!(expected, array.into());
         assert_eq!(expected, array_ref.into());
         assert_eq!(expected, array_ref_mut.into());
         assert_eq!(expected, slice.into());
         assert_eq!(expected, slice_mut.into());
+        assert_eq!(expected, boxed.into());
     }
 
     #[test]
