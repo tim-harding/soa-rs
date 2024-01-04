@@ -316,4 +316,11 @@ mod tests {
             assert_eq!(actual, expected);
         }
     }
+
+    #[test]
+    pub fn debug() {
+        let slice = format!("{:?}", ABCDE);
+        let soa = format!("{:?}", Soa::from(ABCDE));
+        assert_eq!(slice, soa);
+    }
 }
