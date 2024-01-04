@@ -1,5 +1,7 @@
+mod into_iter;
 mod soa;
 
+pub use into_iter::IntoIter;
 pub use soa::Soa;
 pub use soapy_derive::Soapy;
 

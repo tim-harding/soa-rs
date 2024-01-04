@@ -1,6 +1,8 @@
 use soapy_shared::{RawSoa, Soapy};
 use std::mem::{size_of, ManuallyDrop};
 
+use crate::IntoIter;
+
 pub struct Soa<T>
 where
     T: Soapy,
@@ -258,7 +260,11 @@ where
 {
     fn drop(&mut self) {
         while let Some(_) = self.pop() {}
-        drop_raw(&mut self.raw, self.cap);
+        if size_of::<T>() > 0 && self.cap > 0 {
+            unsafe {
+                self.raw.dealloc(self.cap);
+            }
+        }
     }
 }
 
@@ -361,69 +367,5 @@ where
     /// Allocate a `Soa<T>` and fill it by cloning `value`'s items.
     fn from(value: &mut [T]) -> Self {
         value.iter().cloned().collect()
-    }
-}
-
-pub struct IntoIter<T>
-where
-    T: Soapy,
-{
-    raw: T::RawSoa,
-    cap: usize,
-    start: usize,
-    end: usize,
-}
-
-impl<T> Iterator for IntoIter<T>
-where
-    T: Soapy,
-{
-    type Item = T;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        if self.start >= self.end {
-            None
-        } else {
-            let out = unsafe { self.raw.get(self.start) };
-            self.start += 1;
-            Some(out)
-        }
-    }
-
-    fn size_hint(&self) -> (usize, Option<usize>) {
-        let len = self.end - self.start;
-        (len, Some(len))
-    }
-}
-
-impl<T> DoubleEndedIterator for IntoIter<T>
-where
-    T: Soapy,
-{
-    fn next_back(&mut self) -> Option<Self::Item> {
-        if self.start >= self.end {
-            None
-        } else {
-            self.end -= 1;
-            Some(unsafe { self.raw.get(self.end) })
-        }
-    }
-}
-
-impl<T> Drop for IntoIter<T>
-where
-    T: Soapy,
-{
-    fn drop(&mut self) {
-        while let Some(_) = self.next() {}
-        drop_raw(&mut self.raw, self.cap);
-    }
-}
-
-fn drop_raw<T>(raw: &mut impl RawSoa<T>, old_capacity: usize) {
-    if size_of::<T>() > 0 && old_capacity > 0 {
-        unsafe {
-            raw.dealloc(old_capacity);
-        }
     }
 }
