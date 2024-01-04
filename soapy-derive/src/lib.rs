@@ -366,8 +366,8 @@ fn zst_struct(ident: Ident, vis: Visibility, kind: ZstKind) -> Result<TokenStrea
         impl ::soapy_shared::RawSoa<#ident> for #raw {
             type Slices<'a> = ();
             type SlicesMut<'a> = ();
-            type ItemRef<'a> = ();
-            type ItemRefMut<'a> = ();
+            type ItemRef<'a> = #ident;
+            type ItemRefMut<'a> = #ident;
 
             #[inline]
             fn dangling() -> Self { Self }
@@ -394,9 +394,9 @@ fn zst_struct(ident: Ident, vis: Visibility, kind: ZstKind) -> Result<TokenStrea
             #[inline]
             unsafe fn get(&self, index: usize) -> #ident { #ident #unit_construct }
             #[inline]
-            unsafe fn get_ref<'a>(&self, index: usize) -> Self::ItemRef<'a> { () }
+            unsafe fn get_ref<'a>(&self, index: usize) -> Self::ItemRef<'a> { #ident #unit_construct }
             #[inline]
-            unsafe fn get_mut<'a>(&self, index: usize) -> Self::ItemRefMut<'a> { () }
+            unsafe fn get_mut<'a>(&self, index: usize) -> Self::ItemRefMut<'a> { #ident #unit_construct }
         }
     })
 }
