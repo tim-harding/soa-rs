@@ -217,4 +217,23 @@ mod tests {
             assert_eq!(borrowed.baz, &owned.baz);
         }
     }
+
+    #[test]
+    pub fn from_impls() {
+        let expected: Soa<_> = ABCDE.into_iter().collect();
+        let vec: Vec<_> = ABCDE.into();
+        let array: [El; 5] = ABCDE;
+        let array_ref: &[El; 5] = &ABCDE;
+        let mut tmp = ABCDE;
+        let array_ref_mut: &mut [El; 5] = &mut tmp;
+        let slice: &[El] = ABCDE.as_slice();
+        let mut tmp = ABCDE;
+        let slice_mut: &mut [El] = tmp.as_mut_slice();
+        assert_eq!(expected, vec.into());
+        assert_eq!(expected, array.into());
+        assert_eq!(expected, array_ref.into());
+        assert_eq!(expected, array_ref_mut.into());
+        assert_eq!(expected, slice.into());
+        assert_eq!(expected, slice_mut.into());
+    }
 }

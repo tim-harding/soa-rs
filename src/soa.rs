@@ -9,6 +9,7 @@
 
 use soapy_shared::{RawSoa, Soapy};
 use std::{
+    fmt::{self, Formatter},
     marker::PhantomData,
     mem::{forget, size_of, ManuallyDrop},
 };
@@ -440,6 +441,16 @@ where
     }
 }
 
+impl<T> From<Vec<T>> for Soa<T>
+where
+    T: Soapy,
+{
+    /// Allocate a `Soa<T>` and move `value`'s items into it.
+    fn from(value: Vec<T>) -> Self {
+        value.into_iter().collect()
+    }
+}
+
 impl<T, const N: usize> From<[T; N]> for Soa<T>
 where
     T: Soapy,
@@ -487,5 +498,43 @@ where
     /// Allocate a `Soa<T>` and fill it by cloning `value`'s items.
     fn from(value: &mut [T]) -> Self {
         value.iter().cloned().collect()
+    }
+}
+
+impl<T> PartialEq for Soa<T>
+where
+    T: Soapy + PartialEq,
+{
+    fn eq(&self, other: &Self) -> bool {
+        if self.len != other.len {
+            return false;
+        }
+
+        for i in 0..self.len {
+            let a = unsafe { self.raw.get(i) };
+            let b = unsafe { other.raw.get(i) };
+            if a != b {
+                return false;
+            }
+            forget(a);
+            forget(b);
+        }
+
+        true
+    }
+}
+
+impl<T> Eq for Soa<T> where T: Soapy + Eq {}
+
+impl<T> fmt::Debug for Soa<T>
+where
+    T: Soapy + fmt::Debug,
+{
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        let mut list = f.debug_list();
+        self.for_each(|item| {
+            list.entry(&item);
+        });
+        list.finish()
     }
 }
