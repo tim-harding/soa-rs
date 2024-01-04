@@ -187,4 +187,34 @@ mod tests {
         assert_eq!(soa.capacity(), 5);
         assert_eq!(soa.len(), 5);
     }
+
+    #[test]
+    pub fn from_iter() {
+        let soa: Soa<_> = ABCDE.into_iter().collect();
+        assert!(soa.into_iter().eq(ABCDE.into_iter()));
+    }
+
+    #[test]
+    pub fn iter() {
+        let soa: Soa<_> = ABCDE.into();
+        for (borrowed, owned) in soa.iter().zip(ABCDE.into_iter()) {
+            assert_eq!(borrowed.foo, &owned.foo);
+            assert_eq!(borrowed.bar, &owned.bar);
+            assert_eq!(borrowed.baz, &owned.baz);
+        }
+    }
+
+    #[test]
+    pub fn iter_mut() {
+        let mut soa: Soa<_> = ABCDE.into();
+        for el in soa.iter_mut() {
+            *el.foo += 1;
+            *el.bar += 2;
+        }
+        for (borrowed, owned) in soa.iter().zip(ABCDE.into_iter()) {
+            assert_eq!(borrowed.foo, &(owned.foo + 1));
+            assert_eq!(borrowed.bar, &(owned.bar + 2));
+            assert_eq!(borrowed.baz, &owned.baz);
+        }
+    }
 }
