@@ -236,4 +236,11 @@ mod tests {
         assert_eq!(expected, slice.into());
         assert_eq!(expected, slice_mut.into());
     }
+
+    #[test]
+    pub fn extend() {
+        let mut soa: Soa<_> = [A, B].into();
+        soa.extend([C, D].into_iter());
+        assert!(soa.into_iter().eq([A, B, C, D].into_iter()));
+    }
 }
