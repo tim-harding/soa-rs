@@ -243,4 +243,19 @@ mod tests {
         soa.extend([C, D].into_iter());
         assert!(soa.into_iter().eq([A, B, C, D].into_iter()));
     }
+
+    #[test]
+    pub fn clone() {
+        let expected: Soa<_> = ABCDE.into();
+        let actual = expected.clone();
+        assert_eq!(expected, actual);
+    }
+
+    #[test]
+    pub fn clone_from() {
+        let mut dst: Soa<_> = ABCDE.into();
+        let src: Soa<_> = [A, A, A].into();
+        dst.clone_from(&src);
+        assert_eq!(dst, src);
+    }
 }
