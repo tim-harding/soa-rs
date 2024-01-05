@@ -1,7 +1,7 @@
 # soapy
 
-Soapy makes it simple to work with structure-of-arrays memory layout. What [`Vec`]
-is to array-of-structures (AoS), [`Soa`] is to structure-of-arrays (SoA).
+Soapy makes it simple to work with structure-of-arrays memory layout. What `Vec<T>`
+is to array-of-structures (AoS), `Soa<T>` is to structure-of-arrays (SoA).
 
 ## Example
 
