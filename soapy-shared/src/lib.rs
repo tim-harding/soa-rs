@@ -18,10 +18,10 @@ pub trait Soapy: Sized {
 ///
 /// In the method documentation, it is established that `PREV_CAP` is
 ///
-/// - 0 if no previous calls to [`RawSoa::grow`] or [`RawSoa::shrink`] have been
+/// - 0 if no previous calls to [`RawSoa::realloc_grow`] or [`RawSoa::realloc_shrink`] have been
 /// made, or
 /// - the same value as was used for `new_capacity` in previous calls
-/// to [`RawSoa::grow`] and [`RawSoa::shrink`]
+/// to [`RawSoa::realloc_grow`] and [`RawSoa::realloc_shrink`]
 pub trait RawSoa<T>: Copy + Clone {
     /// For each field with type `F` in `T`, `Slices` has a field with type
     /// `&[F]`
@@ -96,7 +96,7 @@ pub trait RawSoa<T>: Copy + Clone {
     ///
     /// - `size_of::<T>() > 0`
     /// - `capacity > 0`
-    /// - `PREV_CAP == 0` (Otherwise use [`RawSoa::grow`])
+    /// - `PREV_CAP == 0` (Otherwise use [`RawSoa::realloc_grow`])
     unsafe fn alloc(capacity: usize) -> Self;
 
     /// Grows the allocation with room for `old_capacity` elements to fit
