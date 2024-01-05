@@ -12,8 +12,8 @@ use std::{
     cmp::Ordering,
     fmt::{self, Formatter},
     marker::PhantomData,
-    mem::{forget, size_of, ManuallyDrop},
-    ops::ControlFlow,
+    mem::{size_of, ManuallyDrop},
+    ops::{ControlFlow, Deref},
 };
 
 use crate::{index::SoaIndex, IntoIter, Iter, IterMut};
@@ -292,9 +292,8 @@ where
             // SAFETY:
             // Okay to construct an element and take its reference, so long as
             // we don't run its destructor.
-            let element = unsafe { self.raw.get(i) };
+            let element = ManuallyDrop::new(unsafe { self.raw.get(i) });
             let result = f(acc, &element);
-            forget(element);
             match result {
                 ControlFlow::Continue(b) => acc = b,
                 ControlFlow::Break(b) => return b,
@@ -314,11 +313,9 @@ where
             // SAFETY:
             // Okay to construct an element and take its reference, so long as
             // we don't run its destructor.
-            let a = unsafe { self.raw.get(i) };
-            let b = unsafe { other.raw.get(i) };
+            let a = ManuallyDrop::new(unsafe { self.raw.get(i) });
+            let b = ManuallyDrop::new(unsafe { other.raw.get(i) });
             let result = f(acc, &a, &b);
-            forget(a);
-            forget(b);
             match result {
                 ControlFlow::Continue(b) => acc = b,
                 ControlFlow::Break(b) => return b,
@@ -365,6 +362,22 @@ where
         I: SoaIndex<T>,
     {
         index.get(self)
+    }
+
+    /// Returns a clone of the element at the given index.
+    ///
+    /// # Panics
+    ///
+    /// Panics if `index >= len`.
+    pub fn nth_cloned(&self, index: usize) -> T
+    where
+        T: Clone,
+    {
+        if index >= self.len {
+            panic!("index out of bounds");
+        }
+        let el = ManuallyDrop::new(unsafe { self.raw.get(index) });
+        el.deref().clone()
     }
 
     /// Returns a reference to the element at the given index.

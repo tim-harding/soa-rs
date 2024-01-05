@@ -101,6 +101,43 @@
 //! Whereas `soa-vec` only compiles on nightly, Soapy also compiles on stable.
 //! Rather than using derive macros, `soa-vec` instead uses macros to generate
 //! eight static copies of their SoA type with fixed tuple sizes.
+//!
+//! ## Progress
+//!
+//! ### Soa
+//!
+//! - [ ] `depup` / `dedup_by` / `dedup_by_key`
+//! - [ ] `drain`
+//! - [ ] `extend_from_slice` / `extend_from_within`
+//! - [ ] `extract_if`
+//! - [ ] `leak`
+//! - [ ] `retain`
+//! - [ ] `try_reserve` / `try_reserve_exact`
+//! - [ ] `dedup_by` / `dedup_by_key`
+//! - [ ] `resize` / `resize_with`
+//! - [ ] `splice`
+//! - [ ] `split_off`
+//!
+//! ### SoaSlice
+//! - [ ] `select_nth_unstable` / `select_nth_unstable_by` / `select_nth_unstable_by_key`
+//! - [ ] `sort` / `sort_by` / `sort_by_key` / `sort_by_cached_key`
+//! - [ ] `sort_unstable` / `sort_unstable_by` / `sort_unstable_by_key` / `sort_unstable_by_cached_key`
+//! - [ ] `binary_search` / `binary_search_by` / `binary_search_by_key`
+//! - [ ] `is_sorted` / `is_sorted_by` / `is_sorted_by_key`
+//! - [ ] `chunks` / `rchunks`
+//! - [ ] `chunks_exact` / `rchunks_exact`
+//! - [ ] `first` / `last`
+//! - [ ] `rotate_left` / `rotate_right`
+//! - [ ] `split` / `rsplit` / `splitn`
+//! - [ ] `split_at` / `split_first` / `split_last`
+//! - [ ] `swap`
+//! - [ ] `swap_with_slice`
+//! - [ ] `group_by`
+//! - [ ] `contains`
+//! - [ ] `copy_within`
+//! - [ ] `fill` / `fill_with`
+//! - [ ] `repeat`
+//! - [ ] `reverse`
 
 mod index;
 mod into_iter;

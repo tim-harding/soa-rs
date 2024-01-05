@@ -1,6 +1,5 @@
-use std::marker::PhantomData;
-
 use soapy_shared::{RawSoa, Soapy};
+use std::marker::PhantomData;
 
 pub struct IterMut<'a, T>
 where
