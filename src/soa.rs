@@ -80,6 +80,11 @@ where
         self.len
     }
 
+    /// Returns true if the container contains no elements.
+    pub fn is_empty(&self) -> bool {
+        self.len == 0
+    }
+
     /// Returns the total number of elements the container can hold without
     /// reallocating.
     pub fn capacity(&self) -> usize {
@@ -348,7 +353,7 @@ where
     /// Note that this method has no effect on the allocated capacity of the
     /// vector.
     pub fn clear(&mut self) {
-        while let Some(_) = self.pop() {}
+        while self.pop().is_some() {}
     }
 
     /// Returns a reference to an element or subslice depending on the type of
@@ -446,7 +451,7 @@ where
     T: Soapy,
 {
     fn drop(&mut self) {
-        while let Some(_) = self.pop() {}
+        while self.pop().is_some() {}
         if size_of::<T>() > 0 && self.cap > 0 {
             unsafe {
                 self.raw.dealloc(self.cap);
