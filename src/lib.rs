@@ -1,9 +1,7 @@
-mod drain;
 mod index;
 mod into_iter;
 mod iter;
 mod iter_mut;
-mod raw_value_iter;
 mod soa;
 
 pub use into_iter::IntoIter;
