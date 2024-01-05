@@ -368,4 +368,11 @@ mod tests {
         };
         assert_eq!(actual, ABCDE[2]);
     }
+
+    #[test]
+    pub fn swap() {
+        let mut soa: Soa<_> = [A, B, C].into();
+        soa.swap(0, 2);
+        assert!([C, B, A].into_iter().eq(soa.into_iter()));
+    }
 }

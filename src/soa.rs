@@ -2,6 +2,8 @@
 // - retain / retain_mut
 // - try_reserve / try_reserve_exact
 // - dedup_by / dedup_by_key
+// - sort / sort_unstable / ...
+// - binary_search
 //
 // - Document panics for reallocating methods
 
@@ -365,6 +367,23 @@ where
         I: SoaIndex<T>,
     {
         index.get_mut(self)
+    }
+
+    /// Swaps the position of two elements.
+    ///
+    /// # Panics
+    ///
+    /// Panics if `a` or `b` is out of bounds.
+    pub fn swap(&mut self, a: usize, b: usize) {
+        if a >= self.len || b >= self.len {
+            panic!("index out of bounds");
+        }
+
+        unsafe {
+            let tmp = self.raw.get(a);
+            self.raw.copy(b, a, 1);
+            self.raw.set(b, tmp);
+        }
     }
 
     /// Grows the allocated capacity if `len == cap`.
