@@ -1,14 +1,13 @@
 # soapy
 
-## Soapy
-
 Soapy makes it simple to work with structure-of-arrays memory layout. What [`Vec`]
 is to array-of-structures (AoS), [`Soa`] is to structure-of-arrays (SoA).
 
-### Example
+## Example
 
 ```rust
-#[derive(Soapy, Debug, Clone, Copy, PartialEq)]
+ use soapy::{Soa, Soapy};
+[derive(Soapy, Debug, Clone, Copy, PartialEq)]
 struct Example {
     foo: u8,
     bar: u16,
@@ -30,7 +29,7 @@ for (actual, expected) in soa.iter().zip(elements.iter()) {
 }
 ```
 
-### What is SoA?
+## What is SoA?
 
 The following types illustrate the difference between AoS and Soa:
 ```
@@ -61,7 +60,7 @@ appropriate when either
 
 As always, it is best to profile both for your use case.
 
-### Derive
+## Derive
 
 Soapy provides the [`Soapy`] derive macro to generate SoA compatibility for
 structs automatically. When deriving Soapy, several new structs are
@@ -84,9 +83,9 @@ automatically. However, since they inherit the visibility of the derived
 struct, you should consider whether to include them in the `pub` items of
 your module.
 
-### Comparison
+## Comparison
 
-#### [`soa_derive`](https://docs.rs/soa_derive/latest/soa_derive/)
+### [`soa_derive`](https://docs.rs/soa_derive/latest/soa_derive/)
 
 `soa_derive` makes each field its own `Vec`. Because of this, each field's
 length, capacity, and allocation are managed separately. In contrast, Soapy
@@ -97,15 +96,15 @@ minimal, low-level interface and uses the generic `Soa` type for the
 majority of the implementation. This provides more type system flexibility,
 less code generation, and more accessible documentation.
 
-#### [`soa-vec`](https://docs.rs/soa-vec/latest/soa_vec/)
+### [`soa-vec`](https://docs.rs/soa-vec/latest/soa_vec/)
 
 Whereas `soa-vec` only compiles on nightly, Soapy also compiles on stable.
 Rather than using derive macros, `soa-vec` instead uses macros to generate
 eight static copies of their SoA type with fixed tuple sizes.
 
-### Progress
+## Progress
 
-#### Soa
+### Soa
 
 - [ ] `depup` / `dedup_by` / `dedup_by_key`
 - [ ] `drain`
@@ -119,7 +118,7 @@ eight static copies of their SoA type with fixed tuple sizes.
 - [ ] `splice`
 - [ ] `split_off`
 
-#### SoaSlice
+### SoaSlice
 - [ ] `select_nth_unstable` / `select_nth_unstable_by` / `select_nth_unstable_by_key`
 - [ ] `sort` / `sort_by` / `sort_by_key` / `sort_by_cached_key`
 - [ ] `sort_unstable` / `sort_unstable_by` / `sort_unstable_by_key` / `sort_unstable_by_cached_key`
