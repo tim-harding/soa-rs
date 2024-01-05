@@ -3,8 +3,6 @@
 // - try_reserve / try_reserve_exact
 // - dedup_by / dedup_by_key
 //
-// - Generic test runner with different structs and array sizes
-// - Remove offsets struct
 // - Document panics for reallocating methods
 
 use soapy_shared::{RawSoa, Soapy};
@@ -16,15 +14,15 @@ use std::{
     ops::ControlFlow,
 };
 
-use crate::{IntoIter, Iter, IterMut};
+use crate::{index::SoaIndex, IntoIter, Iter, IterMut};
 
 pub struct Soa<T>
 where
     T: Soapy,
 {
-    len: usize,
-    cap: usize,
-    raw: T::RawSoa,
+    pub(crate) len: usize,
+    pub(crate) cap: usize,
+    pub(crate) raw: T::RawSoa,
 }
 
 unsafe impl<T> Send for Soa<T> where T: Send + Soapy {}
@@ -349,6 +347,24 @@ where
     /// vector.
     pub fn clear(&mut self) {
         while let Some(_) = self.pop() {}
+    }
+
+    /// Returns a reference to an element or subslice depending on the type of
+    /// index.
+    pub fn get<I>(&self, index: I) -> Option<I::Output<'_>>
+    where
+        I: SoaIndex<T>,
+    {
+        index.get(self)
+    }
+
+    /// Returns a mutable reference to an element or subslice depending on the
+    /// type of index.
+    pub fn get_mut<I>(&mut self, index: I) -> Option<I::OutputMut<'_>>
+    where
+        I: SoaIndex<T>,
+    {
+        index.get_mut(self)
     }
 
     /// Grows the allocated capacity if `len == cap`.

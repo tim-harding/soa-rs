@@ -1,4 +1,5 @@
 mod drain;
+mod index;
 mod into_iter;
 mod iter;
 mod iter_mut;
@@ -335,5 +336,36 @@ mod tests {
         soa.hash(&mut actual);
 
         assert_eq!(actual.finish(), expected.finish());
+    }
+
+    #[test]
+    pub fn get_range() {
+        let soa: Soa<_> = ABCDE.into();
+        let slices = soa.get(1..3).unwrap();
+        for (&expected, (foo, (bar, baz))) in ABCDE[1..3].into_iter().zip(
+            slices
+                .foo
+                .into_iter()
+                .zip(slices.bar.into_iter().zip(slices.baz.into_iter())),
+        ) {
+            let actual = El {
+                foo: *foo,
+                bar: *bar,
+                baz: *baz,
+            };
+            assert_eq!(actual, expected);
+        }
+    }
+
+    #[test]
+    pub fn get_index() {
+        let soa: Soa<_> = ABCDE.into();
+        let actual = soa.get(2).unwrap();
+        let actual = El {
+            foo: *actual.foo,
+            bar: *actual.bar,
+            baz: *actual.baz,
+        };
+        assert_eq!(actual, ABCDE[2]);
     }
 }

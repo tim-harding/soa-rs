@@ -172,6 +172,7 @@ fn fields_struct(
             type RawSoa = #raw;
         }
 
+        // TODO: Remove and just use a tuple
         #[automatically_derived]
         #[derive(Copy, Clone)]
         struct #offsets #offsets_body
@@ -231,23 +232,27 @@ fn fields_struct(
             }
 
             #[inline]
-            fn slices(&self, len: usize) -> Self::Slices<'_> {
+            unsafe fn slices(&self, start: usize, end: usize) -> Self::Slices<'_> {
+                let len = end - start;
                 #slices {
                     #(
-                    #ident_all: unsafe {
-                        ::std::slice::from_raw_parts(self.#ident_all.as_ptr(), len)
-                    },
+                    #ident_all: ::std::slice::from_raw_parts(
+                        self.#ident_all.as_ptr().add(start),
+                        len,
+                    ),
                     )*
                 }
             }
 
             #[inline]
-            fn slices_mut(&mut self, len: usize) -> Self::SlicesMut<'_> {
+            unsafe fn slices_mut(&mut self, start: usize, end: usize) -> Self::SlicesMut<'_> {
+                let len = end - start;
                 #slices_mut {
                     #(
-                    #ident_all: unsafe {
-                        ::std::slice::from_raw_parts_mut(self.#ident_all.as_ptr(), len)
-                    },
+                    #ident_all: ::std::slice::from_raw_parts_mut(
+                        self.#ident_all.as_ptr().add(start),
+                        len,
+                    ),
                     )*
                 }
             }
@@ -374,9 +379,9 @@ fn zst_struct(ident: Ident, vis: Visibility, kind: ZstKind) -> Result<TokenStrea
             #[inline]
             fn as_ptr(self) -> *mut u8 { ::std::ptr::null::<u8>() as *mut _ }
             #[inline]
-            fn slices(&self, len: usize) -> Self::Slices<'_> { () }
+            unsafe fn slices(&self, start: usize, end: usize) -> Self::Slices<'_> { () }
             #[inline]
-            fn slices_mut(&mut self, len: usize) -> Self::SlicesMut<'_> { () }
+            unsafe fn slices_mut(&mut self, start: usize, end: usize) -> Self::SlicesMut<'_> { () }
             #[inline]
             unsafe fn from_parts(ptr: *mut u8, capacity: usize) -> Self { Self }
             #[inline]

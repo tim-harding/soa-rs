@@ -51,11 +51,27 @@ pub trait RawSoa<T>: Copy + Clone {
     /// allocating memory.
     fn dangling() -> Self;
 
-    /// Constructs safe, immutable slices of the arrays managed by `Self`.
-    fn slices(&self, len: usize) -> Self::Slices<'_>;
+    /// Constructs safe, immutable slices of the arrays managed by `Self` with
+    /// the range `start..end`.
+    ///
+    /// # Safety
+    ///
+    /// The caller must ensure that
+    /// - `start <= end`
+    /// - `start <= PREV_LEN`
+    /// - `end <= PREV_LEN`
+    unsafe fn slices(&self, start: usize, end: usize) -> Self::Slices<'_>;
 
-    /// Constructs safe, mutable slices of the arrays managed by `Self`.
-    fn slices_mut(&mut self, len: usize) -> Self::SlicesMut<'_>;
+    /// Constructs safe, mutable slices of the arrays managed by `Self` with the
+    /// range `start..end`.
+    ///
+    /// # Safety
+    ///
+    /// The caller must ensure that
+    /// - `start <= end`
+    /// - `start <= PREV_LEN`
+    /// - `end <= PREV_LEN`
+    unsafe fn slices_mut(&mut self, start: usize, end: usize) -> Self::SlicesMut<'_>;
 
     /// Returns the pointer that contains the allocated capacity.
     ///
