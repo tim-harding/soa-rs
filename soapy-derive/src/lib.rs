@@ -75,8 +75,8 @@ fn fields_struct(
     let offsets = format_ident!("{ident}SoaOffsets");
     let slices = format_ident!("{ident}SoaSlices");
     let slices_mut = format_ident!("{ident}SoaSlicesMut");
-    let item_ref = format_ident!("{ident}SoaItemRef");
-    let item_ref_mut = format_ident!("{ident}SoaItemRefMut");
+    let item_ref = format_ident!("{ident}SoaRef");
+    let item_ref_mut = format_ident!("{ident}SoaRefMut");
     let raw = format_ident!("{ident}RawSoa");
 
     let raw_body = match kind {
@@ -221,8 +221,8 @@ fn fields_struct(
         impl ::soapy_shared::RawSoa<#ident> for #raw {
             type Slices<'a> = #slices<'a> where Self: 'a;
             type SlicesMut<'a> = #slices_mut<'a> where Self: 'a;
-            type ItemRef<'a> = #item_ref<'a> where Self: 'a;
-            type ItemRefMut<'a> = #item_ref_mut<'a> where Self: 'a;
+            type Ref<'a> = #item_ref<'a> where Self: 'a;
+            type RefMut<'a> = #item_ref_mut<'a> where Self: 'a;
 
             #[inline]
             fn dangling() -> Self {
@@ -374,8 +374,8 @@ fn zst_struct(ident: Ident, vis: Visibility, kind: ZstKind) -> Result<TokenStrea
         impl ::soapy_shared::RawSoa<#ident> for #raw {
             type Slices<'a> = ();
             type SlicesMut<'a> = ();
-            type ItemRef<'a> = #ident;
-            type ItemRefMut<'a> = #ident;
+            type Ref<'a> = #ident;
+            type RefMut<'a> = #ident;
 
             #[inline]
             fn dangling() -> Self { Self }
@@ -402,9 +402,9 @@ fn zst_struct(ident: Ident, vis: Visibility, kind: ZstKind) -> Result<TokenStrea
             #[inline]
             unsafe fn get(&self, index: usize) -> #ident { #ident #unit_construct }
             #[inline]
-            unsafe fn get_ref<'a>(&self, index: usize) -> Self::ItemRef<'a> { #ident #unit_construct }
+            unsafe fn get_ref<'a>(&self, index: usize) -> Self::Ref<'a> { #ident #unit_construct }
             #[inline]
-            unsafe fn get_mut<'a>(&self, index: usize) -> Self::ItemRefMut<'a> { #ident #unit_construct }
+            unsafe fn get_mut<'a>(&self, index: usize) -> Self::RefMut<'a> { #ident #unit_construct }
         }
     })
 }

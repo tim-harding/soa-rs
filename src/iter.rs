@@ -15,7 +15,7 @@ impl<'a, T> Iterator for Iter<'a, T>
 where
     T: Soapy,
 {
-    type Item = <<T as Soapy>::RawSoa as RawSoa<T>>::ItemRef<'a>;
+    type Item = <<T as Soapy>::RawSoa as RawSoa<T>>::Ref<'a>;
 
     fn next(&mut self) -> Option<Self::Item> {
         if self.start >= self.end {

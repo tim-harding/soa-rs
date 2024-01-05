@@ -16,7 +16,7 @@ impl<'a, T> Iterator for IterMut<'a, T>
 where
     T: Soapy,
 {
-    type Item = <<T as Soapy>::RawSoa as RawSoa<T>>::ItemRefMut<'a>;
+    type Item = <<T as Soapy>::RawSoa as RawSoa<T>>::RefMut<'a>;
 
     fn next(&mut self) -> Option<Self::Item> {
         if self.start >= self.end {

@@ -21,9 +21,9 @@ impl<T> SoaIndex<T> for usize
 where
     T: Soapy,
 {
-    type Output<'a> = <T::RawSoa as RawSoa<T>>::ItemRef<'a> where T: 'a;
+    type Output<'a> = <T::RawSoa as RawSoa<T>>::Ref<'a> where T: 'a;
 
-    type OutputMut<'a> = <T::RawSoa as RawSoa<T>>::ItemRefMut<'a>
+    type OutputMut<'a> = <T::RawSoa as RawSoa<T>>::RefMut<'a>
     where
         T: 'a;
 

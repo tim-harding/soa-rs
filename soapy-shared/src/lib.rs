@@ -35,15 +35,15 @@ pub trait RawSoa<T>: Copy + Clone {
     where
         Self: 'a;
 
-    /// For each field with type `F` in `T`, `ItemRef` has a field with type
+    /// For each field with type `F` in `T`, `Ref` has a field with type
     /// `&F`
-    type ItemRef<'a>
+    type Ref<'a>
     where
         Self: 'a;
 
-    /// For each field with type `F` in `T`, `ItemRefMut` has a field with type
+    /// For each field with type `F` in `T`, `RefMut` has a field with type
     /// `&mut F`
-    type ItemRefMut<'a>
+    type RefMut<'a>
     where
         Self: 'a;
 
@@ -179,7 +179,7 @@ pub trait RawSoa<T>: Copy + Clone {
     /// The caller must ensure that
     ///
     /// - `index < PREV_CAP`
-    unsafe fn get_ref<'a>(&self, index: usize) -> Self::ItemRef<'a>;
+    unsafe fn get_ref<'a>(&self, index: usize) -> Self::Ref<'a>;
 
     /// Gets a mutable reference to the element at `index`.
     ///
@@ -188,5 +188,5 @@ pub trait RawSoa<T>: Copy + Clone {
     /// The caller must ensure that
     ///
     /// - `index < PREV_CAP`
-    unsafe fn get_mut<'a>(&self, index: usize) -> Self::ItemRefMut<'a>;
+    unsafe fn get_mut<'a>(&self, index: usize) -> Self::RefMut<'a>;
 }

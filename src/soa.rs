@@ -367,6 +367,23 @@ where
         index.get(self)
     }
 
+    /// Returns a reference to the element at the given index.
+    ///
+    /// # Panics
+    ///
+    /// Panics if `index >= len`.
+    pub fn nth(&self, index: usize) -> <T::RawSoa as RawSoa<T>>::Ref<'_> {
+        if index >= self.len {
+            panic!("index out of bounds");
+        }
+        unsafe { self.raw.get_ref(index) }
+    }
+
+    /// Returns slices for each of the SoA fields.
+    pub fn slices(&self) -> <T::RawSoa as RawSoa<T>>::Slices<'_> {
+        unsafe { self.raw.slices(0, self.len) }
+    }
+
     /// Returns a mutable reference to an element or subslice depending on the
     /// type of index.
     pub fn get_mut<I>(&mut self, index: I) -> Option<I::OutputMut<'_>>
@@ -374,6 +391,23 @@ where
         I: SoaIndex<T>,
     {
         index.get_mut(self)
+    }
+
+    /// Returns a reference to the element at the given index.
+    ///
+    /// # Panics
+    ///
+    /// Panics if `index >= len`.
+    pub fn nth_mut(&mut self, index: usize) -> <T::RawSoa as RawSoa<T>>::RefMut<'_> {
+        if index >= self.len {
+            panic!("index out of bounds");
+        }
+        unsafe { self.raw.get_mut(index) }
+    }
+
+    /// Returns mutable slices for each of the SoA fields.
+    pub fn slices_mut(&mut self) -> <T::RawSoa as RawSoa<T>>::SlicesMut<'_> {
+        unsafe { self.raw.slices_mut(0, self.len) }
     }
 
     /// Swaps the position of two elements.
