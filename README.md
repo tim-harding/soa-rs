@@ -1,5 +1,5 @@
-[![docs.rs](https://img.shields.io/docsrs/soapy)](https://docs.rs/soapy/latest/soapy/)
 [![Crates.io Version](https://img.shields.io/crates/v/soapy)](https://crates.io/crates/soapy)
+[![docs.rs](https://img.shields.io/docsrs/soapy)](https://docs.rs/soapy/latest/soapy/)
 [![GitHub License](https://img.shields.io/github/license/tim-harding/soapy)](https://github.com/tim-harding/soapy/blob/main/LICENSE)
 
 # Soapy
