@@ -6,6 +6,25 @@
 
 {{readme}}
 
+## Comparison
+
+### [`soa_derive`](https://docs.rs/soa_derive/latest/soa_derive/)
+
+`soa_derive` makes each field its own `Vec`. Because of this, each field's
+length, capacity, and allocation are managed separately. In contrast, Soapy
+manages a single allocation for each `Soa`. This uses less space and allows
+the collection to grow and shrink more efficiently. `soa_derive` also
+generates a new collection type for every struct, whereas Soapy generates a
+minimal, low-level interface and uses the generic `Soa` type for the
+majority of the implementation. This provides more type system flexibility,
+less code generation, and more accessible documentation.
+
+### [`soa-vec`](https://docs.rs/soa-vec/latest/soa_vec/)
+
+Whereas `soa-vec` only compiles on nightly, Soapy also compiles on stable.
+Rather than using derive macros, `soa-vec` instead uses macros to generate
+eight static copies of their SoA type with fixed tuple sizes.
+
 ## Progress
 
 ### Soa
