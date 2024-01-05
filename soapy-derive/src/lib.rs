@@ -361,13 +361,16 @@ fn zst_struct(ident: Ident, vis: Visibility, kind: ZstKind) -> Result<TokenStrea
     };
 
     Ok(quote! {
+        #[automatically_derived]
         impl ::soapy_shared::Soapy for #ident {
             type RawSoa = #raw;
         }
 
+        #[automatically_derived]
         #[derive(Copy, Clone)]
         #vis struct #raw;
 
+        #[automatically_derived]
         impl ::soapy_shared::RawSoa<#ident> for #raw {
             type Slices<'a> = ();
             type SlicesMut<'a> = ();
