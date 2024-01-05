@@ -47,12 +47,14 @@ where
         }
     }
 
-    /// Construct a new, empty `Soa<T>` with the specified capacity.
+    /// Construct a new, empty `Soa<T>` with at least the specified capacity.
     ///
     /// The container will be able to hold `capacity` elements without
     /// reallocating. If the `capacity` is 0, the container will not allocate.
     /// Note that although the returned vector has the minimum capacity
-    /// specified, the vector will have a zero length.
+    /// specified, the vector will have a zero length. The capacity will be as
+    /// specified unless `T` is zero-sized, in which case the capacity will be
+    /// `usize::MAX`.
     pub fn with_capacity(capacity: usize) -> Self {
         match capacity {
             0 => Self::new(),
