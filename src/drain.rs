@@ -50,6 +50,6 @@ where
     T: Soapy,
 {
     fn drop(&mut self) {
-        while let Some(_) = self.next() {}
+        for _ in self.by_ref() {}
     }
 }

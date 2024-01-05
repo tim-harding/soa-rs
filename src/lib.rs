@@ -241,7 +241,7 @@ mod tests {
     #[test]
     pub fn extend() {
         let mut soa: Soa<_> = [A, B].into();
-        soa.extend([C, D].into_iter());
+        soa.extend([C, D]);
         assert!(soa.into_iter().eq([A, B, C, D].into_iter()));
     }
 
@@ -342,11 +342,11 @@ mod tests {
     pub fn get_range() {
         let soa: Soa<_> = ABCDE.into();
         let slices = soa.get(1..3).unwrap();
-        for (&expected, (foo, (bar, baz))) in ABCDE[1..3].into_iter().zip(
+        for (&expected, (foo, (bar, baz))) in ABCDE[1..3].iter().zip(
             slices
                 .foo
-                .into_iter()
-                .zip(slices.bar.into_iter().zip(slices.baz.into_iter())),
+                .iter()
+                .zip(slices.bar.iter().zip(slices.baz.iter())),
         ) {
             let actual = El {
                 foo: *foo,

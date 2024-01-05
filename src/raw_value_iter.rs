@@ -52,7 +52,7 @@ where
     T: Soapy,
 {
     fn drop(&mut self) {
-        while let Some(_) = self.next() {}
+        for _ in self.by_ref() {}
         if size_of::<T>() > 0 && self.cap > 0 {
             unsafe {
                 self.raw.dealloc(self.cap);
