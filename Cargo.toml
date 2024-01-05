@@ -1,6 +1,6 @@
 [package]
 name = "soapy"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2021"
 license = "MIT"
 description = "Structure-of-arrays derive macro"
@@ -12,5 +12,5 @@ readme = "README.md"
 members = ["soapy-derive", "soapy-shared"]
 
 [dependencies]
-soapy-derive = { path = "soapy-derive", version = "0.1.0" }
-soapy-shared = { path = "soapy-shared", version = "0.1.0" }
+soapy-derive = { path = "soapy-derive", version = "0.2.0" }
+soapy-shared = { path = "soapy-shared", version = "0.2.0" }
