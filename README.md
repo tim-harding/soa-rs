@@ -1,4 +1,8 @@
-# soapy
+![docs.rs](https://img.shields.io/docsrs/soapy?link=https%3A%2F%2Fdocs.rs%2Fsoapy%2Flatest%2Fsoapy%2F)
+![Crates.io Version](https://img.shields.io/crates/v/soapy?link=https%3A%2F%2Fcrates.io%2Fcrates%2Fsoapy)
+![GitHub License](https://img.shields.io/github/license/tim-harding/soapy?link=https%3A%2F%2Fgithub.com%2Ftim-harding%2Fsoapy%2Fblob%2Fmain%2FLICENSE)
+
+# Soapy
 
 Soapy makes it simple to work with structure-of-arrays memory layout. What `Vec<T>`
 is to array-of-structures (AoS), `Soa<T>` is to structure-of-arrays (SoA).
@@ -138,5 +142,3 @@ eight static copies of their SoA type with fixed tuple sizes.
 - [ ] `fill` / `fill_with`
 - [ ] `repeat`
 - [ ] `reverse`
-
-License: MIT
