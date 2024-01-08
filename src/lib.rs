@@ -4,8 +4,8 @@
 //! # Example
 //!
 //! ```
-//!  use soapy::{Soa, Soapy};
-//! [derive(Soapy, Debug, Clone, Copy, PartialEq)]
+//! # use soapy::{Soa, Soapy};
+//! #[derive(Soapy, Debug, Clone, Copy, PartialEq)]
 //! struct Example {
 //!     foo: u8,
 //!     bar: u16,
