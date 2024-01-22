@@ -33,6 +33,14 @@ where
     /// Constructs a new, empty `Soa<T>`.
     ///
     /// The container will not allocate until elements are pushed onto it.
+    ///
+    /// # Examples
+    /// ```
+    /// # use soapy::{Soa, Soapy};
+    /// #[derive(Soapy)]
+    /// struct Foo(u8, u16);
+    /// let mut soa: Soa<Foo> = Soa::new();
+    /// ```
     pub fn new() -> Self {
         Self {
             len: 0,
