@@ -37,8 +37,10 @@ where
     /// # Examples
     /// ```
     /// # use soapy::{Soa, Soapy};
+    ///
     /// #[derive(Soapy)]
     /// struct Foo(u8, u16);
+    ///
     /// let mut soa: Soa<Foo> = Soa::new();
     /// ```
     pub fn new() -> Self {
@@ -57,6 +59,37 @@ where
     /// specified, the vector will have a zero length. The capacity will be as
     /// specified unless `T` is zero-sized, in which case the capacity will be
     /// `usize::MAX`.
+    ///
+    /// # Examples
+    /// ```
+    /// # use soapy::{Soa, Soapy};
+    ///
+    /// #[derive(Soapy)]
+    /// struct Foo(u8, u8);
+    ///
+    /// let mut soa = Soa::with_capacity(10);
+    /// assert_eq!(soa.len(), 0);
+    /// assert_eq!(soa.capacity(), 10);
+    ///
+    /// // These pushes do not reallocate...
+    /// for i in 0..10 {
+    ///     soa.push(Foo(i, i));
+    /// }
+    /// assert_eq!(soa.len(), 10);
+    /// assert_eq!(soa.capacity(), 10);
+    ///
+    /// // ...but this one does
+    /// soa.push(Foo(11, 11));
+    /// assert_eq!(soa.len(), 11);
+    /// assert_eq!(soa.capacity(), 20);
+    ///
+    /// #[derive(Soapy)]
+    /// struct Bar;
+    ///
+    /// // A SOA of a zero-sized type always over-allocates
+    /// let soa: Soa<Bar> = Soa::with_capacity(10);
+    /// assert_eq!(soa.capacity(), usize::MAX);
+    /// ```
     pub fn with_capacity(capacity: usize) -> Self {
         match capacity {
             0 => Self::new(),
