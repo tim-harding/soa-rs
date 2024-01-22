@@ -1,6 +1,12 @@
 use soapy_shared::{RawSoa, Soapy};
 use std::marker::PhantomData;
 
+/// Mutable [`Soa`] iterator.
+///
+/// This struct is created by the [`iter_mut`] method.
+///
+/// [`Soa`]: crate::Soa
+/// [`iter_mut`]: crate::Soa::iter_mut
 pub struct IterMut<'a, T>
 where
     T: Soapy,

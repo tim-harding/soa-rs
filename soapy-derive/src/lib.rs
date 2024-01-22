@@ -1,3 +1,5 @@
+//! This crate provides the derive macro for Soapy.
+
 use proc_macro::TokenStream;
 use proc_macro2::TokenStream as TokenStream2;
 use quote::{format_ident, quote, quote_spanned, ToTokens};
@@ -218,7 +220,7 @@ fn fields_struct(
         }
 
         #[automatically_derived]
-        impl ::soapy_shared::RawSoa<#ident> for #raw {
+        unsafe impl ::soapy_shared::RawSoa<#ident> for #raw {
             type Slices<'a> = #slices<'a> where Self: 'a;
             type SlicesMut<'a> = #slices_mut<'a> where Self: 'a;
             type Ref<'a> = #item_ref<'a> where Self: 'a;
@@ -371,7 +373,7 @@ fn zst_struct(ident: Ident, vis: Visibility, kind: ZstKind) -> Result<TokenStrea
         #vis struct #raw;
 
         #[automatically_derived]
-        impl ::soapy_shared::RawSoa<#ident> for #raw {
+        unsafe impl ::soapy_shared::RawSoa<#ident> for #raw {
             type Slices<'a> = ();
             type SlicesMut<'a> = ();
             type Ref<'a> = #ident;

@@ -1,12 +1,4 @@
-// TODO:
-// - retain / retain_mut
-// - try_reserve / try_reserve_exact
-// - dedup_by / dedup_by_key
-// - sort / sort_unstable / ...
-// - binary_search
-//
-// - Document panics for reallocating methods
-
+use crate::{index::SoaIndex, IntoIter, Iter, IterMut};
 use soapy_shared::{RawSoa, Soapy};
 use std::{
     cmp::Ordering,
@@ -16,8 +8,8 @@ use std::{
     ops::{ControlFlow, Deref},
 };
 
-use crate::{index::SoaIndex, IntoIter, Iter, IterMut};
-
+/// A growable array type that stores the values for each field of `T`
+/// contiguously.
 pub struct Soa<T>
 where
     T: Soapy,
@@ -34,6 +26,8 @@ impl<T> Soa<T>
 where
     T: Soapy,
 {
+    /// The capacity of the initial allocation. This is an optimization to avoid
+    /// excessive reallocation for small array sizes.
     const SMALL_CAPACITY: usize = 4;
 
     /// Constructs a new, empty `Soa<T>`.

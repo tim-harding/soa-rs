@@ -2,18 +2,25 @@ use crate::Soa;
 use soapy_shared::{RawSoa, Soapy};
 use std::ops::{Range, RangeFrom, RangeFull, RangeInclusive, RangeTo, RangeToInclusive};
 
+/// A helper trait for indexing operations.
 pub trait SoaIndex<T>
 where
     T: Soapy,
 {
+    /// The output type returned by non-`mut` methods.
     type Output<'a>
     where
         T: 'a;
+
+    /// The output type returned by `mut` methods.
     type OutputMut<'a>
     where
         T: 'a;
 
+    /// Returns the output at this location, if in bounds.
     fn get(self, soa: &Soa<T>) -> Option<Self::Output<'_>>;
+
+    /// Returns the mutable output at this location, if in bounds.
     fn get_mut(self, soa: &mut Soa<T>) -> Option<Self::OutputMut<'_>>;
 }
 

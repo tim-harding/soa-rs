@@ -1,3 +1,16 @@
+//! This crate provides traits that are implemented by the `soapy-derive` crate.
+//!
+//! On its own, this crate is not useful. Soapy is organized this way, rather
+//! than by putting these traits in the `soapy` crate directly, because the
+//! derive macro needs to specify absolute paths to the traits it implements.
+//! Unfortunately, if a trait is part of the current crate, the path has to be
+//! prefixed with `crate::` rather than `::my_crate_name::`, so it would not be
+//! possible to implement these traits for any types in `soapy` for testing.
+//! That is why these are split out into a subcrate.
+
+/// Provides SOA data structure compatibility.
+///
+/// This trait should be derived using the `soapy-derive` crate.
 pub trait Soapy: Sized {
     type RawSoa: RawSoa<Self>;
 }
@@ -22,7 +35,7 @@ pub trait Soapy: Sized {
 /// made, or
 /// - the same value as was used for `new_capacity` in previous calls
 /// to [`RawSoa::realloc_grow`] and [`RawSoa::realloc_shrink`]
-pub trait RawSoa<T>: Copy + Clone {
+pub unsafe trait RawSoa<T>: Copy + Clone {
     /// For each field with type `F` in `T`, `Slices` has a field with type
     /// `&[F]`
     type Slices<'a>

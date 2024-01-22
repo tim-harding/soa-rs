@@ -1,6 +1,12 @@
 use soapy_shared::{RawSoa, Soapy};
 use std::marker::PhantomData;
 
+/// Immutable [`Soa`] iterator.
+///
+/// This struct is created by the [`iter`] method.
+///
+/// [`Soa`]: crate::Soa
+/// [`iter`]: crate::Soa::iter
 pub struct Iter<'a, T: 'a>
 where
     T: Soapy,

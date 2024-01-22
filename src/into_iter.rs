@@ -1,6 +1,13 @@
 use soapy_shared::{RawSoa, Soapy};
 use std::mem::size_of;
 
+/// An iterator that moves out of a [`Soa`].
+///
+/// This struct is created by the [`into_iter`] method, provided by the
+/// [`IntoIterator`] trait.
+///
+/// [`Soa`]: crate::Soa
+/// [`into_iter`]: crate::Soa::into_iter
 pub struct IntoIter<T>
 where
     T: Soapy,
