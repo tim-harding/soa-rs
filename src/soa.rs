@@ -117,8 +117,8 @@ where
     /// # use soapy::{Soa, Soapy, soa};
     /// # #[derive(Soapy)]
     /// # struct Foo(usize);
-    /// let s = soa![Foo(1), Foo(2), Foo(3)];
-    /// assert_eq!(s.len(), 3);
+    /// let soa = soa![Foo(1), Foo(2), Foo(3)];
+    /// assert_eq!(soa.len(), 3);
     /// ```
     pub fn len(&self) -> usize {
         self.len
@@ -132,10 +132,10 @@ where
     /// # use soapy::{Soa, Soapy};
     /// # #[derive(Soapy)]
     /// # struct Foo(usize);
-    /// let mut s = Soa::new();
-    /// assert!(s.is_empty());
-    /// s.push(Foo(1));
-    /// assert!(!s.is_empty());
+    /// let mut soa = Soa::new();
+    /// assert!(soa.is_empty());
+    /// soa.push(Foo(1));
+    /// assert!(!soa.is_empty());
     /// ```
     pub fn is_empty(&self) -> bool {
         self.len == 0
@@ -213,9 +213,9 @@ where
     /// # use soapy::{Soa, Soapy, soa};
     /// # #[derive(Soapy, Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
     /// # struct Foo(usize);
-    /// let mut s = soa![Foo(1), Foo(2)];
-    /// s.push(Foo(3));
-    /// assert_eq!(s, soa![Foo(1), Foo(2), Foo(3)]);
+    /// let mut soa = soa![Foo(1), Foo(2)];
+    /// soa.push(Foo(3));
+    /// assert_eq!(soa, soa![Foo(1), Foo(2), Foo(3)]);
     /// ```
     pub fn push(&mut self, element: T) {
         self.maybe_grow();
@@ -400,6 +400,39 @@ where
     /// If len is greater or equal to the vector’s current length, this has no
     /// effect. Note that this method has no effect on the allocated capacity of
     /// the vector.
+    ///
+    /// # Examples
+    ///
+    /// Truncating a five-element SOA to two elements:
+    /// ```
+    /// # use soapy::{Soa, Soapy, soa};
+    /// # #[derive(Soapy, Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
+    /// # struct Foo(usize);
+    /// let mut soa = soa![Foo(1), Foo(2), Foo(3), Foo(4), Foo(5)];
+    /// soa.truncate(2);
+    /// assert_eq!(soa, soa![Foo(1), Foo(2)]);
+    /// ```
+    ///
+    /// No truncation occurs when `len` is greater than the SOA's current
+    /// length:
+    /// ```
+    /// # use soapy::{Soa, Soapy, soa};
+    /// # #[derive(Soapy, Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
+    /// # struct Foo(usize);
+    /// let mut soa = soa![Foo(1), Foo(2), Foo(3)];
+    /// soa.truncate(8);
+    /// assert_eq!(soa, soa![Foo(1), Foo(2), Foo(3)]);
+    /// ```
+    ///
+    /// Truncating with `len == 0` is equivalent to [`Soa::clear`].
+    /// ```
+    /// # use soapy::{Soa, Soapy, soa};
+    /// # #[derive(Soapy, Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
+    /// # struct Foo(usize);
+    /// let mut soa = soa![Foo(1), Foo(2), Foo(3)];
+    /// soa.truncate(0);
+    /// assert_eq!(soa, soa![]);
+    /// ```
     pub fn truncate(&mut self, len: usize) {
         while len < self.len {
             self.pop();
