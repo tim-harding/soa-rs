@@ -448,12 +448,28 @@ where
     /// # Panics
     ///
     /// Panics if index is out of bounds.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use soapy::{Soa, Soapy, soa};
+    /// # #[derive(Soapy, Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
+    /// # struct Foo(usize);
+    /// let mut soa = soa![Foo(0), Foo(1), Foo(2), Foo(3)];
+    ///
+    /// assert_eq!(soa.swap_remove(1), Foo(1));
+    /// assert_eq!(soa, [Foo(0), Foo(3), Foo(2)]);
+    ///
+    /// assert_eq!(soa.swap_remove(0), Foo(0));
+    /// assert_eq!(soa, [Foo(2), Foo(3)])
+    /// ```
     pub fn swap_remove(&mut self, index: usize) -> T {
         let out = unsafe { self.raw.get(index) };
         let last = unsafe { self.raw.get(self.len - 1) };
         unsafe {
             self.raw.set(index, last);
         }
+        self.len -= 1;
         out
     }
 
