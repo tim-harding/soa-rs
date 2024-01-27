@@ -302,8 +302,8 @@ where
     /// Reserves capacity for at least additional more elements to be inserted
     /// in the given `Soa<T>`. The collection may reserve more space to
     /// speculatively avoid frequent reallocations. After calling reserve,
-    /// capacity will be greater than or equal to `self.len() + additional`. Does
-    /// nothing if capacity is already sufficient.
+    /// capacity will be greater than or equal to `self.len() + additional`.
+    /// Does nothing if capacity is already sufficient.
     ///
     /// # Examples
     ///
@@ -327,11 +327,22 @@ where
     }
 
     /// Reserves the minimum capacity for at least additional more elements to
-    /// be inserted in the given `Soa<T>`. Unlike [`Soa::reserve`], this will not
-    /// deliberately over-allocate to speculatively avoid frequent allocations.
-    /// After calling `reserve_exact`, capacity will be greater than or equal to
-    /// self.len() + additional. Does nothing if the capacity is already
-    /// sufficient.
+    /// be inserted in the given `Soa<T>`. Unlike [`Soa::reserve`], this will
+    /// not deliberately over-allocate to speculatively avoid frequent
+    /// allocations. After calling `reserve_exact`, capacity will be equal to
+    /// self.len() + additional, or else `usize::MAX` if `T` is zero-sized. Does
+    /// nothing if the capacity is already sufficient.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use soapy::{Soa, Soapy, soa};
+    /// # #[derive(Soapy, Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
+    /// # struct Foo(usize);
+    /// let mut soa = soa![Foo(1)];
+    /// soa.reserve(10);
+    /// assert!(soa.capacity() == 11);
+    /// ```
     pub fn reserve_exact(&mut self, additional: usize) {
         if additional == 0 {
             return;
