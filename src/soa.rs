@@ -37,10 +37,8 @@ where
     /// # Examples
     /// ```
     /// # use soapy::{Soa, Soapy};
-    ///
-    /// #[derive(Soapy)]
-    /// struct Foo(u8, u16);
-    ///
+    /// # #[derive(Soapy)]
+    /// # struct Foo(u8, u16);
     /// let mut soa: Soa<Foo> = Soa::new();
     /// ```
     pub fn new() -> Self {
@@ -63,9 +61,8 @@ where
     /// # Examples
     /// ```
     /// # use soapy::{Soa, Soapy};
-    ///
-    /// #[derive(Soapy)]
-    /// struct Foo(u8, u8);
+    /// # #[derive(Soapy)]
+    /// # struct Foo(u8, u8);
     ///
     /// let mut soa = Soa::with_capacity(10);
     /// assert_eq!(soa.len(), 0);
@@ -113,6 +110,16 @@ where
 
     /// Returns the number of elements in the vector, also referred to as its
     /// length.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use soapy::{Soa, Soapy, soa};
+    /// # #[derive(Soapy)]
+    /// # struct Foo(u8, u16);
+    /// let s = soa![Foo(1, 2), Foo(3, 4), Foo(5, 6)];
+    /// assert_eq!(s.len(), 3);
+    /// ```
     pub fn len(&self) -> usize {
         self.len
     }
