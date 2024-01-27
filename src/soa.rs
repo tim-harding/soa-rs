@@ -125,6 +125,18 @@ where
     }
 
     /// Returns true if the container contains no elements.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use soapy::{Soa, Soapy, soa};
+    /// # #[derive(Soapy)]
+    /// # struct Foo(u8, u16);
+    /// let mut s = Soa::new();
+    /// assert!(s.is_empty());
+    /// s.push(Foo(1, 2));
+    /// assert!(!s.is_empty());
+    /// ```
     pub fn is_empty(&self) -> bool {
         self.len == 0
     }
