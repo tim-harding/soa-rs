@@ -366,11 +366,11 @@ mod tests {
         let slice: &[El] = ABCDE.as_slice();
         let mut tmp = ABCDE;
         let slice_mut: &mut [El] = tmp.as_mut_slice();
-        assert_eq!(expected, array.into());
-        assert_eq!(expected, array_ref.into());
-        assert_eq!(expected, array_ref_mut.into());
-        assert_eq!(expected, slice.into());
-        assert_eq!(expected, slice_mut.into());
+        assert_eq!(expected, Soa::from(array));
+        assert_eq!(expected, Soa::from(array_ref));
+        assert_eq!(expected, Soa::from(array_ref_mut));
+        assert_eq!(expected, Soa::from(slice));
+        assert_eq!(expected, Soa::from(slice_mut));
     }
 
     #[test]
