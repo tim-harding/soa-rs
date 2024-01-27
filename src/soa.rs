@@ -352,6 +352,19 @@ where
     }
 
     /// Shrinks the capacity of the container as much as possible.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use soapy::{Soa, Soapy, soa};
+    /// # #[derive(Soapy, Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
+    /// # struct Foo(usize);
+    /// let mut soa = Soa::with_capacity(10);
+    /// soa.extend([Foo(1), Foo(2), Foo(3)]);
+    /// assert_eq!(soa.capacity(), 10);
+    /// soa.shrink_to_fit();
+    /// assert_eq!(soa.capacity(), 3);
+    /// ```
     pub fn shrink_to_fit(&mut self) {
         self.shrink(self.len);
     }
@@ -361,6 +374,20 @@ where
     /// The capacity will remain at least as large as both the length and the
     /// supplied value. If the current capacity is less than the lower limit,
     /// this is a no-op.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use soapy::{Soa, Soapy, soa};
+    /// # #[derive(Soapy, Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
+    /// # struct Foo(usize);
+    /// let mut soa = Soa::with_capacity(10);
+    /// soa.extend([Foo(1), Foo(2), Foo(3)]);
+    /// assert_eq!(soa.capacity(), 10);
+    /// soa.shrink_to(4);
+    /// assert_eq!(soa.capacity(), 4);
+    /// soa.shrink_to(0);
+    /// assert_eq!(soa.capacity(), 3);
     pub fn shrink_to(&mut self, min_capacity: usize) {
         let new_cap = self.len.max(min_capacity);
         if new_cap < self.cap {
