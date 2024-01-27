@@ -253,6 +253,19 @@ where
     /// # Panics
     ///
     /// Panics if `index > len`
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use soapy::{Soa, Soapy, soa};
+    /// # #[derive(Soapy, Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
+    /// # struct Foo(usize, usize);
+    /// let mut soa = soa![Foo(1, 1), Foo(2, 2), Foo(3, 3)];
+    /// soa.insert(1, Foo(4, 4));
+    /// assert_eq!(soa, soa![Foo(1, 1), Foo(4, 4), Foo(2, 2), Foo(3, 3)]);
+    /// soa.insert(4, Foo(5, 5));
+    /// assert_eq!(soa, soa![Foo(1, 1), Foo(4, 4), Foo(2, 2), Foo(3, 3), Foo(5, 5)]);
+    /// ```
     pub fn insert(&mut self, index: usize, element: T) {
         assert!(index <= self.len, "index out of bounds");
         self.maybe_grow();
