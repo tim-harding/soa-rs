@@ -304,6 +304,17 @@ where
     /// speculatively avoid frequent reallocations. After calling reserve,
     /// capacity will be greater than or equal to `self.len() + additional`. Does
     /// nothing if capacity is already sufficient.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use soapy::{Soa, Soapy, soa};
+    /// # #[derive(Soapy, Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
+    /// # struct Foo(usize);
+    /// let mut soa = soa![Foo(1)];
+    /// soa.reserve(10);
+    /// assert!(soa.capacity() >= 11);
+    /// ```
     pub fn reserve(&mut self, additional: usize) {
         if additional == 0 {
             return;
