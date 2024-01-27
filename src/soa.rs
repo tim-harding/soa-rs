@@ -278,6 +278,17 @@ where
 
     /// Removes and returns the element at position index within the vector,
     /// shifting all elements after it to the left.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use soapy::{Soa, Soapy, soa};
+    /// # #[derive(Soapy, Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
+    /// # struct Foo(usize, usize);
+    /// let mut soa = soa![Foo(1, 1), Foo(2, 2), Foo(3, 3)];
+    /// assert_eq!(soa.remove(1), Foo(2, 2));
+    /// assert_eq!(soa, soa![Foo(1, 1), Foo(3, 3)])
+    /// ```
     pub fn remove(&mut self, index: usize) -> T {
         assert!(index < self.len, "index out of bounds");
         self.len -= 1;
