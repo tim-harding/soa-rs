@@ -38,7 +38,7 @@ where
     /// ```
     /// # use soapy::{Soa, Soapy};
     /// # #[derive(Soapy)]
-    /// # struct Foo(u8, u16);
+    /// # struct Foo;
     /// let mut soa: Soa<Foo> = Soa::new();
     /// ```
     pub fn new() -> Self {
@@ -61,8 +61,8 @@ where
     /// # Examples
     /// ```
     /// # use soapy::{Soa, Soapy};
-    /// # #[derive(Soapy)]
-    /// # struct Foo(u8, u8);
+    /// #[derive(Soapy)]
+    /// struct Foo(u8, u8);
     ///
     /// let mut soa = Soa::with_capacity(10);
     /// assert_eq!(soa.len(), 0);
@@ -116,8 +116,8 @@ where
     /// ```
     /// # use soapy::{Soa, Soapy, soa};
     /// # #[derive(Soapy)]
-    /// # struct Foo(u8, u16);
-    /// let s = soa![Foo(1, 2), Foo(3, 4), Foo(5, 6)];
+    /// # struct Foo(usize);
+    /// let s = soa![Foo(1), Foo(2), Foo(3)];
     /// assert_eq!(s.len(), 3);
     /// ```
     pub fn len(&self) -> usize {
@@ -131,10 +131,10 @@ where
     /// ```
     /// # use soapy::{Soa, Soapy};
     /// # #[derive(Soapy)]
-    /// # struct Foo(u8, u16);
+    /// # struct Foo(usize);
     /// let mut s = Soa::new();
     /// assert!(s.is_empty());
-    /// s.push(Foo(1, 2));
+    /// s.push(Foo(1));
     /// assert!(!s.is_empty());
     /// ```
     pub fn is_empty(&self) -> bool {
@@ -149,11 +149,11 @@ where
     /// ```
     /// # use soapy::{Soa, Soapy};
     /// # #[derive(Soapy)]
-    /// # struct Foo(usize, usize);
+    /// # struct Foo(usize);
     /// let mut soa = Soa::new();
     /// for i in 0..42 {
     ///     assert!(soa.capacity() >= i);
-    ///     soa.push(Foo(i, i));
+    ///     soa.push(Foo(i));
     /// }
     /// ```
     pub fn capacity(&self) -> usize {
@@ -177,11 +177,11 @@ where
     /// ```
     /// # use soapy::{Soa, Soapy, soa};
     /// # #[derive(Soapy, Debug, PartialEq)]
-    /// # struct Foo(usize, usize);
-    /// let soa = soa![Foo(1, 2), Foo(3, 4)];
+    /// # struct Foo(usize);
+    /// let soa = soa![Foo(1), Foo(2)];
     /// let (ptr, len, cap) = soa.into_raw_parts();
     /// let rebuilt = unsafe { Soa::from_raw_parts(ptr, len, cap) };
-    /// assert_eq!(rebuilt, soa![Foo(1, 2), Foo(3, 4)]);
+    /// assert_eq!(rebuilt, soa![Foo(1), Foo(2)]);
     /// ```
     pub fn into_raw_parts(self) -> (*mut u8, usize, usize) {
         let me = ManuallyDrop::new(self);
@@ -212,10 +212,10 @@ where
     /// ```
     /// # use soapy::{Soa, Soapy, soa};
     /// # #[derive(Soapy, Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
-    /// # struct Foo(usize, usize);
-    /// let mut s = soa![Foo(1, 2), Foo(3, 4)];
-    /// s.push(Foo(5, 6));
-    /// assert_eq!(s, soa![Foo(1, 2), Foo(3, 4), Foo(5, 6)]);
+    /// # struct Foo(usize);
+    /// let mut s = soa![Foo(1), Foo(2)];
+    /// s.push(Foo(3));
+    /// assert_eq!(s, soa![Foo(1), Foo(2), Foo(3)]);
     /// ```
     pub fn push(&mut self, element: T) {
         self.maybe_grow();
@@ -233,10 +233,10 @@ where
     /// ```
     /// # use soapy::{Soa, Soapy, soa};
     /// # #[derive(Soapy, Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
-    /// # struct Foo(usize, usize);
-    /// let mut soa = soa![Foo(1, 2), Foo(3, 4), Foo(5, 6)];
-    /// assert_eq!(soa.pop(), Some(Foo(5, 6)));
-    /// assert_eq!(soa, soa![Foo(1, 2), Foo(3, 4)]);
+    /// # struct Foo(usize);
+    /// let mut soa = soa![Foo(1), Foo(2), Foo(3)];
+    /// assert_eq!(soa.pop(), Some(Foo(3)));
+    /// assert_eq!(soa, soa![Foo(1), Foo(2)]);
     /// ```
     pub fn pop(&mut self) -> Option<T> {
         if self.len == 0 {
@@ -259,12 +259,12 @@ where
     /// ```
     /// # use soapy::{Soa, Soapy, soa};
     /// # #[derive(Soapy, Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
-    /// # struct Foo(usize, usize);
-    /// let mut soa = soa![Foo(1, 1), Foo(2, 2), Foo(3, 3)];
-    /// soa.insert(1, Foo(4, 4));
-    /// assert_eq!(soa, soa![Foo(1, 1), Foo(4, 4), Foo(2, 2), Foo(3, 3)]);
-    /// soa.insert(4, Foo(5, 5));
-    /// assert_eq!(soa, soa![Foo(1, 1), Foo(4, 4), Foo(2, 2), Foo(3, 3), Foo(5, 5)]);
+    /// # struct Foo(usize);
+    /// let mut soa = soa![Foo(1), Foo(2), Foo(3)];
+    /// soa.insert(1, Foo(4));
+    /// assert_eq!(soa, soa![Foo(1), Foo(4), Foo(2), Foo(3)]);
+    /// soa.insert(4, Foo(5));
+    /// assert_eq!(soa, soa![Foo(1), Foo(4), Foo(2), Foo(3), Foo(5)]);
     /// ```
     pub fn insert(&mut self, index: usize, element: T) {
         assert!(index <= self.len, "index out of bounds");
@@ -284,10 +284,10 @@ where
     /// ```
     /// # use soapy::{Soa, Soapy, soa};
     /// # #[derive(Soapy, Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
-    /// # struct Foo(usize, usize);
-    /// let mut soa = soa![Foo(1, 1), Foo(2, 2), Foo(3, 3)];
-    /// assert_eq!(soa.remove(1), Foo(2, 2));
-    /// assert_eq!(soa, soa![Foo(1, 1), Foo(3, 3)])
+    /// # struct Foo(usize);
+    /// let mut soa = soa![Foo(1), Foo(2), Foo(3)];
+    /// assert_eq!(soa.remove(1), Foo(2));
+    /// assert_eq!(soa, soa![Foo(1), Foo(3)])
     /// ```
     pub fn remove(&mut self, index: usize) -> T {
         assert!(index < self.len, "index out of bounds");
