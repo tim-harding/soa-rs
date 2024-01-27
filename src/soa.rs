@@ -227,6 +227,17 @@ where
 
     /// Removes the last element from a vector and returns it, or [`None`] if it
     /// is empty.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use soapy::{Soa, Soapy, soa};
+    /// # #[derive(Soapy, Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
+    /// # struct Foo(usize, usize);
+    /// let mut soa = soa![Foo(1, 2), Foo(3, 4), Foo(5, 6)];
+    /// assert_eq!(soa.pop(), Some(Foo(5, 6)));
+    /// assert_eq!(soa, soa![Foo(1, 2), Foo(3, 4)]);
+    /// ```
     pub fn pop(&mut self) -> Option<T> {
         if self.len == 0 {
             None
