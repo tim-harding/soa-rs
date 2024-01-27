@@ -129,7 +129,7 @@ where
     /// # Examples
     ///
     /// ```
-    /// # use soapy::{Soa, Soapy, soa};
+    /// # use soapy::{Soa, Soapy};
     /// # #[derive(Soapy)]
     /// # struct Foo(u8, u16);
     /// let mut s = Soa::new();
@@ -143,6 +143,19 @@ where
 
     /// Returns the total number of elements the container can hold without
     /// reallocating.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use soapy::{Soa, Soapy};
+    /// # #[derive(Soapy)]
+    /// # struct Foo(usize, usize);
+    /// let mut soa = Soa::new();
+    /// for i in 0..42 {
+    ///     assert!(soa.capacity() >= i);
+    ///     soa.push(Foo(i, i));
+    /// }
+    /// ```
     pub fn capacity(&self) -> usize {
         self.cap
     }
