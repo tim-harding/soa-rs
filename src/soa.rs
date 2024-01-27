@@ -197,18 +197,6 @@ where
     /// details of [`RawSoa`], it is better not to uphold them manually. Rather,
     /// it only valid to call this method with the output of a previous call to
     /// [`Soa::into_raw_parts`].
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// # use soapy::{Soa, Soapy, soa};
-    /// # #[derive(Soapy, Debug, PartialEq)]
-    /// # struct Foo(usize, usize);
-    /// let soa = soa![Foo(1, 2), Foo(3, 4)];
-    /// let (ptr, len, cap) = soa.into_raw_parts();
-    /// let rebuilt = unsafe { Soa::from_raw_parts(ptr, len, cap) };
-    /// assert_eq!(rebuilt, soa![Foo(1, 2), Foo(3, 4)]);
-    /// ```
     pub unsafe fn from_raw_parts(ptr: *mut u8, length: usize, capacity: usize) -> Self {
         Self {
             len: length,
@@ -218,6 +206,17 @@ where
     }
 
     /// Appends an element to the back of a collection.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use soapy::{Soa, Soapy, soa};
+    /// # #[derive(Soapy, Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
+    /// # struct Foo(usize, usize);
+    /// let mut s = soa![Foo(1, 2), Foo(3, 4)];
+    /// s.push(Foo(5, 6));
+    /// assert_eq!(s, soa![Foo(1, 2), Foo(3, 4), Foo(5, 6)]);
+    /// ```
     pub fn push(&mut self, element: T) {
         self.maybe_grow();
         unsafe {
