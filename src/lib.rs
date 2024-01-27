@@ -93,6 +93,55 @@ pub use iter_mut::IterMut;
 pub use soa::Soa;
 pub use soapy_shared::Soapy;
 
+/// Creates a [`Soa`] containing the arguments.
+///
+/// `soa!` allows [`Soa`]s to be defined with the same syntax as array
+/// expressions. There are two forms of this macro:
+///
+/// - Create a [`Soa`] containing a given list of elements:
+/// ```
+/// # use soapy::{Soapy, soa};
+/// # #[derive(Soapy)]
+/// # struct Foo(u8, u16);
+/// let s = soa![Foo(1, 2), Foo(3, 4)];
+/// assert_eq!(s.slices().0, &[1, 3]);
+/// assert_eq!(s.slices().1, &[2, 4]);
+/// ```
+///
+/// - Create a [`Soa`] from a given element and size:
+///
+/// ```
+/// # use soapy::{Soapy, soa};
+/// # #[derive(Soapy)]
+/// # struct Foo(u8, u16);
+/// let s = soa![Foo(1, 2); 2];
+/// assert_eq!(s.slices().0, &[1, 1]);
+/// assert_eq!(s.slices().1, &[2, 2]);
+/// ```
+#[macro_export]
+macro_rules! soa {
+    () => {
+        $crate::Soa::new()
+    };
+
+    ($($e:expr),*) => {{
+        // TODO: with_capacity
+        let mut out = $crate::Soa::new();
+        $(out.push($e);)*
+        out
+    }};
+
+    ($elem:expr; $n:expr) => {
+        {
+            let mut out = $crate::Soa::with_capacity($n);
+            for _ in 0..$n {
+                out.push($elem);
+            }
+            out
+        }
+    }
+}
+
 /// Derive macro for the [`Soapy`] trait.
 ///
 /// [`Soapy`]: soapy_shared::Soapy
@@ -460,5 +509,12 @@ mod tests {
         let mut soa: Soa<_> = [A, B, C].into();
         soa.swap(0, 2);
         assert!([C, B, A].into_iter().eq(soa.into_iter()));
+    }
+
+    #[test]
+    pub fn macro_no_elements() {
+        let a: Soa<El> = Soa::new();
+        let b = soa![];
+        assert_eq!(a, b);
     }
 }
