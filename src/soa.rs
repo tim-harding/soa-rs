@@ -474,6 +474,19 @@ where
     }
 
     /// Moves all the elements of other into self, leaving other empty.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use soapy::{Soa, Soapy, soa};
+    /// # #[derive(Soapy, Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
+    /// # struct Foo(usize);
+    /// let mut soa1  = soa![Foo(1), Foo(2), Foo(3)];
+    /// let mut soa2 = soa![Foo(4), Foo(5), Foo(6)];
+    /// soa1.append(&mut soa2);
+    /// assert_eq!(soa1, [Foo(1), Foo(2), Foo(3), Foo(4), Foo(5), Foo(6)]);
+    /// assert_eq!(soa2, []);
+    /// ```
     pub fn append(&mut self, other: &mut Self) {
         for i in 0..other.len {
             let element = unsafe { other.raw.get(i) };
