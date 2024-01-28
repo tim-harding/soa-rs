@@ -498,6 +498,35 @@ where
     /// Returns an iterator over the elements.
     ///
     /// The iterator yields all items from start to end.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use soapy::{Soa, Soapy, soa};
+    /// # use std::fmt;
+    /// # use soapy_shared::WithRef;
+    /// # #[derive(Soapy, Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
+    /// # struct Foo(usize);
+    /// #
+    /// # impl<'a> fmt::Debug for FooSoaRef<'a> {
+    /// #     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    /// #         self.with_ref(|me| me.fmt(f))
+    /// #     }
+    /// # }
+    /// #
+    /// # impl<'a> PartialEq<FooSoaRef<'a>> for FooSoaRef<'a> {
+    /// #     fn eq(&self, other: &FooSoaRef) -> bool {
+    /// #         self.with_ref(|me| other.with_ref(|other| me == other))
+    /// #     }
+    /// # }
+    /// #
+    /// let soa = soa![Foo(1), Foo(2), Foo(4)];
+    /// let mut iter = soa.iter();
+    /// assert_eq!(iter.next(), Some(FooSoaRef(&1)));
+    /// assert_eq!(iter.next(), Some(FooSoaRef(&2)));
+    /// assert_eq!(iter.next(), Some(FooSoaRef(&4)));
+    /// assert_eq!(iter.next(), None);
+    /// ```
     pub fn iter(&self) -> Iter<T> {
         Iter {
             raw: self.raw,

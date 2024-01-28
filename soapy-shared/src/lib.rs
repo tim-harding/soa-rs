@@ -203,3 +203,9 @@ pub unsafe trait RawSoa<T>: Copy + Clone {
     /// - `index < PREV_CAP`
     unsafe fn get_mut<'a>(&self, index: usize) -> Self::RefMut<'a>;
 }
+
+pub trait WithRef<T> {
+    fn with_ref<F, R>(&self, f: F) -> R
+    where
+        F: FnOnce(&T) -> R;
+}

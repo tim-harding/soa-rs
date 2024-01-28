@@ -168,6 +168,25 @@ fn fields_struct(
         },
     };
 
+    let with_ref_impl = |item| {
+        quote! {
+            impl<'a> ::soapy_shared::WithRef<#ident> for #item<'a> {
+                fn with_ref<F, R>(&self, f: F) -> R
+                where
+                    F: FnOnce(&#ident) -> R,
+                {
+                    let t = ::std::mem::ManuallyDrop::new(#ident {
+                        #(#ident_all: unsafe { (self.#ident_all as *const #ty_all).read() },)*
+                    });
+                    f(&t)
+                }
+            }
+        }
+    };
+
+    let with_ref_impl_item_ref = with_ref_impl(item_ref.clone());
+    let with_ref_impl_item_mut = with_ref_impl(item_ref_mut.clone());
+
     Ok(quote! {
         #[automatically_derived]
         impl ::soapy_shared::Soapy for #ident {
@@ -185,12 +204,19 @@ fn fields_struct(
 
         #[automatically_derived]
         #vis struct #slices<'a> #slices_def
+
         #[automatically_derived]
         #vis struct #slices_mut<'a> #slices_mut_def
+
         #[automatically_derived]
         #vis struct #item_ref<'a> #item_ref_def
+
+        #with_ref_impl_item_ref
+
         #[automatically_derived]
         #vis struct #item_ref_mut<'a> #item_ref_mut_def
+
+        #with_ref_impl_item_mut
 
         #[automatically_derived]
         impl #raw {
