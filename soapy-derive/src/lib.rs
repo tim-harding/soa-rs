@@ -203,6 +203,7 @@ fn fields_struct(
         #vis struct #raw #raw_body
 
         #[automatically_derived]
+        #[derive(Copy, Clone)]
         #vis struct #slices<'a> #slices_def
 
         #[automatically_derived]
