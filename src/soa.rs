@@ -540,6 +540,21 @@ where
     /// Returns an iterator over the elements that allows modifying each value.
     ///
     /// The iterator yields all items from start to end.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use soapy::{Soa, Soapy, soa};
+    /// # use std::fmt;
+    /// # use soapy_shared::WithRef;
+    /// # #[derive(Soapy, Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
+    /// # struct Foo(usize);
+    /// let mut soa = soa![Foo(1), Foo(2), Foo(4)];
+    /// for elem in soa.iter_mut() {
+    ///     *elem.0 *= 2;
+    /// }
+    /// assert_eq!(soa, [Foo(2), Foo(4), Foo(8)]);
+    /// ```
     pub fn iter_mut(&mut self) -> IterMut<T> {
         IterMut {
             raw: self.raw,
