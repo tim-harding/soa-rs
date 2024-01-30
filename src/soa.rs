@@ -756,6 +756,17 @@ where
     ///
     /// Note that this method has no effect on the allocated capacity of the
     /// vector.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use soapy::{Soa, Soapy, soa};
+    /// # #[derive(Soapy, Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
+    /// # struct Foo(usize);
+    /// let mut soa = soa![Foo(1), Foo(2)];
+    /// soa.clear();
+    /// assert!(soa.is_empty());
+    /// ```
     pub fn clear(&mut self) {
         while self.pop().is_some() {}
     }
