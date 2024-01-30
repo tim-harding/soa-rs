@@ -645,10 +645,55 @@ where
         acc
     }
 
-    pub fn try_fold_zip<F, B, O>(&self, other: &Soa<O>, init: B, mut f: F) -> B
+    /// Internal iteration over two `Soa` that applies a function to each pair
+    /// of elements.
+    ///
+    /// This function is similar to calling [`Iterator::try_fold`] on a [`Zip`].
+    /// It will walk each collection and call the provided function with each
+    /// pair of elements, short-circuiting when either container's elements are
+    /// exhausted or when the provided function returns [`Break`].
+    ///
+    /// Internal iteration is useful whenever you need to iterate the elements
+    /// of `Soa<T>` as `T`, rather than as [`RawSoa::Ref`]. This can be the case
+    /// if you want to take advantage of traits or methods that are only
+    /// implemented for `T`. You can also use [`WithRef`] on the items of
+    /// [`Iter`] or [`IterMut`] for similar effect.
+    ///
+    /// `try_fold_zip` takes two arguments: an initial value, and a closure with
+    /// three arguments: an ‘accumulator’, and a pair of elements. The closure
+    /// either returns [`Continue`], with the value that the accumulator should
+    /// have for the next iteration, or it returns [`Break`], with a value that
+    /// is returned to the caller immediately (short-circuiting).
+    ///
+    /// The initial value is the value the accumulator will have on the first
+    /// call. If applying the closure succeeded against every element of the
+    /// iterator, `try_fold` returns the final accumulator.
+    ///
+    /// See also [`try_fold`].
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use soapy::{Soa, Soapy, soa};
+    /// # use std::ops::{Add, ControlFlow};
+    /// # #[derive(Soapy, Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
+    /// # struct Foo(u8);
+    /// let soa1 = soa![Foo(1), Foo(2)];
+    /// let soa2 = soa![Foo(3), Foo(4), Foo(5)];
+    /// let sums = Soa::try_fold_zip(&soa1, &soa2, vec![], |mut acc, &a, &b| {
+    ///     acc.push(a.0 + b.0);
+    ///     ControlFlow::Continue(acc)
+    /// });
+    /// assert_eq!(sums, vec![4, 6]);
+    /// ```
+    ///
+    /// [`try_fold`]: Soa::try_fold
+    /// [`Zip`]: std::iter::Zip
+    /// [`Continue`]: ControlFlow::Continue
+    /// [`Break`]: ControlFlow::Break
+    pub fn try_fold_zip<F, B>(&self, other: &Self, init: B, mut f: F) -> B
     where
-        O: Soapy,
-        F: FnMut(B, &T, &O) -> ControlFlow<B, B>,
+        F: FnMut(B, &T, &T) -> ControlFlow<B, B>,
     {
         let mut acc = init;
         let len = self.len.min(other.len);
@@ -679,10 +724,9 @@ where
     }
 
     /// Calls a closure on each element of the collection.
-    pub fn for_each_zip<F, O>(&self, other: &Soa<O>, mut f: F)
+    pub fn for_each_zip<F>(&self, other: &Self, mut f: F)
     where
-        O: Soapy,
-        F: FnMut(&T, &O),
+        F: FnMut(&T, &T),
     {
         self.try_fold_zip(other, (), |_, a, b| {
             f(a, b);
