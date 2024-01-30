@@ -502,9 +502,8 @@ where
     /// # Examples
     ///
     /// ```
-    /// # use soapy::{Soa, Soapy, soa};
+    /// # use soapy::{Soa, Soapy, soa, WithRef};
     /// # use std::fmt;
-    /// # use soapy_shared::WithRef;
     /// # #[derive(Soapy, Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
     /// # struct Foo(usize);
     /// # impl<'a> fmt::Debug for FooSoaRef<'a> {
@@ -540,9 +539,8 @@ where
     /// # Examples
     ///
     /// ```
-    /// # use soapy::{Soa, Soapy, soa};
+    /// # use soapy::{Soa, Soapy, soa, WithRef};
     /// # use std::fmt;
-    /// # use soapy_shared::WithRef;
     /// # #[derive(Soapy, Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
     /// # struct Foo(usize);
     /// let mut soa = soa![Foo(1), Foo(2), Foo(4)];
@@ -563,7 +561,7 @@ where
     /// An internal iteration version of [`Iterator::try_fold`].
     ///
     /// Internal iteration is useful whenever you need to work with the elements
-    /// of `Soa` as `T`, rather than as [`RawSoa::Ref`]. This can be the case if
+    /// of `Soa` as `T`, rather than as [`Soapy::Ref`]. This can be the case if
     /// you want to take advantage of traits or methods that are only
     /// implemented for `T`. You can also use [`WithRef`] on the elements of
     /// [`Iter`] or [`IterMut`].
@@ -618,6 +616,7 @@ where
     ///
     /// [`Continue`]: ControlFlow::Continue
     /// [`Break`]: ControlFlow::Break
+    /// [`WithRef`]: crate::WithRef
     pub fn try_fold<F, B>(&self, init: B, mut f: F) -> B
     where
         F: FnMut(B, &T) -> ControlFlow<B, B>,
@@ -646,7 +645,7 @@ where
     /// exhausted or when the provided function returns [`Break`].
     ///
     /// Internal iteration is useful whenever you need to iterate the elements
-    /// of `Soa<T>` as `T`, rather than as [`RawSoa::Ref`]. This can be the case
+    /// of `Soa<T>` as `T`, rather than as [`Soapy::Ref`]. This can be the case
     /// if you want to take advantage of traits or methods that are only
     /// implemented for `T`. You can also use [`WithRef`] on the items of
     /// [`Iter`] or [`IterMut`] for similar effect.
@@ -683,6 +682,7 @@ where
     /// [`Zip`]: std::iter::Zip
     /// [`Continue`]: ControlFlow::Continue
     /// [`Break`]: ControlFlow::Break
+    /// [`WithRef`]: crate::WithRef
     pub fn try_fold_zip<F, B>(&self, other: &Self, init: B, mut f: F) -> B
     where
         F: FnMut(B, &T, &T) -> ControlFlow<B, B>,
@@ -711,7 +711,7 @@ where
     /// continue are not possible from a closure.
     ///
     /// Internal iteration is useful whenever you need to iterate the elements
-    /// of `Soa<T>` as `T`, rather than as [`RawSoa::Ref`]. This can be the case
+    /// of `Soa<T>` as `T`, rather than as [`Soapy::Ref`]. This can be the case
     /// if you want to take advantage of traits or methods that are only
     /// implemented for `T`. You can also use [`WithRef`] on the items of
     /// [`Iter`] or [`IterMut`] for similar effect.
@@ -738,6 +738,8 @@ where
     /// soa.for_each(|item| msg.push_str(item));
     /// assert_eq!(msg, "Hello for_each");
     /// ```
+    ///
+    /// [`WithRef`]: crate::WithRef
     pub fn for_each<F>(&self, mut f: F)
     where
         F: FnMut(&T),
