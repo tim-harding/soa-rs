@@ -1025,9 +1025,25 @@ where
 
     /// Swaps the position of two elements.
     ///
+    /// # Arguments
+    ///
+    /// - `a`: The index of the first element
+    /// - `b`: The index of the second element
+    ///
     /// # Panics
     ///
     /// Panics if `a` or `b` is out of bounds.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use soapy::{Soa, Soapy, soa};
+    /// # #[derive(Soapy, Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
+    /// # struct Foo(usize);
+    /// let mut soa = soa![Foo(0), Foo(1), Foo(2), Foo(3), Foo(4)];
+    /// soa.swap(2, 4);
+    /// assert_eq!(soa, [Foo(0), Foo(1), Foo(4), Foo(3), Foo(2)]);
+    /// ```
     pub fn swap(&mut self, a: usize, b: usize) {
         if a >= self.len || b >= self.len {
             panic!("index out of bounds");
