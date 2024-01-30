@@ -74,7 +74,6 @@ fn fields_struct(
     let ty_tail: Vec<_> = ty_all.iter().skip(1).cloned().collect();
     let ident_tail: Vec<_> = ident_all.iter().skip(1).cloned().collect();
 
-    let offsets = format_ident!("{ident}SoaOffsets");
     let slices = format_ident!("{ident}SoaSlices");
     let slices_mut = format_ident!("{ident}SoaSlicesMut");
     let item_ref = format_ident!("{ident}SoaRef");
@@ -88,18 +87,6 @@ fn fields_struct(
         FieldKind::Unnamed => quote! {
             ( #(#vis_all ::std::ptr::NonNull<#ty_all>),* );
         },
-    };
-
-    let offsets_body = match kind {
-        FieldKind::Named => quote! {
-            { #(#ident_tail: usize),* }
-        },
-        FieldKind::Unnamed => {
-            let tuple_fields = std::iter::repeat(quote! { usize }).take(fields_len - 1);
-            quote! {
-                ( #(#tuple_fields),* );
-            }
-        }
     };
 
     let slices_def = match kind {
@@ -138,36 +125,6 @@ fn fields_struct(
         },
     };
 
-    let offsets_vars: Vec<_> = ident_tail
-        .iter()
-        .enumerate()
-        .map(|(i, ident)| match ident {
-            FieldIdent::Named(ident) => ident.clone(),
-            FieldIdent::Unnamed(_) => format_ident!("f{}", i),
-        })
-        .collect();
-
-    let offsets_idents: Vec<FieldIdent> = ident_tail
-        .iter()
-        .enumerate()
-        .map(|(i, ident)| {
-            let ident = match ident {
-                FieldIdent::Named(ident) => Some(ident.clone()),
-                FieldIdent::Unnamed(_) => None,
-            };
-            (i, ident).into()
-        })
-        .collect();
-
-    let construct_offsets = match kind {
-        FieldKind::Named => quote! {
-            { #(#offsets_vars),* }
-        },
-        FieldKind::Unnamed => quote! {
-            ( #(#offsets_vars),* )
-        },
-    };
-
     let with_ref_impl = |item| {
         quote! {
             impl<'a> ::soapy_shared::WithRef<#ident> for #item<'a> {
@@ -187,12 +144,20 @@ fn fields_struct(
     let with_ref_impl_item_ref = with_ref_impl(item_ref.clone());
     let with_ref_impl_item_mut = with_ref_impl(item_ref_mut.clone());
 
-    Ok(quote! {
-        // TODO: Remove and just use a tuple
-        #[automatically_derived]
-        #[derive(Copy, Clone)]
-        struct #offsets #offsets_body
+    let offset_tail: Vec<_> = ident_tail
+        .iter()
+        .zip(ty_tail.iter())
+        .enumerate()
+        .map(|(i, (ident, ty))| {
+            quote! {
+                #ident: ::std::ptr::NonNull::new_unchecked(
+                    ptr.add(offsets[#i]) as *mut #ty,
+                )
+            }
+        })
+        .collect();
 
+    Ok(quote! {
         #[automatically_derived]
         #[derive(Copy, Clone)]
         #vis struct #raw #raw_body
@@ -226,26 +191,25 @@ fn fields_struct(
         #[automatically_derived]
         impl #raw {
             #[inline]
-            fn layout_and_offsets(cap: usize) -> (::std::alloc::Layout, #offsets) {
+            fn layout_and_offsets(cap: usize) -> (::std::alloc::Layout, [usize; #fields_len]) {
                 // TODO: Replace unwraps with unwrap_unchecked
                 let layout = ::std::alloc::Layout::array::<#ty_head>(cap).unwrap();
+                let mut offsets = [0usize; #fields_len];
+                let i = 0;
                 #(
                     let array = ::std::alloc::Layout::array::<#ty_tail>(cap).unwrap();
-                    let (layout, #offsets_vars) = layout.extend(array).unwrap();
+                    let (layout, offset) = layout.extend(array).unwrap();
+                    offsets[i] = offset;
+                    let i = i + 1;
                 )*
-                let offsets = #offsets #construct_offsets;
                 (layout, offsets)
             }
 
             #[inline]
-            unsafe fn with_offsets(ptr: *mut u8, offsets: #offsets) -> Self {
+            unsafe fn with_offsets(ptr: *mut u8, offsets: [usize; #fields_len]) -> Self {
                 Self {
                     #ident_head: ::std::ptr::NonNull::new_unchecked(ptr as *mut #ty_head),
-                    #(
-                        #ident_tail: ::std::ptr::NonNull::new_unchecked(
-                            ptr.add(offsets.#offsets_idents) as *mut #ty_tail,
-                        ),
-                    )*
+                    #(#offset_tail),*
                 }
             }
         }
