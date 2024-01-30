@@ -987,7 +987,38 @@ where
         unsafe { self.raw.get_mut(index) }
     }
 
+    /// Returns slices for each of the SoA fields.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use soapy::{Soa, Soapy, soa};
+    /// #[derive(Soapy, Debug, Clone)]
+    /// struct Foo(usize, String);
+    /// let soa = soa![Foo(10, "Howdy".into()), Foo(20, "fren".into())];
+    /// assert_eq!(soa.slices().0, [10, 20]);
+    /// assert_eq!(soa.slices().1, ["Howdy", "fren"]);
+    /// ```
+    pub fn slices(&self) -> <T::RawSoa as RawSoa<T>>::Slices<'_> {
+        unsafe { self.raw.slices(0, self.len) }
+    }
+
     /// Returns mutable slices for each of the SoA fields.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use soapy::{Soa, Soapy, soa};
+    /// #[derive(Soapy, Debug, Clone, PartialEq)]
+    /// struct Foo(usize, String);
+    /// let mut soa = soa![Foo(10, "Howdy".into()), Foo(20, "fren".into())];
+    /// let mut slices = soa.slices_mut();
+    /// slices.0[0] += 5;
+    /// for s in slices.1.iter_mut() {
+    ///     *s = s.chars().flat_map(|c| c.to_uppercase()).collect();
+    /// }
+    /// assert_eq!(soa, [Foo(15, "HOWDY".into()), Foo(20, "FREN".into())]);
+    /// ```
     pub fn slices_mut(&mut self) -> <T::RawSoa as RawSoa<T>>::SlicesMut<'_> {
         unsafe { self.raw.slices_mut(0, self.len) }
     }
