@@ -50,13 +50,13 @@ pub unsafe trait RawSoa<T>: Copy + Clone {
 
     /// For each field with type `F` in `T`, `Ref` has a field with type
     /// `&F`
-    type Ref<'a>
+    type Ref<'a>: WithRef<T>
     where
         Self: 'a;
 
     /// For each field with type `F` in `T`, `RefMut` has a field with type
     /// `&mut F`
-    type RefMut<'a>
+    type RefMut<'a>: WithRef<T>
     where
         Self: 'a;
 

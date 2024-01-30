@@ -564,6 +564,68 @@ where
         }
     }
 
+    /// An internal iteration version of [`Iterator::try_fold`].
+    ///
+    /// Applies a function as long as it returns successfully, producing a
+    /// single, final value.
+    ///
+    /// `try_fold` takes two arguments: an initial value, and a closure with two
+    /// arguments: an ‘accumulator’, and an element. The closure either returns
+    /// successfully, with the value that the accumulator should have for the
+    /// next iteration, or it returns failure, with an error value that is
+    /// propagated back to the caller immediately (short-circuiting).
+    ///
+    /// The initial value is the value the accumulator will have on the first
+    /// call. If applying the closure succeeded against every element of the
+    /// iterator, `try_fold` returns the final accumulator as success.
+    ///
+    /// Internal iteration is useful whenever you need to work with the elements
+    /// of `Soa` as `T`, rather than just the individual fields of `T`. This can
+    /// be the case if you want to take advantage of traits or methods that are
+    /// only implemented for `T`. It is also possible to use [`WithRef`] on the
+    /// elements of [`Iter`] or [`IterMut`], but this method is a shortcut. This
+    /// implementation is slightly less ergonomic than the standard library
+    /// version because the [`Try`] is still unstable and nightly-only.
+    ///
+    /// # Examples
+    ///
+    /// Basic usage:
+    /// ```
+    /// # use soapy::{Soa, Soapy, soa};
+    /// # use std::ops::{Add, ControlFlow};
+    /// # #[derive(Soapy, Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
+    /// # struct Foo(u8);
+    /// # impl Add for Foo {
+    /// #     type Output = Foo;
+    /// #
+    /// #     fn add(self, other: Self) -> Self::Output {
+    /// #         Self(self.0 + other.0)
+    /// #     }
+    /// # }
+    /// let soa = soa![Foo(1), Foo(2), Foo(3)];
+    /// let sum = soa.try_fold(Foo(0), |acc, &foo| ControlFlow::Continue(acc + foo));
+    /// assert_eq!(sum, Foo(6));
+    /// ```
+    ///
+    /// Short circuiting:
+    /// ```
+    /// # use soapy::{Soa, Soapy, soa};
+    /// # use std::ops::{Add, ControlFlow};
+    /// # #[derive(Soapy, Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
+    /// # struct Foo(u8);
+    /// let soa = soa![Foo(1), Foo(2), Foo(3), Foo(4)];
+    /// let index_of = |needle| soa.try_fold(0, |i, &foo| {
+    ///     if foo == needle {
+    ///         ControlFlow::Break(i)
+    ///     } else {
+    ///         ControlFlow::Continue(i + 1)
+    ///     }
+    /// });
+    /// assert_eq!(index_of(Foo(2)), 1);
+    /// assert_eq!(index_of(Foo(4)), 3);
+    /// ```
+    ///
+    /// [`Try`]: std::ops::Try
     pub fn try_fold<F, B>(&self, init: B, mut f: F) -> B
     where
         F: FnMut(B, &T) -> ControlFlow<B, B>,

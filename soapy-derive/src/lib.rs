@@ -395,6 +395,15 @@ fn zst_struct(ident: Ident, vis: Visibility, kind: ZstKind) -> Result<TokenStrea
             type RawSoa = #raw;
         }
 
+        impl ::soapy_shared::WithRef<#ident> for #ident {
+            fn with_ref<F, R>(&self, f: F) -> R
+            where
+                F: FnOnce(&#ident) -> R
+            {
+                f(self)
+            }
+        }
+
         #[automatically_derived]
         #[derive(Copy, Clone)]
         #vis struct #raw;
