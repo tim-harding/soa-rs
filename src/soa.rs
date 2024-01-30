@@ -1,9 +1,8 @@
 use crate::{index::SoaIndex, IntoIter, Iter, IterMut};
-use soapy_shared::{RawSoa, Soapy, WithRef};
+use soapy_shared::{RawSoa, Soapy};
 use std::{
     cmp::Ordering,
     fmt::{self, Formatter},
-    hash::Hash,
     marker::PhantomData,
     mem::{size_of, ManuallyDrop},
     ops::{ControlFlow, Deref},
@@ -503,7 +502,7 @@ where
     /// # Examples
     ///
     /// ```
-    /// # use soapy::{Soa, Soapy, soa, ref_derive};
+    /// # use soapy::{Soa, Soapy, soa};
     /// # use std::fmt;
     /// # use soapy_shared::WithRef;
     /// # #[derive(Soapy, Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
@@ -817,6 +816,30 @@ where
         index.get(self)
     }
 
+    /// Returns a mutable reference to an element or subslice depending on the
+    /// type of index (see [`get`]) or `None` if the index is out of bounds.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use soapy::{Soa, Soapy, soa};
+    /// # #[derive(Soapy, Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
+    /// # struct Foo(usize);
+    /// let mut soa = soa![Foo(1), Foo(2), Foo(3)];
+    /// if let Some(elem) = soa.get_mut(1) {
+    ///     *elem.0 = 42;
+    /// }
+    /// assert_eq!(soa, [Foo(1), Foo(42), Foo(3)]);
+    /// ```
+    ///
+    /// [`get`]: Soa::get
+    pub fn get_mut<I>(&mut self, index: I) -> Option<I::OutputMut<'_>>
+    where
+        I: SoaIndex<T>,
+    {
+        index.get_mut(self)
+    }
+
     /// Returns a clone of the element at the given index.
     ///
     /// # Panics
@@ -848,15 +871,6 @@ where
     /// Returns slices for each of the SoA fields.
     pub fn slices(&self) -> <T::RawSoa as RawSoa<T>>::Slices<'_> {
         unsafe { self.raw.slices(0, self.len) }
-    }
-
-    /// Returns a mutable reference to an element or subslice depending on the
-    /// type of index.
-    pub fn get_mut<I>(&mut self, index: I) -> Option<I::OutputMut<'_>>
-    where
-        I: SoaIndex<T>,
-    {
-        index.get_mut(self)
     }
 
     /// Returns a reference to the element at the given index.
@@ -1198,93 +1212,4 @@ where
         self.len.hash(state);
         self.for_each(|item| item.hash(state));
     }
-}
-
-#[allow(unused)]
-macro_rules! ref_derive_debug {
-    ($t:ident) => {
-        impl<'a> ::std::fmt::Debug for $t<'a> {
-            fn fmt(&self, f: &mut ::std::fmt::Formatter<'_>) -> ::std::fmt::Result {
-                self.with_ref(|me| me.fmt(f))
-            }
-        }
-    };
-}
-
-#[allow(unused)]
-macro_rules! ref_derive_partial_eq {
-    ($t:ty, $r:ident) => {
-        impl<'a> ::std::cmp::PartialEq<$t> for $r<'a> {
-            fn eq(&self, other: &$t) -> bool {
-                self.with_ref(|me| me == other)
-            }
-        }
-    };
-}
-
-#[allow(unused)]
-macro_rules! ref_derive_partial_ord {
-    ($t:ty, $r:ident) => {
-        impl<'a> ::std::cmp::PartialOrd<$t> for $r<'a> {
-            fn partial_cmp(&self, other: &$t) -> ::std::option::Option<::std::cmp::Ordering> {
-                self.with_ref(|me| other.partial_cmp(me))
-            }
-        }
-    };
-}
-
-#[allow(unused)]
-macro_rules! ref_derive_hash {
-    ($r:ident) => {
-        impl<'a> ::std::hash::Hash for $r<'a> {
-            fn hash<H: ::std::hash::Hasher>(&self, state: &mut H) {
-                self.with_ref(|me| me.hash(state))
-            }
-        }
-    };
-}
-
-#[macro_export]
-macro_rules! ref_derive {
-    (; $t:ident, $r:ident, $m:ident) => {};
-
-    (Debug; $t:ident, $r:ident, $m:ident) => {
-        ref_derive!(Debug,;$t,$r,$m);
-    };
-
-    (Debug, $($traits:ident),*; $t:ident, $r:ident, $m:ident) => {
-        ref_derive_debug!($r);
-        ref_derive_debug!($m);
-        ref_derive!($($traits),*; $t, $r, $m);
-    };
-
-    (PartialEq; $t:ident, $r:ident, $m:ident) => {
-        ref_derive!(PartialEq,;$t,$r,$m);
-    };
-
-    (PartialEq, $($traits:ident),*; $t:ident, $r:ident, $m:ident) => {
-        ref_derive_partial_eq!($t, $r);
-        ref_derive_partial_eq!($t, $m);
-        ref_derive!($($traits),*; $t, $r, $m);
-    };
-
-    (PartialOrd; $t:ident, $r:ident, $m:ident) => {
-        ref_derive!(PartialOrd,;$t,$r,$m);
-    };
-
-    (PartialOrd, $($traits:ident),*; $t:ident, $r:ident, $m:ident) => {
-        ref_derive_partial_ord!($t, $r);
-        ref_derive_partial_ord!($t, $m);
-        ref_derive!($($traits),*; $t, $r, $m);
-    };
-
-    (Hash; $t:ident, $r:ident, $m:ident) => {
-        ref_derive!(Hash,;$t,$r,$m);
-    };
-
-    (Hash, $($traits:ident),*; $t:ident, $r:ident, $m:ident) => {
-        ref_derive_hash!($r);
-        ref_derive_hash!($m);
-        ref_derive!($($traits),*; $t, $r, $m);
-    };
 }
