@@ -1,4 +1,4 @@
-use crate::WithRef;
+use crate::Soapy;
 
 /// A low-level utility providing fundamental operations needed by `Soa<T>`
 ///
@@ -20,31 +20,10 @@ use crate::WithRef;
 /// made, or
 /// - the same value as was used for `new_capacity` in previous calls
 /// to [`RawSoa::realloc_grow`] and [`RawSoa::realloc_shrink`]
-pub unsafe trait RawSoa<T>: Copy + Clone {
-    /// For each field with type `F` in `T`, `Slices` has a field with type
-    /// `&[F]`
-    type Slices<'a>
-    where
-        Self: 'a;
-
-    /// For each field with type `F` in `T`, `SlicesMut` has a field with type
-    /// `&mut [F]`
-    type SlicesMut<'a>
-    where
-        Self: 'a;
-
-    /// For each field with type `F` in `T`, `Ref` has a field with type
-    /// `&F`
-    type Ref<'a>: WithRef<T>
-    where
-        Self: 'a;
-
-    /// For each field with type `F` in `T`, `RefMut` has a field with type
-    /// `&mut F`
-    type RefMut<'a>: WithRef<T>
-    where
-        Self: 'a;
-
+pub unsafe trait RawSoa<T>: Copy + Clone
+where
+    T: Soapy,
+{
     /// Creates a `Self` with dangling pointers for all its fields and without
     /// allocating memory.
     fn dangling() -> Self;
@@ -58,7 +37,7 @@ pub unsafe trait RawSoa<T>: Copy + Clone {
     /// - `start <= end`
     /// - `start <= PREV_LEN`
     /// - `end <= PREV_LEN`
-    unsafe fn slices(&self, start: usize, end: usize) -> Self::Slices<'_>;
+    unsafe fn slices(&self, start: usize, end: usize) -> <T as Soapy>::Slices<'_>;
 
     /// Constructs safe, mutable slices of the arrays managed by `Self` with the
     /// range `start..end`.
@@ -69,7 +48,7 @@ pub unsafe trait RawSoa<T>: Copy + Clone {
     /// - `start <= end`
     /// - `start <= PREV_LEN`
     /// - `end <= PREV_LEN`
-    unsafe fn slices_mut(&mut self, start: usize, end: usize) -> Self::SlicesMut<'_>;
+    unsafe fn slices_mut(&mut self, start: usize, end: usize) -> <T as Soapy>::SlicesMut<'_>;
 
     /// Returns the pointer that contains the allocated capacity.
     ///
@@ -177,7 +156,7 @@ pub unsafe trait RawSoa<T>: Copy + Clone {
     /// The caller must ensure that
     ///
     /// - `index < PREV_CAP`
-    unsafe fn get_ref<'a>(&self, index: usize) -> Self::Ref<'a>;
+    unsafe fn get_ref<'a>(&self, index: usize) -> <T as Soapy>::Ref<'a>;
 
     /// Gets a mutable reference to the element at `index`.
     ///
@@ -186,5 +165,5 @@ pub unsafe trait RawSoa<T>: Copy + Clone {
     /// The caller must ensure that
     ///
     /// - `index < PREV_CAP`
-    unsafe fn get_mut<'a>(&self, index: usize) -> Self::RefMut<'a>;
+    unsafe fn get_mut<'a>(&self, index: usize) -> <T as Soapy>::RefMut<'a>;
 }

@@ -28,9 +28,9 @@ impl<T> SoaIndex<T> for usize
 where
     T: Soapy,
 {
-    type Output<'a> = <T::RawSoa as RawSoa<T>>::Ref<'a> where T: 'a;
+    type Output<'a> = T::Ref<'a> where T: 'a;
 
-    type OutputMut<'a> = <T::RawSoa as RawSoa<T>>::RefMut<'a>
+    type OutputMut<'a> = T::RefMut<'a>
     where
         T: 'a;
 
@@ -55,11 +55,11 @@ impl<T> SoaIndex<T> for Range<usize>
 where
     T: Soapy,
 {
-    type Output<'a> = <T::RawSoa as RawSoa<T>>::Slices<'a>
+    type Output<'a> = T::Slices<'a>
     where
         T: 'a;
 
-    type OutputMut<'a> = <T::RawSoa as RawSoa<T>>::SlicesMut<'a>
+    type OutputMut<'a> = T::SlicesMut<'a>
     where
         T: 'a;
 
@@ -84,11 +84,11 @@ impl<T> SoaIndex<T> for RangeFrom<usize>
 where
     T: Soapy,
 {
-    type Output<'a> = <T::RawSoa as RawSoa<T>>::Slices<'a>
+    type Output<'a> = T::Slices<'a>
     where
         T: 'a;
 
-    type OutputMut<'a> = <T::RawSoa as RawSoa<T>>::SlicesMut<'a>
+    type OutputMut<'a> = T::SlicesMut<'a>
     where
         T: 'a;
 
@@ -105,11 +105,11 @@ impl<T> SoaIndex<T> for RangeFull
 where
     T: Soapy,
 {
-    type Output<'a> = <T::RawSoa as RawSoa<T>>::Slices<'a>
+    type Output<'a> = T::Slices<'a>
     where
         T: 'a;
 
-    type OutputMut<'a> = <T::RawSoa as RawSoa<T>>::SlicesMut<'a>
+    type OutputMut<'a> = T::SlicesMut<'a>
     where
         T: 'a;
 
@@ -126,11 +126,11 @@ impl<T> SoaIndex<T> for RangeInclusive<usize>
 where
     T: Soapy,
 {
-    type Output<'a> = <T::RawSoa as RawSoa<T>>::Slices<'a>
+    type Output<'a> = T::Slices<'a>
     where
         T: 'a;
 
-    type OutputMut<'a> = <T::RawSoa as RawSoa<T>>::SlicesMut<'a>
+    type OutputMut<'a> = T::SlicesMut<'a>
     where
         T: 'a;
 
@@ -147,11 +147,11 @@ impl<T> SoaIndex<T> for RangeTo<usize>
 where
     T: Soapy,
 {
-    type Output<'a> = <T::RawSoa as RawSoa<T>>::Slices<'a>
+    type Output<'a> = T::Slices<'a>
     where
         T: 'a;
 
-    type OutputMut<'a> = <T::RawSoa as RawSoa<T>>::SlicesMut<'a>
+    type OutputMut<'a> = T::SlicesMut<'a>
     where
         T: 'a;
 
@@ -168,11 +168,11 @@ impl<T> SoaIndex<T> for RangeToInclusive<usize>
 where
     T: Soapy,
 {
-    type Output<'a> = <T::RawSoa as RawSoa<T>>::Slices<'a>
+    type Output<'a> = T::Slices<'a>
     where
         T: 'a;
 
-    type OutputMut<'a> = <T::RawSoa as RawSoa<T>>::SlicesMut<'a>
+    type OutputMut<'a> = T::SlicesMut<'a>
     where
         T: 'a;
 

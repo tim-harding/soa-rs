@@ -941,7 +941,7 @@ where
     /// ```
     ///
     /// [`Index`]: std::ops::Index
-    pub fn nth(&self, index: usize) -> <T::RawSoa as RawSoa<T>>::Ref<'_> {
+    pub fn nth(&self, index: usize) -> T::Ref<'_> {
         if index >= self.len {
             panic!("index out of bounds");
         }
@@ -980,7 +980,7 @@ where
     /// ```
     ///
     /// [`IndexMut`]: std::ops::Index
-    pub fn nth_mut(&mut self, index: usize) -> <T::RawSoa as RawSoa<T>>::RefMut<'_> {
+    pub fn nth_mut(&mut self, index: usize) -> T::RefMut<'_> {
         if index >= self.len {
             panic!("index out of bounds");
         }
@@ -999,7 +999,7 @@ where
     /// assert_eq!(soa.slices().0, [10, 20]);
     /// assert_eq!(soa.slices().1, ["Howdy", "fren"]);
     /// ```
-    pub fn slices(&self) -> <T::RawSoa as RawSoa<T>>::Slices<'_> {
+    pub fn slices(&self) -> T::Slices<'_> {
         unsafe { self.raw.slices(0, self.len) }
     }
 
@@ -1019,7 +1019,7 @@ where
     /// }
     /// assert_eq!(soa, [Foo(15, "HOWDY".into()), Foo(20, "FREN".into())]);
     /// ```
-    pub fn slices_mut(&mut self) -> <T::RawSoa as RawSoa<T>>::SlicesMut<'_> {
+    pub fn slices_mut(&mut self) -> T::SlicesMut<'_> {
         unsafe { self.raw.slices_mut(0, self.len) }
     }
 

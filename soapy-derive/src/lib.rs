@@ -188,11 +188,6 @@ fn fields_struct(
     let with_ref_impl_item_mut = with_ref_impl(item_ref_mut.clone());
 
     Ok(quote! {
-        #[automatically_derived]
-        impl ::soapy_shared::Soapy for #ident {
-            type RawSoa = #raw;
-        }
-
         // TODO: Remove and just use a tuple
         #[automatically_derived]
         #[derive(Copy, Clone)]
@@ -218,6 +213,15 @@ fn fields_struct(
         #vis struct #item_ref_mut<'a> #item_ref_mut_def
 
         #with_ref_impl_item_mut
+
+        #[automatically_derived]
+        impl ::soapy_shared::Soapy for #ident {
+            type RawSoa = #raw;
+            type Slices<'a> = #slices<'a> where Self: 'a;
+            type SlicesMut<'a> = #slices_mut<'a> where Self: 'a;
+            type Ref<'a> = #item_ref<'a> where Self: 'a;
+            type RefMut<'a> = #item_ref_mut<'a> where Self: 'a;
+        }
 
         #[automatically_derived]
         impl #raw {
@@ -248,11 +252,6 @@ fn fields_struct(
 
         #[automatically_derived]
         unsafe impl ::soapy_shared::RawSoa<#ident> for #raw {
-            type Slices<'a> = #slices<'a> where Self: 'a;
-            type SlicesMut<'a> = #slices_mut<'a> where Self: 'a;
-            type Ref<'a> = #item_ref<'a> where Self: 'a;
-            type RefMut<'a> = #item_ref_mut<'a> where Self: 'a;
-
             #[inline]
             fn dangling() -> Self {
                 Self {
@@ -261,7 +260,7 @@ fn fields_struct(
             }
 
             #[inline]
-            unsafe fn slices(&self, start: usize, end: usize) -> Self::Slices<'_> {
+            unsafe fn slices(&self, start: usize, end: usize) -> #slices<'_> {
                 let len = end - start;
                 #slices {
                     #(
@@ -274,7 +273,7 @@ fn fields_struct(
             }
 
             #[inline]
-            unsafe fn slices_mut(&mut self, start: usize, end: usize) -> Self::SlicesMut<'_> {
+            unsafe fn slices_mut(&mut self, start: usize, end: usize) -> #slices_mut<'_> {
                 let len = end - start;
                 #slices_mut {
                     #(
@@ -393,6 +392,10 @@ fn zst_struct(ident: Ident, vis: Visibility, kind: ZstKind) -> Result<TokenStrea
         #[automatically_derived]
         impl ::soapy_shared::Soapy for #ident {
             type RawSoa = #raw;
+            type Slices<'a> = ();
+            type SlicesMut<'a> = ();
+            type Ref<'a> = #ident;
+            type RefMut<'a> = #ident;
         }
 
         impl ::soapy_shared::WithRef<#ident> for #ident {
@@ -410,19 +413,14 @@ fn zst_struct(ident: Ident, vis: Visibility, kind: ZstKind) -> Result<TokenStrea
 
         #[automatically_derived]
         unsafe impl ::soapy_shared::RawSoa<#ident> for #raw {
-            type Slices<'a> = ();
-            type SlicesMut<'a> = ();
-            type Ref<'a> = #ident;
-            type RefMut<'a> = #ident;
-
             #[inline]
             fn dangling() -> Self { Self }
             #[inline]
             fn as_ptr(self) -> *mut u8 { ::std::ptr::null::<u8>() as *mut _ }
             #[inline]
-            unsafe fn slices(&self, start: usize, end: usize) -> Self::Slices<'_> { () }
+            unsafe fn slices(&self, start: usize, end: usize) -> () { () }
             #[inline]
-            unsafe fn slices_mut(&mut self, start: usize, end: usize) -> Self::SlicesMut<'_> { () }
+            unsafe fn slices_mut(&mut self, start: usize, end: usize) -> () { () }
             #[inline]
             unsafe fn from_parts(ptr: *mut u8, capacity: usize) -> Self { Self }
             #[inline]
@@ -440,9 +438,9 @@ fn zst_struct(ident: Ident, vis: Visibility, kind: ZstKind) -> Result<TokenStrea
             #[inline]
             unsafe fn get(&self, index: usize) -> #ident { #ident #unit_construct }
             #[inline]
-            unsafe fn get_ref<'a>(&self, index: usize) -> Self::Ref<'a> { #ident #unit_construct }
+            unsafe fn get_ref<'a>(&self, index: usize) -> <#ident as Soapy>::Ref<'a> { #ident #unit_construct }
             #[inline]
-            unsafe fn get_mut<'a>(&self, index: usize) -> Self::RefMut<'a> { #ident #unit_construct }
+            unsafe fn get_mut<'a>(&self, index: usize) -> <#ident as Soapy>::RefMut<'a> { #ident #unit_construct }
         }
     })
 }
