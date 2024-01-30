@@ -37,6 +37,8 @@ where
         let len = self.end - self.start;
         (len, Some(len))
     }
+
+    // TODO: Nightly-only try_fold implementation
 }
 
 impl<'a, T> DoubleEndedIterator for Iter<'a, T>

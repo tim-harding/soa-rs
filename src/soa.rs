@@ -709,6 +709,39 @@ where
     }
 
     /// Calls a closure on each element of the collection.
+    ///
+    /// This is an internal iteration version of [`Iterator::for_each`] It is
+    /// equivalent to a for loop over the collection, although break and
+    /// continue are not possible from a closure.
+    ///
+    /// Internal iteration is useful whenever you need to iterate the elements
+    /// of `Soa<T>` as `T`, rather than as [`RawSoa::Ref`]. This can be the case
+    /// if you want to take advantage of traits or methods that are only
+    /// implemented for `T`. You can also use [`WithRef`] on the items of
+    /// [`Iter`] or [`IterMut`] for similar effect.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use soapy::{Soa, Soapy, soa};
+    /// # #[derive(Soapy, Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+    /// # struct Foo(String);
+    /// # impl Foo {
+    /// #     fn new(s: &str) -> Self {
+    /// #         Self(s.to_string())
+    /// #     }
+    /// # }
+    /// # impl std::ops::Deref for Foo {
+    /// #     type Target = str;
+    /// #     fn deref(&self) -> &Self::Target {
+    /// #         &self.0
+    /// #     }
+    /// # }
+    /// let soa = soa![Foo::new("Hello "), Foo::new("for_each")];
+    /// let mut msg = String::new();
+    /// soa.for_each(|item| msg.push_str(item));
+    /// assert_eq!(msg, "Hello for_each");
+    /// ```
     pub fn for_each<F>(&self, mut f: F)
     where
         F: FnMut(&T),
