@@ -566,26 +566,21 @@ where
 
     /// An internal iteration version of [`Iterator::try_fold`].
     ///
-    /// Applies a function as long as it returns successfully, producing a
-    /// single, final value.
+    /// Internal iteration is useful whenever you need to work with the elements
+    /// of `Soa` as `T`, rather than as [`RawSoa::Ref`]. This can be the case if
+    /// you want to take advantage of traits or methods that are only
+    /// implemented for `T`. You can also use [`WithRef`] on the elements of
+    /// [`Iter`] or [`IterMut`].
     ///
     /// `try_fold` takes two arguments: an initial value, and a closure with two
     /// arguments: an ‘accumulator’, and an element. The closure either returns
-    /// successfully, with the value that the accumulator should have for the
-    /// next iteration, or it returns failure, with an error value that is
-    /// propagated back to the caller immediately (short-circuiting).
+    /// [`Continue`], with the value that the accumulator should have for the
+    /// next iteration, or it returns [`Break`], with a value that is returned
+    /// to the caller immediately (short-circuiting).
     ///
     /// The initial value is the value the accumulator will have on the first
     /// call. If applying the closure succeeded against every element of the
-    /// iterator, `try_fold` returns the final accumulator as success.
-    ///
-    /// Internal iteration is useful whenever you need to work with the elements
-    /// of `Soa` as `T`, rather than just the individual fields of `T`. This can
-    /// be the case if you want to take advantage of traits or methods that are
-    /// only implemented for `T`. It is also possible to use [`WithRef`] on the
-    /// elements of [`Iter`] or [`IterMut`], but this method is a shortcut. This
-    /// implementation is slightly less ergonomic than the standard library
-    /// version because the [`Try`] is still unstable and nightly-only.
+    /// iterator, `try_fold` returns the final accumulator.
     ///
     /// # Examples
     ///
@@ -625,7 +620,8 @@ where
     /// assert_eq!(index_of(Foo(4)), 3);
     /// ```
     ///
-    /// [`Try`]: std::ops::Try
+    /// [`Continue`]: ControlFlow::Continue
+    /// [`Break`]: ControlFlow::Break
     pub fn try_fold<F, B>(&self, init: B, mut f: F) -> B
     where
         F: FnMut(B, &T) -> ControlFlow<B, B>,
