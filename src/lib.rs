@@ -91,7 +91,7 @@ pub use into_iter::IntoIter;
 pub use iter::Iter;
 pub use iter_mut::IterMut;
 pub use soa::Soa;
-pub use soapy_shared::Soapy;
+pub use soapy_shared::{Soapy, WithRef};
 
 /// Creates a [`Soa`] containing the arguments.
 ///

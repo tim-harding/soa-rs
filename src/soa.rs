@@ -503,24 +503,21 @@ where
     /// # Examples
     ///
     /// ```
-    /// # use soapy::{Soa, Soapy, soa};
+    /// # use soapy::{Soa, Soapy, soa, ref_derive};
     /// # use std::fmt;
     /// # use soapy_shared::WithRef;
     /// # #[derive(Soapy, Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
     /// # struct Foo(usize);
-    /// #
     /// # impl<'a> fmt::Debug for FooSoaRef<'a> {
     /// #     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     /// #         self.with_ref(|me| me.fmt(f))
     /// #     }
     /// # }
-    /// #
     /// # impl<'a> PartialEq<FooSoaRef<'a>> for FooSoaRef<'a> {
     /// #     fn eq(&self, other: &FooSoaRef) -> bool {
     /// #         self.with_ref(|me| other.with_ref(|other| me == other))
     /// #     }
     /// # }
-    /// #
     /// let soa = soa![Foo(1), Foo(2), Foo(4)];
     /// let mut iter = soa.iter();
     /// assert_eq!(iter.next(), Some(FooSoaRef(&1)));
@@ -773,6 +770,46 @@ where
 
     /// Returns a reference to an element or subslice depending on the type of
     /// index.
+    ///
+    /// - If given a position, returns a reference to the element at that
+    /// position or None if out of bounds.
+    ///
+    /// - If given a range, returns the subslice corresponding to that range, or
+    /// None if out of bounds.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use std::fmt;
+    /// # use soapy::{Soa, Soapy, soa, WithRef};
+    /// # #[derive(Soapy, Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
+    /// # struct Foo(usize);
+    /// # impl<'a> fmt::Debug for FooSoaRef<'a> {
+    /// #     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    /// #         self.with_ref(|me| me.fmt(f))
+    /// #     }
+    /// # }
+    /// # impl<'a> PartialEq for FooSoaRef<'a> {
+    /// #     fn eq(&self, other: &FooSoaRef) -> bool {
+    /// #         self.with_ref(|me| other.with_ref(|other| me == other))
+    /// #     }
+    /// # }
+    /// # impl<'a> fmt::Debug for FooSoaSlices<'a> {
+    /// #     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    /// #         f.debug_struct("FooSoaSlices").field("0", &self.0).finish()
+    /// #     }
+    /// # }
+    /// # impl<'a> PartialEq for FooSoaSlices<'a> {
+    /// #     fn eq(&self, other: &Self) -> bool {
+    /// #         self.0 == other.0
+    /// #     }
+    /// # }
+    /// let soa = soa![Foo(10), Foo(40), Foo(30)];
+    /// assert_eq!(soa.get(1), Some(FooSoaRef(&40)));
+    /// assert_eq!(soa.get(1..3), Some(FooSoaSlices(&[40, 30][..])));
+    /// assert_eq!(soa.get(3), None);
+    /// assert_eq!(soa.get(..4), None);
+    /// ```
     pub fn get<I>(&self, index: I) -> Option<I::Output<'_>>
     where
         I: SoaIndex<T>,
@@ -1163,6 +1200,7 @@ where
     }
 }
 
+#[allow(unused)]
 macro_rules! ref_derive_debug {
     ($t:ident) => {
         impl<'a> ::std::fmt::Debug for $t<'a> {
@@ -1173,6 +1211,7 @@ macro_rules! ref_derive_debug {
     };
 }
 
+#[allow(unused)]
 macro_rules! ref_derive_partial_eq {
     ($t:ty, $r:ident) => {
         impl<'a> ::std::cmp::PartialEq<$t> for $r<'a> {
@@ -1183,6 +1222,7 @@ macro_rules! ref_derive_partial_eq {
     };
 }
 
+#[allow(unused)]
 macro_rules! ref_derive_partial_ord {
     ($t:ty, $r:ident) => {
         impl<'a> ::std::cmp::PartialOrd<$t> for $r<'a> {
@@ -1193,6 +1233,7 @@ macro_rules! ref_derive_partial_ord {
     };
 }
 
+#[allow(unused)]
 macro_rules! ref_derive_hash {
     ($r:ident) => {
         impl<'a> ::std::hash::Hash for $r<'a> {
@@ -1203,6 +1244,7 @@ macro_rules! ref_derive_hash {
     };
 }
 
+#[macro_export]
 macro_rules! ref_derive {
     (; $t:ident, $r:ident, $m:ident) => {};
 
@@ -1246,8 +1288,3 @@ macro_rules! ref_derive {
         ref_derive!($($traits),*; $t, $r, $m);
     };
 }
-
-#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash, soapy_derive::Soapy)]
-struct Test(u8);
-
-ref_derive!(Debug, PartialEq, PartialOrd, Hash; Test, TestSoaRef, TestSoaRefMut);
