@@ -1134,18 +1134,12 @@ where
     type IntoIter = IntoIter<T>;
 
     fn into_iter(self) -> Self::IntoIter {
-        // Make sure not to drop self and free the buffer
         let soa = ManuallyDrop::new(self);
-
-        let len = soa.len;
-        let cap = soa.cap;
-        let raw = soa.raw;
-
         IntoIter {
             start: 0,
-            end: len,
-            raw,
-            cap,
+            end: soa.len,
+            raw: soa.raw,
+            cap: soa.cap,
         }
     }
 }
