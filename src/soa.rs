@@ -752,17 +752,6 @@ where
         })
     }
 
-    /// Calls a closure on each element of the collection.
-    pub fn for_each_zip<F>(&self, other: &Self, mut f: F)
-    where
-        F: FnMut(&T, &T),
-    {
-        self.try_fold_zip(other, (), |_, a, b| {
-            f(a, b);
-            ControlFlow::Continue(())
-        })
-    }
-
     /// Clears the vector, removing all values.
     ///
     /// Note that this method has no effect on the allocated capacity of the
