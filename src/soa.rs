@@ -842,9 +842,28 @@ where
 
     /// Returns a clone of the element at the given index.
     ///
+    /// This is equivalent to [`index`] followed by a [`clone`]. Prefer
+    /// [`nth_copied`] for types that support it.
+    ///
     /// # Panics
     ///
     /// Panics if `index >= len`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use std::fmt;
+    /// # use soapy::{Soa, Soapy, soa, WithRef};
+    /// # #[derive(Soapy, Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
+    /// # struct Foo(usize);
+    /// let soa = soa![Foo(10), Foo(40), Foo(30), Foo(90)];
+    /// assert_eq!(soa.nth_cloned(1), Foo(40));
+    /// assert_eq!(soa.nth_cloned(3), Foo(90));
+    /// ```
+    ///
+    /// [`index`]: std::ops::Index::index
+    /// [`clone`]: std::clone::Clone::clone
+    /// [`nth_copied`]: Soa::nth_copied
     pub fn nth_cloned(&self, index: usize) -> T
     where
         T: Clone,
@@ -856,11 +875,72 @@ where
         el.deref().clone()
     }
 
-    /// Returns a reference to the element at the given index.
+    /// Returns a copy of the element at the given index.
+    ///
+    /// This is equivalent to [`index`] except that it returns a copy rather
+    /// than a reference. Prefer this over [`nth_cloned`] for types that support
+    /// it.
     ///
     /// # Panics
     ///
     /// Panics if `index >= len`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use std::fmt;
+    /// # use soapy::{Soa, Soapy, soa, WithRef};
+    /// # #[derive(Soapy, Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
+    /// # struct Foo(usize);
+    /// let soa = soa![Foo(10), Foo(40), Foo(30), Foo(90)];
+    /// assert_eq!(soa.nth_copied(1), Foo(40));
+    /// assert_eq!(soa.nth_copied(3), Foo(90));
+    /// ```
+    ///
+    /// [`index`]: std::ops::Index::index
+    /// [`nth_cloned`]: Soa::nth_cloned
+    pub fn nth_copied(&self, index: usize) -> T
+    where
+        T: Copy,
+    {
+        if index >= self.len {
+            panic!("index out of bounds");
+        }
+        unsafe { self.raw.get(index) }
+    }
+
+    /// Returns a reference to the element at the given index.
+    ///
+    /// This is functionally equivalent to [`Index`], which is not implementable
+    /// for this type.
+    ///
+    /// # Panics
+    ///
+    /// Panics if `index >= len`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use std::fmt;
+    /// # use soapy::{Soa, Soapy, soa, WithRef};
+    /// # #[derive(Soapy, Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
+    /// # struct Foo(usize);
+    /// # impl<'a> fmt::Debug for FooSoaRef<'a> {
+    /// #     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    /// #         self.with_ref(|me| me.fmt(f))
+    /// #     }
+    /// # }
+    /// # impl<'a> PartialEq for FooSoaRef<'a> {
+    /// #     fn eq(&self, other: &FooSoaRef) -> bool {
+    /// #         self.with_ref(|me| other.with_ref(|other| me == other))
+    /// #     }
+    /// # }
+    /// let soa = soa![Foo(10), Foo(40), Foo(30), Foo(90)];
+    /// assert_eq!(soa.nth(1), FooSoaRef(&40));
+    /// assert_eq!(soa.nth(3), FooSoaRef(&90));
+    /// ```
+    ///
+    /// [`Index`]: std::ops::Index
     pub fn nth(&self, index: usize) -> <T::RawSoa as RawSoa<T>>::Ref<'_> {
         if index >= self.len {
             panic!("index out of bounds");
@@ -868,16 +948,38 @@ where
         unsafe { self.raw.get_ref(index) }
     }
 
-    /// Returns slices for each of the SoA fields.
-    pub fn slices(&self) -> <T::RawSoa as RawSoa<T>>::Slices<'_> {
-        unsafe { self.raw.slices(0, self.len) }
-    }
-
-    /// Returns a reference to the element at the given index.
+    /// Returns a mutable reference to the element at the given index.
+    ///
+    /// This is functionally equivalent to [`IndexMut`], which is not
+    /// implementable for this type.
     ///
     /// # Panics
     ///
     /// Panics if `index >= len`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use std::fmt;
+    /// # use soapy::{Soa, Soapy, soa, WithRef};
+    /// # #[derive(Soapy, Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
+    /// # struct Foo(usize);
+    /// # impl<'a> fmt::Debug for FooSoaRef<'a> {
+    /// #     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    /// #         self.with_ref(|me| me.fmt(f))
+    /// #     }
+    /// # }
+    /// # impl<'a> PartialEq for FooSoaRef<'a> {
+    /// #     fn eq(&self, other: &FooSoaRef) -> bool {
+    /// #         self.with_ref(|me| other.with_ref(|other| me == other))
+    /// #     }
+    /// # }
+    /// let mut soa = soa![Foo(10), Foo(20), Foo(30)];
+    /// *soa.nth_mut(1).0 = 42;
+    /// assert_eq!(soa, [Foo(10), Foo(42), Foo(30)]);
+    /// ```
+    ///
+    /// [`IndexMut`]: std::ops::Index
     pub fn nth_mut(&mut self, index: usize) -> <T::RawSoa as RawSoa<T>>::RefMut<'_> {
         if index >= self.len {
             panic!("index out of bounds");
