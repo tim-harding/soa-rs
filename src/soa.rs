@@ -1350,3 +1350,15 @@ where
         self.for_each(|item| item.hash(state));
     }
 }
+
+#[cfg(feature = "deref")]
+impl<T> Deref for Soa<T>
+where
+    T: Soapy,
+{
+    type Target = RawSoa;
+
+    fn deref(&self) -> &Self::Target {
+        &self.raw
+    }
+}
