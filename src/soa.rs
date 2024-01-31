@@ -1311,16 +1311,12 @@ where
     T: Soapy + PartialOrd,
 {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        let element_wise = self.try_fold_zip(other, Some(Ordering::Equal), |_, a, b| {
+        self.try_fold_zip(other, Some(Ordering::Equal), |_, a, b| {
             match a.partial_cmp(b) {
                 ord @ (None | Some(Ordering::Less | Ordering::Greater)) => ControlFlow::Break(ord),
-                Some(Ordering::Equal) => ControlFlow::Continue(Some(Ordering::Equal)),
+                Some(Ordering::Equal) => ControlFlow::Continue(Some(self.len.cmp(&other.len))),
             }
-        });
-        match element_wise {
-            ord @ (None | Some(Ordering::Less | Ordering::Greater)) => ord,
-            Some(Ordering::Equal) => Some(self.len.cmp(&other.len)),
-        }
+        })
     }
 }
 
@@ -1329,14 +1325,10 @@ where
     T: Soapy + Ord,
 {
     fn cmp(&self, other: &Self) -> Ordering {
-        let element_wise = self.try_fold_zip(other, Ordering::Equal, |_, a, b| match a.cmp(b) {
+        self.try_fold_zip(other, Ordering::Equal, |_, a, b| match a.cmp(b) {
             ord @ (Ordering::Greater | Ordering::Less) => ControlFlow::Break(ord),
-            Ordering::Equal => ControlFlow::Continue(Ordering::Equal),
-        });
-        match element_wise {
-            ord @ (Ordering::Less | Ordering::Greater) => ord,
-            Ordering::Equal => self.len.cmp(&other.len),
-        }
+            Ordering::Equal => ControlFlow::Continue(self.len.cmp(&other.len)),
+        })
     }
 }
 
