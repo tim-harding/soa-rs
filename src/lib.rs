@@ -517,4 +517,8 @@ mod tests {
         let b = soa![];
         assert_eq!(a, b);
     }
+
+    #[derive(crate::Soapy)]
+    #[extra_impl(Debug, PartialEq)]
+    struct Example;
 }

@@ -1358,7 +1358,3 @@ where
         self.for_each(|item| item.hash(state));
     }
 }
-
-#[derive(crate::Soapy)]
-#[extra_impl(Debug, PartialEq)]
-struct Example;
