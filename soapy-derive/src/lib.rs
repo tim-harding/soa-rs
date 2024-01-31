@@ -3,32 +3,53 @@
 use proc_macro::TokenStream;
 use proc_macro2::TokenStream as TokenStream2;
 use quote::{format_ident, quote, quote_spanned, ToTokens};
-use std::fmt::{self, Display, Formatter};
 use syn::{
     parse_macro_input, punctuated::Punctuated, token::Comma, Data, DeriveInput, Field, Fields,
     Ident, Index, Visibility,
 };
 
-#[proc_macro_derive(Soapy)]
+#[proc_macro_derive(Soapy, attributes(extra_impl))]
 pub fn soa(input: TokenStream) -> TokenStream {
     let input: DeriveInput = parse_macro_input!(input);
     let span = input.ident.span();
     match soa_inner(input) {
         Ok(tokens) => tokens,
-        Err(e) => {
-            let s: &str = e.into();
-            quote_spanned! {
-                span => compile_error!(#s);
-            }
-        }
+        Err(e) => match e {
+            SoapyError::NotAStruct => quote_spanned! {
+                span => compile_error!("Soapy only applies to structs");
+            },
+            SoapyError::Syn(e) => e.into_compile_error(),
+        },
     }
     .into()
 }
 
 fn soa_inner(input: DeriveInput) -> Result<TokenStream2, SoapyError> {
     let DeriveInput {
-        ident, vis, data, ..
+        ident,
+        vis,
+        data,
+        attrs,
+        generics: _,
     } = input;
+
+    let mut extra_impls = ExtraImpl::default();
+    for attr in attrs {
+        if attr.path().is_ident("extra_impl") {
+            attr.parse_nested_meta(|meta| {
+                if meta.path.is_ident("Debug") {
+                    extra_impls.debug = true;
+                    Ok(())
+                } else if meta.path.is_ident("PartialEq") {
+                    extra_impls.partial_eq = true;
+                    Ok(())
+                } else {
+                    Err(meta.error("unrecognized extra impl"))
+                }
+            })?;
+        }
+    }
+
     match data {
         Data::Struct(strukt) => match strukt.fields {
             Fields::Named(fields) => fields_struct(ident, vis, fields.named, FieldKind::Named),
@@ -449,24 +470,20 @@ enum ZstKind {
     EmptyTuple,
 }
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Copy, Clone, Default)]
+struct ExtraImpl {
+    debug: bool,
+    partial_eq: bool,
+}
+
+#[derive(Debug, Clone)]
 enum SoapyError {
     NotAStruct,
+    Syn(syn::Error),
 }
 
-impl std::error::Error for SoapyError {}
-
-impl Display for SoapyError {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        let s: &str = (*self).into();
-        write!(f, "{}", s)
-    }
-}
-
-impl From<SoapyError> for &str {
-    fn from(value: SoapyError) -> Self {
-        match value {
-            SoapyError::NotAStruct => "Soapy only applies to structs",
-        }
+impl From<syn::Error> for SoapyError {
+    fn from(value: syn::Error) -> Self {
+        Self::Syn(value)
     }
 }
