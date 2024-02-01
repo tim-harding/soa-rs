@@ -284,7 +284,9 @@ pub fn fields_struct(
         }
 
         #[automatically_derived]
-        unsafe impl ::soapy_shared::RawSoa<#ident> for #raw {
+        unsafe impl ::soapy_shared::RawSoa for #raw {
+            type Item = #ident;
+
             #[inline]
             fn dangling() -> Self {
                 Self {

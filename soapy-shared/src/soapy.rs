@@ -4,7 +4,8 @@ use crate::{RawSoa, WithRef};
 ///
 /// This trait should be derived using the `soapy-derive` crate.
 pub trait Soapy: Sized {
-    type RawSoa: RawSoa<Self>;
+    /// Implements internal, unsafe, low-level routines used by `Soa`
+    type RawSoa: RawSoa<Item = Self>;
 
     /// For each field with type `F` in `T`, `Slices` has a field with type
     /// `&[F]`
@@ -20,13 +21,13 @@ pub trait Soapy: Sized {
 
     /// For each field with type `F` in `T`, `Ref` has a field with type
     /// `&F`
-    type Ref<'a>: WithRef
+    type Ref<'a>: WithRef<Item = Self>
     where
         Self: 'a;
 
     /// For each field with type `F` in `T`, `RefMut` has a field with type
     /// `&mut F`
-    type RefMut<'a>: WithRef
+    type RefMut<'a>: WithRef<Item = Self>
     where
         Self: 'a;
 }
