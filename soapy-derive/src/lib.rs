@@ -1,12 +1,15 @@
 //! This crate provides the derive macro for Soapy.
 
+mod zst;
+
 use proc_macro::TokenStream;
 use proc_macro2::TokenStream as TokenStream2;
 use quote::{format_ident, quote, quote_spanned, ToTokens};
 use syn::{
     parse_macro_input, punctuated::Punctuated, token::Comma, Data, DeriveInput, Field, Fields,
-    FieldsNamed, FieldsUnnamed, Ident, Index, Visibility,
+    Ident, Index, Visibility,
 };
+use zst::{zst_struct, ZstKind};
 
 #[proc_macro_derive(Soapy, attributes(extra_impl))]
 pub fn soa(input: TokenStream) -> TokenStream {
@@ -52,15 +55,13 @@ fn soa_inner(input: DeriveInput) -> Result<TokenStream2, SoapyError> {
 
     match data {
         Data::Struct(strukt) => match strukt.fields {
-            Fields::Named(FieldsNamed {
-                named: fields,
-                brace_token: _,
-            })
-            | Fields::Unnamed(FieldsUnnamed {
-                unnamed: fields,
-                paren_token: _,
-            }) => fields_struct(ident, vis, fields, FieldKind::Named, extra_impl),
-            Fields::Unit => zst_struct(ident, vis, ZstKind::Unit),
+            Fields::Named(fields) => {
+                fields_struct(ident, vis, fields.named, FieldKind::Named, extra_impl)
+            }
+            Fields::Unnamed(fields) => {
+                fields_struct(ident, vis, fields.unnamed, FieldKind::Unnamed, extra_impl)
+            }
+            Fields::Unit => Ok(zst_struct(ident, vis, ZstKind::Unit)),
         },
         Data::Enum(_) | Data::Union(_) => Err(SoapyError::NotAStruct),
     }
@@ -92,7 +93,7 @@ fn fields_struct(
                 FieldKind::Named => ZstKind::Empty,
                 FieldKind::Unnamed => ZstKind::EmptyTuple,
             };
-            return zst_struct(ident, vis, zst_kind);
+            return Ok(zst_struct(ident, vis, zst_kind));
         }
     };
 
@@ -395,71 +396,6 @@ fn fields_struct(
     })
 }
 
-fn zst_struct(ident: Ident, vis: Visibility, kind: ZstKind) -> Result<TokenStream2, SoapyError> {
-    let raw = format_ident!("{ident}RawSoa");
-    let unit_construct = match kind {
-        ZstKind::Unit => quote! {},
-        ZstKind::Empty => quote! { {} },
-        ZstKind::EmptyTuple => quote! { () },
-    };
-
-    Ok(quote! {
-        #[automatically_derived]
-        impl ::soapy_shared::Soapy for #ident {
-            type RawSoa = #raw;
-            type Slices<'a> = ();
-            type SlicesMut<'a> = ();
-            type Ref<'a> = #ident;
-            type RefMut<'a> = #ident;
-        }
-
-        impl ::soapy_shared::WithRef<#ident> for #ident {
-            fn with_ref<F, R>(&self, f: F) -> R
-            where
-                F: FnOnce(&#ident) -> R
-            {
-                f(self)
-            }
-        }
-
-        #[automatically_derived]
-        #[derive(Copy, Clone)]
-        #vis struct #raw;
-
-        #[automatically_derived]
-        unsafe impl ::soapy_shared::RawSoa<#ident> for #raw {
-            #[inline]
-            fn dangling() -> Self { Self }
-            #[inline]
-            fn as_ptr(self) -> *mut u8 { ::std::ptr::null::<u8>() as *mut _ }
-            #[inline]
-            unsafe fn slices(&self, start: usize, end: usize) -> () { () }
-            #[inline]
-            unsafe fn slices_mut(&mut self, start: usize, end: usize) -> () { () }
-            #[inline]
-            unsafe fn from_parts(ptr: *mut u8, capacity: usize) -> Self { Self }
-            #[inline]
-            unsafe fn alloc(capacity: usize) -> Self { Self }
-            #[inline]
-            unsafe fn realloc_grow(&mut self, old_capacity: usize, new_capacity: usize, length: usize) { }
-            #[inline]
-            unsafe fn realloc_shrink(&mut self, old_capacity: usize, new_capacity: usize, length: usize) { }
-            #[inline]
-            unsafe fn dealloc(self, old_capacity: usize) { }
-            #[inline]
-            unsafe fn copy(&mut self, src: usize, dst: usize, count: usize) { }
-            #[inline]
-            unsafe fn set(&mut self, index: usize, element: #ident) { }
-            #[inline]
-            unsafe fn get(&self, index: usize) -> #ident { #ident #unit_construct }
-            #[inline]
-            unsafe fn get_ref<'a>(&self, index: usize) -> <#ident as Soapy>::Ref<'a> { #ident #unit_construct }
-            #[inline]
-            unsafe fn get_mut<'a>(&self, index: usize) -> <#ident as Soapy>::RefMut<'a> { #ident #unit_construct }
-        }
-    })
-}
-
 #[derive(Clone, PartialEq, Eq)]
 enum FieldIdent {
     Named(Ident),
@@ -488,16 +424,6 @@ impl ToTokens for FieldIdent {
 enum FieldKind {
     Named,
     Unnamed,
-}
-
-enum ZstKind {
-    /// struct Unit;
-    Unit,
-    /// struct Unit {};
-    Empty,
-    #[allow(unused)]
-    /// struct Unit();
-    EmptyTuple,
 }
 
 #[derive(Debug, Copy, Clone, Default)]
