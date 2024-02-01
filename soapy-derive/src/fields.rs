@@ -137,26 +137,31 @@ pub fn fields_struct(
     out.append_all(with_ref_impl(item_ref_mut.clone()));
 
     if extra_impl.partial_eq {
-        // TODO: Impls for item_ref_mut, slices, slices_mut
-        out.append_all(quote! {
-            impl ::std::cmp::PartialEq for #item_ref {
-                fn eq(&self, other: &Self) -> bool {
-                    <Self as ::soapy_shared::WithRef<#ident>>::with_ref(self, |me| {
-                        <Self as ::soapy_shared::WithRef<#ident>>::with_ref(other, |them| {
-                            me == them
+        // TODO: Impls for slices, slices_mut
+        let partial_eq_impl = |item| {
+            quote! {
+                impl ::std::cmp::PartialEq for #item {
+                    fn eq(&self, other: &Self) -> bool {
+                        <Self as ::soapy_shared::WithRef<#ident>>::with_ref(self, |me| {
+                            <Self as ::soapy_shared::WithRef<#ident>>::with_ref(other, |them| {
+                                me == them
+                            })
                         })
-                    })
+                    }
                 }
-            }
 
-            impl ::std::cmp::PartialEq<#ident> for #item_ref {
-                fn eq(&self, other: &#ident) -> bool {
-                    <Self as ::soapy_shared::WithRef<#ident>>::with_ref(self, |me| {
-                        me == other
-                    })
+                impl ::std::cmp::PartialEq<#ident> for #item {
+                    fn eq(&self, other: &#ident) -> bool {
+                        <Self as ::soapy_shared::WithRef<#ident>>::with_ref(self, |me| {
+                            me == other
+                        })
+                    }
                 }
             }
-        })
+        };
+
+        out.append_all(partial_eq_impl(item_ref.clone()));
+        out.append_all(partial_eq_impl(item_ref_mut.clone()));
     }
 
     let indices = std::iter::repeat(()).enumerate().map(|(i, ())| i);
