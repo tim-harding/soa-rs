@@ -1,6 +1,6 @@
 use crate::zst::{zst_struct, ZstKind};
-use proc_macro2::TokenStream as TokenStream2;
-use quote::{format_ident, quote, ToTokens};
+use proc_macro2::TokenStream;
+use quote::{format_ident, quote, ToTokens, TokenStreamExt};
 use syn::{punctuated::Punctuated, token::Comma, Field, Ident, Index, Visibility};
 
 pub fn fields_struct(
@@ -9,7 +9,7 @@ pub fn fields_struct(
     fields: Punctuated<Field, Comma>,
     kind: FieldKind,
     extra_impl: ExtraImpl,
-) -> Result<TokenStream2, syn::Error> {
+) -> Result<TokenStream, syn::Error> {
     let fields_len = fields.len();
     let (vis_all, (ty_all, ident_all)): (Vec<_>, (Vec<_>, Vec<FieldIdent>)) = fields
         .into_iter()
@@ -43,6 +43,8 @@ pub fn fields_struct(
     let item_ref_mut = format_ident!("{ident}SoaRefMut");
     let raw = format_ident!("{ident}RawSoa");
 
+    let mut out = TokenStream::new();
+
     let raw_body = match kind {
         FieldKind::Named => quote! {
             { #(#vis_all #ident_all: ::std::ptr::NonNull<#ty_all>,)* }
@@ -51,6 +53,12 @@ pub fn fields_struct(
             ( #(#vis_all ::std::ptr::NonNull<#ty_all>),* );
         },
     };
+
+    out.append_all(quote! {
+        #[automatically_derived]
+        #[derive(Copy, Clone)]
+        #vis struct #raw #raw_body
+    });
 
     let slices_def = match kind {
         FieldKind::Named => quote! {
@@ -61,6 +69,12 @@ pub fn fields_struct(
         },
     };
 
+    out.append_all(quote! {
+        #[automatically_derived]
+        #[derive(Copy, Clone)]
+        #vis struct #slices<'a> #slices_def
+    });
+
     let slices_mut_def = match kind {
         FieldKind::Named => quote! {
             { #(#[allow(unused)] #vis_all #ident_all: &'a mut [#ty_all]),* }
@@ -69,6 +83,11 @@ pub fn fields_struct(
             ( #(#[allow(unused)] #vis_all &'a mut [#ty_all]),* );
         },
     };
+
+    out.append_all(quote! {
+        #[automatically_derived]
+        #vis struct #slices_mut<'a> #slices_mut_def
+    });
 
     let item_ref_def = match kind {
         FieldKind::Named => quote! {
@@ -79,6 +98,11 @@ pub fn fields_struct(
         },
     };
 
+    out.append_all(quote! {
+        #[automatically_derived]
+        #vis struct #item_ref<'a> #item_ref_def
+    });
+
     let item_ref_mut_def = match kind {
         FieldKind::Named => quote! {
             { #(#[allow(unused)] #vis_all #ident_all: &'a mut #ty_all),* }
@@ -87,6 +111,11 @@ pub fn fields_struct(
             ( #(#[allow(unused)] #vis_all &'a mut #ty_all),* );
         },
     };
+
+    out.append_all(quote! {
+        #[automatically_derived]
+        #vis struct #item_ref_mut<'a> #item_ref_mut_def
+    });
 
     let with_ref_impl = |item| {
         quote! {
@@ -104,24 +133,12 @@ pub fn fields_struct(
         }
     };
 
-    let with_ref_impl_item_ref = with_ref_impl(item_ref.clone());
-    let with_ref_impl_item_mut = with_ref_impl(item_ref_mut.clone());
+    out.append_all(with_ref_impl(item_ref.clone()));
+    out.append_all(with_ref_impl(item_ref_mut.clone()));
 
-    let offset_tail: Vec<_> = ident_tail
-        .iter()
-        .zip(ty_tail.iter())
-        .enumerate()
-        .map(|(i, (ident, ty))| {
-            quote! {
-                #ident: ::std::ptr::NonNull::new_unchecked(
-                    ptr.add(offsets[#i]) as *mut #ty,
-                )
-            }
-        })
-        .collect();
-
-    let ref_eq_impl = if extra_impl.partial_eq {
-        quote! {
+    if extra_impl.partial_eq {
+        // TODO: Impls for item_ref_mut, slices, slices_mut
+        out.append_all(quote! {
             impl ::std::cmp::PartialEq for #item_ref {
                 fn eq(&self, other: &Self) -> bool {
                     <Self as ::soapy_shared::WithRef<#ident>>::with_ref(self, |me| {
@@ -139,34 +156,12 @@ pub fn fields_struct(
                     })
                 }
             }
-        }
-    } else {
-        quote! {}
-    };
+        })
+    }
 
-    Ok(quote! {
-        #[automatically_derived]
-        #[derive(Copy, Clone)]
-        #vis struct #raw #raw_body
+    let indices = std::iter::repeat(()).enumerate().map(|(i, ())| i);
 
-        #[automatically_derived]
-        #[derive(Copy, Clone)]
-        #vis struct #slices<'a> #slices_def
-
-        #[automatically_derived]
-        #vis struct #slices_mut<'a> #slices_mut_def
-
-        #[automatically_derived]
-        #vis struct #item_ref<'a> #item_ref_def
-
-        #with_ref_impl_item_ref
-
-        #[automatically_derived]
-        #vis struct #item_ref_mut<'a> #item_ref_mut_def
-
-        #with_ref_impl_item_mut
-        #ref_eq_impl
-
+    out.append_all(quote! {
         #[automatically_derived]
         impl ::soapy_shared::Soapy for #ident {
             type RawSoa = #raw;
@@ -197,7 +192,11 @@ pub fn fields_struct(
             unsafe fn with_offsets(ptr: *mut u8, offsets: [usize; #fields_len]) -> Self {
                 Self {
                     #ident_head: ::std::ptr::NonNull::new_unchecked(ptr as *mut #ty_head),
-                    #(#offset_tail),*
+                    #(
+                    #ident_tail: ::std::ptr::NonNull::new_unchecked(
+                        ptr.add(offsets[#indices]) as *mut #ty_tail,
+                    )
+                    ),*
                 }
             }
         }
@@ -329,8 +328,11 @@ pub fn fields_struct(
                 }
             }
         }
-    })
+    });
+
+    Ok(out)
 }
+
 #[derive(Clone, PartialEq, Eq)]
 enum FieldIdent {
     Named(Ident),
@@ -347,7 +349,7 @@ impl From<(usize, Option<Ident>)> for FieldIdent {
 }
 
 impl ToTokens for FieldIdent {
-    fn to_tokens(&self, tokens: &mut TokenStream2) {
+    fn to_tokens(&self, tokens: &mut TokenStream) {
         match self {
             FieldIdent::Named(ident) => ident.to_tokens(tokens),
             FieldIdent::Unnamed(i) => i.to_tokens(tokens),
