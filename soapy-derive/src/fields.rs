@@ -97,7 +97,7 @@ pub fn fields_struct(
             .map(|ident| format_ident!("var_{ident}"))
             .collect();
 
-        let mut nested = quote! { var_ident_head };
+        let mut nested = quote! { #var_ident_head };
         for var_ident in var_ident_tail.iter().cloned() {
             nested = quote! {
                 (#nested, #var_ident)
@@ -121,7 +121,7 @@ pub fn fields_struct(
                     iter.map(|items| {
                         let #nested = items;
                         #item_ref {
-                            #ident_head: var_ident_head,
+                            #ident_head: #var_ident_head,
                             #(#ident_tail: #var_ident_tail),*
                         }
                     })
@@ -132,6 +132,24 @@ pub fn fields_struct(
 
     out.append_all(slices_impl(slices.clone()));
     out.append_all(slices_impl(slices_mut.clone()));
+
+    if extra_impl.partial_eq {
+        let partial_eq = |item| {
+            quote! {
+                impl<'a> ::std::cmp::PartialEq for #item<'a> {
+                    fn eq(&self, other: &Self) -> bool {
+                        ::std::iter::zip(
+                            <Self as ::soapy_shared::Slices>::iter(self),
+                            <Self as ::soapy_shared::Slices>::iter(other),
+                        ).all(|(me, them)| me == them)
+                    }
+                }
+            }
+        };
+
+        out.append_all(partial_eq(slices.clone()));
+        out.append_all(partial_eq(slices_mut.clone()));
+    }
 
     let item_ref_def = match kind {
         FieldKind::Named => quote! {

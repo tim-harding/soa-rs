@@ -5,3 +5,5 @@ pub trait Slices {
 
     fn iter(&self) -> impl Iterator<Item = Self::Item<'_>>;
 }
+
+// TODO: SlicesMut type
