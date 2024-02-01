@@ -3,6 +3,8 @@ use std::{
     fmt::{self, Debug, Formatter},
 };
 
+// TODO: Associated type, not generic
+
 /// Similar to [`AsRef`], except that instead of returning `&T`, it accepts
 /// closure that takes `&T`.
 ///

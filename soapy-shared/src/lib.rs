@@ -9,6 +9,9 @@
 //! That is why these are split out into a subcrate. See the [tracking
 //! issue](https://github.com/rust-lang/rust/issues/54363) for more details.
 
+mod slices;
+pub use slices::Slices;
+
 mod raw_soa;
 pub use raw_soa::RawSoa;
 
