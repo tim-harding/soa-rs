@@ -5,7 +5,7 @@ use proc_macro2::TokenStream as TokenStream2;
 use quote::{format_ident, quote, quote_spanned, ToTokens};
 use syn::{
     parse_macro_input, punctuated::Punctuated, token::Comma, Data, DeriveInput, Field, Fields,
-    Ident, Index, Visibility,
+    FieldsNamed, FieldsUnnamed, Ident, Index, Visibility,
 };
 
 #[proc_macro_derive(Soapy, attributes(extra_impl))]
@@ -52,13 +52,15 @@ fn soa_inner(input: DeriveInput) -> Result<TokenStream2, SoapyError> {
 
     match data {
         Data::Struct(strukt) => match strukt.fields {
-            Fields::Named(fields) => {
-                fields_struct(ident, vis, fields.named, FieldKind::Named, extra_impl)
-            }
+            Fields::Named(FieldsNamed {
+                named: fields,
+                brace_token: _,
+            })
+            | Fields::Unnamed(FieldsUnnamed {
+                unnamed: fields,
+                paren_token: _,
+            }) => fields_struct(ident, vis, fields, FieldKind::Named, extra_impl),
             Fields::Unit => zst_struct(ident, vis, ZstKind::Unit),
-            Fields::Unnamed(fields) => {
-                fields_struct(ident, vis, fields.unnamed, FieldKind::Unnamed, extra_impl)
-            }
         },
         Data::Enum(_) | Data::Union(_) => Err(SoapyError::NotAStruct),
     }
