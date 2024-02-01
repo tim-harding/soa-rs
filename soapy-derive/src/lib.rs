@@ -33,15 +33,15 @@ fn soa_inner(input: DeriveInput) -> Result<TokenStream2, SoapyError> {
         generics: _,
     } = input;
 
-    let mut extra_impls = ExtraImpl::default();
+    let mut extra_impl = ExtraImpl::default();
     for attr in attrs {
         if attr.path().is_ident("extra_impl") {
             attr.parse_nested_meta(|meta| {
                 if meta.path.is_ident("Debug") {
-                    extra_impls.debug = true;
+                    extra_impl.debug = true;
                     Ok(())
                 } else if meta.path.is_ident("PartialEq") {
-                    extra_impls.partial_eq = true;
+                    extra_impl.partial_eq = true;
                     Ok(())
                 } else {
                     Err(meta.error("unrecognized extra impl"))
@@ -52,10 +52,12 @@ fn soa_inner(input: DeriveInput) -> Result<TokenStream2, SoapyError> {
 
     match data {
         Data::Struct(strukt) => match strukt.fields {
-            Fields::Named(fields) => fields_struct(ident, vis, fields.named, FieldKind::Named),
+            Fields::Named(fields) => {
+                fields_struct(ident, vis, fields.named, FieldKind::Named, extra_impl)
+            }
             Fields::Unit => zst_struct(ident, vis, ZstKind::Unit),
             Fields::Unnamed(fields) => {
-                fields_struct(ident, vis, fields.unnamed, FieldKind::Unnamed)
+                fields_struct(ident, vis, fields.unnamed, FieldKind::Unnamed, extra_impl)
             }
         },
         Data::Enum(_) | Data::Union(_) => Err(SoapyError::NotAStruct),
@@ -67,6 +69,7 @@ fn fields_struct(
     vis: Visibility,
     fields: Punctuated<Field, Comma>,
     kind: FieldKind,
+    extra_impl: ExtraImpl,
 ) -> Result<TokenStream2, SoapyError> {
     let fields_len = fields.len();
     let (vis_all, (ty_all, ident_all)): (Vec<_>, (Vec<_>, Vec<FieldIdent>)) = fields
@@ -178,6 +181,30 @@ fn fields_struct(
         })
         .collect();
 
+    let ref_eq_impl = if extra_impl.partial_eq {
+        quote! {
+            impl ::std::cmp::PartialEq for #item_ref {
+                fn eq(&self, other: &Self) -> bool {
+                    <Self as ::soapy_shared::WithRef<#ident>>::with_ref(self, |me| {
+                        <Self as ::soapy_shared::WithRef<#ident>>::with_ref(other, |them| {
+                            me == them
+                        })
+                    })
+                }
+            }
+
+            impl ::std::cmp::PartialEq<#ident> for #item_ref {
+                fn eq(&self, other: &#ident) -> bool {
+                    <Self as ::soapy_shared::WithRef<#ident>>::with_ref(self, |me| {
+                        me == other
+                    })
+                }
+            }
+        }
+    } else {
+        quote! {}
+    };
+
     Ok(quote! {
         #[automatically_derived]
         #[derive(Copy, Clone)]
@@ -199,6 +226,7 @@ fn fields_struct(
         #vis struct #item_ref_mut<'a> #item_ref_mut_def
 
         #with_ref_impl_item_mut
+        #ref_eq_impl
 
         #[automatically_derived]
         impl ::soapy_shared::Soapy for #ident {
