@@ -20,13 +20,13 @@ pub trait Soapy: Sized {
 
     /// For each field with type `F` in `T`, `Ref` has a field with type
     /// `&F`
-    type Ref<'a>: WithRef<Self>
+    type Ref<'a>: WithRef
     where
         Self: 'a;
 
     /// For each field with type `F` in `T`, `RefMut` has a field with type
     /// `&mut F`
-    type RefMut<'a>: WithRef<Self>
+    type RefMut<'a>: WithRef
     where
         Self: 'a;
 }

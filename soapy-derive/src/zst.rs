@@ -21,10 +21,12 @@ pub fn zst_struct(ident: Ident, vis: Visibility, kind: ZstKind) -> TokenStream {
         }
 
         #[automatically_derived]
-        impl ::soapy_shared::WithRef<#ident> for #ident {
+        impl ::soapy_shared::WithRef for #ident {
+            type Item = #ident;
+
             fn with_ref<F, R>(&self, f: F) -> R
             where
-                F: ::std::ops::FnOnce(&#ident) -> R
+                F: ::std::ops::FnOnce(&Self::Item) -> R
             {
                 f(self)
             }

@@ -25,64 +25,66 @@ use std::{
 ///
 /// [`Soapy::Ref`]: crate::Soapy::Ref
 /// [`Soapy::RefMut`]: crate::Soapy::RefMut
-pub trait WithRef<T> {
+pub trait WithRef {
+    type Item;
+
     /// Calls the provided function with a reference to `T`
     fn with_ref<F, R>(&self, f: F) -> R
     where
-        F: FnOnce(&T) -> R;
+        F: FnOnce(&Self::Item) -> R;
 
-    /// Returns a clone of `T`.
+    /// Returns a clone of `Self::Item`.
     ///
     /// Prefer [`copied`] where possible.
     ///
     /// [`copied`]: WithRef::copied
-    fn cloned(&self) -> T
+    fn cloned(&self) -> Self::Item
     where
-        T: Clone,
+        Self::Item: Clone,
     {
         self.with_ref(|me| me.clone())
     }
 
-    /// Returns a copy of `T`.
+    /// Returns a copy of `Self::Item`.
     ///
     /// Prefer this over [`cloned`] where possible.
     ///
     /// [`cloned`]: WithRef::cloned
-    fn copied(&self) -> T
+    fn copied(&self) -> Self::Item
     where
-        T: Copy,
+        Self::Item: Copy,
     {
         self.with_ref(|me| *me)
     }
 
-    /// Convenience for `T`'s [`Debug::fmt`] implementation.
+    /// Convenience for `Self::Item`'s [`Debug::fmt`] implementation.
     fn debug(&self, f: &mut Formatter<'_>) -> fmt::Result
     where
-        T: Debug,
+        Self::Item: Debug,
     {
         self.with_ref(|me| me.fmt(f))
     }
 
-    /// Convenience for `T`'s [`PartialEq::eq`] implementation.
-    fn partial_eq(&self, other: &impl WithRef<T>) -> bool
+    /// Convenience for `Self::Item`'s [`PartialEq::eq`] implementation.
+    fn partial_eq(&self, other: &impl WithRef<Item = Self::Item>) -> bool
     where
-        T: PartialEq,
+        Self::Item: PartialEq,
     {
         self.with_ref(|me| other.with_ref(|them| me == them))
     }
 
-    /// Convenience for `T`'s [`PartialOrd::partial_cmp`] implementation.
-    fn partial_ord(&self, other: &impl WithRef<T>) -> Option<Ordering>
+    /// Convenience for `Self::Item`'s [`PartialOrd::partial_cmp`] implementation.
+    fn partial_ord(&self, other: &impl WithRef<Item = Self::Item>) -> Option<Ordering>
     where
-        T: PartialOrd,
+        Self::Item: PartialOrd,
     {
         self.with_ref(|me| other.with_ref(|them| me.partial_cmp(them)))
     }
 
-    /// Convenience for `T`'s [`Ord::cmp`] implementation.
-    fn ord(&self, other: &impl WithRef<T>) -> Ordering
+    /// Convenience for `Self::Item`'s [`Ord::cmp`] implementation.
+    fn ord(&self, other: &impl WithRef<Item = Self::Item>) -> Ordering
     where
-        T: Ord,
+        Self::Item: Ord,
     {
         self.with_ref(|me| other.with_ref(|them| me.cmp(them)))
     }

@@ -181,10 +181,12 @@ pub fn fields_struct(
 
     let with_ref_impl = |item| {
         quote! {
-            impl<'a> ::soapy_shared::WithRef<#ident> for #item<'a> {
+            impl<'a> ::soapy_shared::WithRef for #item<'a> {
+                type Item = #ident;
+
                 fn with_ref<F, R>(&self, f: F) -> R
                 where
-                    F: FnOnce(&#ident) -> R,
+                    F: FnOnce(&Self::Item) -> R,
                 {
                     let t = ::std::mem::ManuallyDrop::new(#ident {
                         #(#ident_all: unsafe { (self.#ident_all as *const #ty_all).read() },)*
