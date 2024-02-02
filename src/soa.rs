@@ -1,11 +1,11 @@
-use crate::{index::SoaIndex, IntoIter, Iter, IterMut};
+use crate::{slice::Slice, IntoIter, Iter, IterMut};
 use soapy_shared::{RawSoa, Soapy};
 use std::{
     cmp::Ordering,
     fmt::{self, Formatter},
     marker::PhantomData,
     mem::{size_of, ManuallyDrop},
-    ops::{ControlFlow, Deref},
+    ops::{ControlFlow, Deref, DerefMut},
 };
 
 /// A growable array type that stores the values for each field of `T`
@@ -14,9 +14,8 @@ pub struct Soa<T>
 where
     T: Soapy,
 {
-    pub(crate) len: usize,
     pub(crate) cap: usize,
-    pub(crate) raw: T::RawSoa,
+    pub(crate) slice: Slice<T>,
 }
 
 unsafe impl<T> Send for Soa<T> where T: Send + Soapy {}
@@ -43,9 +42,8 @@ where
     /// ```
     pub fn new() -> Self {
         Self {
-            len: 0,
             cap: if size_of::<T>() == 0 { usize::MAX } else { 0 },
-            raw: T::RawSoa::dangling(),
+            slice: Slice::empty(),
         }
     }
 
@@ -93,52 +91,17 @@ where
             capacity => {
                 if size_of::<T>() == 0 {
                     Self {
-                        len: 0,
                         cap: usize::MAX,
-                        raw: T::RawSoa::dangling(),
+                        slice: Slice::empty(),
                     }
                 } else {
                     Self {
-                        len: 0,
                         cap: capacity,
-                        raw: unsafe { T::RawSoa::alloc(capacity) },
+                        slice: unsafe { Slice::from_raw_parts(T::RawSoa::alloc(capacity), 0) },
                     }
                 }
             }
         }
-    }
-
-    /// Returns the number of elements in the vector, also referred to as its
-    /// length.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// # use soapy::{Soa, Soapy, soa};
-    /// # #[derive(Soapy)]
-    /// # struct Foo(usize);
-    /// let soa = soa![Foo(1), Foo(2), Foo(3)];
-    /// assert_eq!(soa.len(), 3);
-    /// ```
-    pub fn len(&self) -> usize {
-        self.len
-    }
-
-    /// Returns true if the container contains no elements.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// # use soapy::{Soa, Soapy};
-    /// # #[derive(Soapy)]
-    /// # struct Foo(usize);
-    /// let mut soa = Soa::<Foo>::new();
-    /// assert!(soa.is_empty());
-    /// soa.push(Foo(1));
-    /// assert!(!soa.is_empty());
-    /// ```
-    pub fn is_empty(&self) -> bool {
-        self.len == 0
     }
 
     /// Returns the total number of elements the container can hold without
@@ -183,9 +146,9 @@ where
     /// let rebuilt = unsafe { Soa::from_raw_parts(ptr, len, cap) };
     /// assert_eq!(rebuilt, [Foo(1), Foo(2)]);
     /// ```
-    pub fn into_raw_parts(self) -> (*mut u8, usize, usize) {
+    pub fn into_raw_parts(self) -> (T::RawSoa, usize, usize) {
         let me = ManuallyDrop::new(self);
-        (me.raw.as_ptr(), me.len, me.cap)
+        (me.slice.raw, me.slice.len, me.cap)
     }
 
     /// Creates a `Soa<T>` from a pointer, a length, and a capacity.
@@ -197,11 +160,10 @@ where
     /// details of [`RawSoa`], it is better not to uphold them manually. Rather,
     /// it only valid to call this method with the output of a previous call to
     /// [`Soa::into_raw_parts`].
-    pub unsafe fn from_raw_parts(ptr: *mut u8, length: usize, capacity: usize) -> Self {
+    pub unsafe fn from_raw_parts(raw: T::RawSoa, length: usize, capacity: usize) -> Self {
         Self {
-            len: length,
             cap: capacity,
-            raw: T::RawSoa::from_parts(ptr, capacity),
+            slice: unsafe { Slice::from_raw_parts(raw, length) },
         }
     }
 
@@ -220,9 +182,9 @@ where
     pub fn push(&mut self, element: T) {
         self.maybe_grow();
         unsafe {
-            self.raw.set(self.len, element);
+            self.slice.raw.set(self.slice.len, element);
         }
-        self.len += 1;
+        self.slice.len += 1;
     }
 
     /// Removes the last element from a vector and returns it, or [`None`] if it
@@ -239,11 +201,11 @@ where
     /// assert_eq!(soa, [Foo(1), Foo(2)]);
     /// ```
     pub fn pop(&mut self) -> Option<T> {
-        if self.len == 0 {
+        if self.slice.len == 0 {
             None
         } else {
-            self.len -= 1;
-            Some(unsafe { self.raw.get(self.len) })
+            self.slice.len -= 1;
+            Some(unsafe { self.slice.raw.get(self.slice.len) })
         }
     }
 
@@ -267,13 +229,15 @@ where
     /// assert_eq!(soa, [Foo(1), Foo(4), Foo(2), Foo(3), Foo(5)]);
     /// ```
     pub fn insert(&mut self, index: usize, element: T) {
-        assert!(index <= self.len, "index out of bounds");
+        assert!(index <= self.slice.len, "index out of bounds");
         self.maybe_grow();
         unsafe {
-            self.raw.copy(index, index + 1, self.len - index);
-            self.raw.set(index, element);
+            self.slice
+                .raw
+                .copy(index, index + 1, self.slice.len - index);
+            self.slice.raw.set(index, element);
         }
-        self.len += 1;
+        self.slice.len += 1;
     }
 
     /// Removes and returns the element at position index within the vector,
@@ -290,11 +254,13 @@ where
     /// assert_eq!(soa, [Foo(1), Foo(3)])
     /// ```
     pub fn remove(&mut self, index: usize) -> T {
-        assert!(index < self.len, "index out of bounds");
-        self.len -= 1;
-        let out = unsafe { self.raw.get(index) };
+        assert!(index < self.slice.len, "index out of bounds");
+        self.slice.len -= 1;
+        let out = unsafe { self.slice.raw.get(index) };
         unsafe {
-            self.raw.copy(index + 1, index, self.len - index);
+            self.slice
+                .raw
+                .copy(index + 1, index, self.slice.len - index);
         }
         out
     }
@@ -319,7 +285,7 @@ where
         if additional == 0 {
             return;
         }
-        let new_cap = (self.len + additional)
+        let new_cap = (self.slice.len + additional)
             // Ensure exponential growth
             .max(self.cap * 2)
             .max(Self::SMALL_CAPACITY);
@@ -347,7 +313,7 @@ where
         if additional == 0 {
             return;
         }
-        let new_cap = (additional + self.len).max(self.cap);
+        let new_cap = (additional + self.slice.len).max(self.cap);
         self.grow(new_cap);
     }
 
@@ -366,7 +332,7 @@ where
     /// assert_eq!(soa.capacity(), 3);
     /// ```
     pub fn shrink_to_fit(&mut self) {
-        self.shrink(self.len);
+        self.shrink(self.slice.len);
     }
 
     /// Shrinks the capacity of the vector with a lower bound.
@@ -389,7 +355,7 @@ where
     /// soa.shrink_to(0);
     /// assert_eq!(soa.capacity(), 3);
     pub fn shrink_to(&mut self, min_capacity: usize) {
-        let new_cap = self.len.max(min_capacity);
+        let new_cap = self.slice.len.max(min_capacity);
         if new_cap < self.cap {
             self.shrink(new_cap);
         }
@@ -434,7 +400,7 @@ where
     /// assert_eq!(soa, []);
     /// ```
     pub fn truncate(&mut self, len: usize) {
-        while len < self.len {
+        while len < self.slice.len {
             self.pop();
         }
     }
@@ -464,12 +430,12 @@ where
     /// assert_eq!(soa, [Foo(2), Foo(3)])
     /// ```
     pub fn swap_remove(&mut self, index: usize) -> T {
-        let out = unsafe { self.raw.get(index) };
-        let last = unsafe { self.raw.get(self.len - 1) };
+        let out = unsafe { self.slice.raw.get(index) };
+        let last = unsafe { self.slice.raw.get(self.slice.len - 1) };
         unsafe {
-            self.raw.set(index, last);
+            self.slice.raw.set(index, last);
         }
-        self.len -= 1;
+        self.slice.len -= 1;
         out
     }
 
@@ -488,11 +454,11 @@ where
     /// assert_eq!(soa2, []);
     /// ```
     pub fn append(&mut self, other: &mut Self) {
-        for i in 0..other.len {
-            let element = unsafe { other.raw.get(i) };
+        for i in 0..other.slice.len {
+            let element = unsafe { other.slice.raw.get(i) };
             self.push(element);
         }
-        other.len = 0;
+        other.slice.len = 0;
     }
 
     /// Returns an iterator over the elements.
@@ -525,9 +491,9 @@ where
     /// ```
     pub fn iter(&self) -> Iter<T> {
         Iter {
-            raw: self.raw,
+            raw: self.slice.raw,
             start: 0,
-            end: self.len,
+            end: self.slice.len,
             _marker: PhantomData,
         }
     }
@@ -551,9 +517,9 @@ where
     /// ```
     pub fn iter_mut(&mut self) -> IterMut<T> {
         IterMut {
-            raw: self.raw,
+            raw: self.slice.raw,
             start: 0,
-            end: self.len,
+            end: self.slice.len,
             _marker: PhantomData,
         }
     }
@@ -622,11 +588,11 @@ where
         F: FnMut(B, &T) -> ControlFlow<B, B>,
     {
         let mut acc = init;
-        for i in 0..self.len {
+        for i in 0..self.slice.len {
             // SAFETY:
             // Okay to construct an element and take its reference, so long as
             // we don't run its destructor.
-            let element = ManuallyDrop::new(unsafe { self.raw.get(i) });
+            let element = ManuallyDrop::new(unsafe { self.slice.raw.get(i) });
             let result = f(acc, &element);
             match result {
                 ControlFlow::Continue(b) => acc = b,
@@ -688,13 +654,13 @@ where
         F: FnMut(B, &T, &T) -> ControlFlow<B, B>,
     {
         let mut acc = init;
-        let len = self.len.min(other.len);
+        let len = self.slice.len.min(other.slice.len);
         for i in 0..len {
             // SAFETY:
             // Okay to construct an element and take its reference, so long as
             // we don't run its destructor.
-            let a = ManuallyDrop::new(unsafe { self.raw.get(i) });
-            let b = ManuallyDrop::new(unsafe { other.raw.get(i) });
+            let a = ManuallyDrop::new(unsafe { self.slice.raw.get(i) });
+            let b = ManuallyDrop::new(unsafe { other.slice.raw.get(i) });
             let result = f(acc, &a, &b);
             match result {
                 ControlFlow::Continue(b) => acc = b,
@@ -769,298 +735,9 @@ where
         while self.pop().is_some() {}
     }
 
-    /// Returns a reference to an element or subslice depending on the type of
-    /// index.
-    ///
-    /// - If given a position, returns a reference to the element at that
-    /// position or None if out of bounds.
-    ///
-    /// - If given a range, returns the subslice corresponding to that range, or
-    /// None if out of bounds.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// # use std::fmt;
-    /// # use soapy::{Soa, Soapy, soa, WithRef};
-    /// # #[derive(Soapy, Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
-    /// # struct Foo(usize);
-    /// # impl<'a> fmt::Debug for FooSoaRef<'a> {
-    /// #     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-    /// #         self.with_ref(|me| me.fmt(f))
-    /// #     }
-    /// # }
-    /// # impl<'a> PartialEq for FooSoaRef<'a> {
-    /// #     fn eq(&self, other: &FooSoaRef) -> bool {
-    /// #         self.with_ref(|me| other.with_ref(|other| me == other))
-    /// #     }
-    /// # }
-    /// # impl<'a> fmt::Debug for FooSoaSlices<'a> {
-    /// #     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-    /// #         f.debug_struct("FooSoaSlices").field("0", &self.0).finish()
-    /// #     }
-    /// # }
-    /// # impl<'a> PartialEq for FooSoaSlices<'a> {
-    /// #     fn eq(&self, other: &Self) -> bool {
-    /// #         self.0 == other.0
-    /// #     }
-    /// # }
-    /// let soa = soa![Foo(10), Foo(40), Foo(30)];
-    /// assert_eq!(soa.get(1), Some(FooSoaRef(&40)));
-    /// assert_eq!(soa.get(1..3), Some(FooSoaSlices(&[40, 30][..])));
-    /// assert_eq!(soa.get(3), None);
-    /// assert_eq!(soa.get(..4), None);
-    /// ```
-    pub fn get<I>(&self, index: I) -> Option<I::Output<'_>>
-    where
-        I: SoaIndex<T>,
-    {
-        index.get(self)
-    }
-
-    /// Returns a mutable reference to an element or subslice depending on the
-    /// type of index (see [`get`]) or `None` if the index is out of bounds.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// # use soapy::{Soa, Soapy, soa};
-    /// # #[derive(Soapy, Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
-    /// # struct Foo(usize);
-    /// let mut soa = soa![Foo(1), Foo(2), Foo(3)];
-    /// if let Some(elem) = soa.get_mut(1) {
-    ///     *elem.0 = 42;
-    /// }
-    /// assert_eq!(soa, [Foo(1), Foo(42), Foo(3)]);
-    /// ```
-    ///
-    /// [`get`]: Soa::get
-    pub fn get_mut<I>(&mut self, index: I) -> Option<I::OutputMut<'_>>
-    where
-        I: SoaIndex<T>,
-    {
-        index.get_mut(self)
-    }
-
-    /// Returns a clone of the element at the given index.
-    ///
-    /// This is equivalent to [`index`] followed by a [`clone`]. Prefer
-    /// [`nth_copied`] for types that support it.
-    ///
-    /// # Panics
-    ///
-    /// Panics if `index >= len`.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// # use std::fmt;
-    /// # use soapy::{Soa, Soapy, soa, WithRef};
-    /// # #[derive(Soapy, Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
-    /// # struct Foo(usize);
-    /// let soa = soa![Foo(10), Foo(40), Foo(30), Foo(90)];
-    /// assert_eq!(soa.nth_cloned(1), Foo(40));
-    /// assert_eq!(soa.nth_cloned(3), Foo(90));
-    /// ```
-    ///
-    /// [`index`]: std::ops::Index::index
-    /// [`clone`]: std::clone::Clone::clone
-    /// [`nth_copied`]: Soa::nth_copied
-    pub fn nth_cloned(&self, index: usize) -> T
-    where
-        T: Clone,
-    {
-        if index >= self.len {
-            panic!("index out of bounds");
-        }
-        let el = ManuallyDrop::new(unsafe { self.raw.get(index) });
-        el.deref().clone()
-    }
-
-    /// Returns a copy of the element at the given index.
-    ///
-    /// This is equivalent to [`index`] except that it returns a copy rather
-    /// than a reference. Prefer this over [`nth_cloned`] for types that support
-    /// it.
-    ///
-    /// # Panics
-    ///
-    /// Panics if `index >= len`.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// # use std::fmt;
-    /// # use soapy::{Soa, Soapy, soa, WithRef};
-    /// # #[derive(Soapy, Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
-    /// # struct Foo(usize);
-    /// let soa = soa![Foo(10), Foo(40), Foo(30), Foo(90)];
-    /// assert_eq!(soa.nth_copied(1), Foo(40));
-    /// assert_eq!(soa.nth_copied(3), Foo(90));
-    /// ```
-    ///
-    /// [`index`]: std::ops::Index::index
-    /// [`nth_cloned`]: Soa::nth_cloned
-    pub fn nth_copied(&self, index: usize) -> T
-    where
-        T: Copy,
-    {
-        if index >= self.len {
-            panic!("index out of bounds");
-        }
-        unsafe { self.raw.get(index) }
-    }
-
-    /// Returns a reference to the element at the given index.
-    ///
-    /// This is functionally equivalent to [`Index`], which is not implementable
-    /// for this type.
-    ///
-    /// # Panics
-    ///
-    /// Panics if `index >= len`.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// # use std::fmt;
-    /// # use soapy::{Soa, Soapy, soa, WithRef};
-    /// # #[derive(Soapy, Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
-    /// # struct Foo(usize);
-    /// # impl<'a> fmt::Debug for FooSoaRef<'a> {
-    /// #     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-    /// #         self.with_ref(|me| me.fmt(f))
-    /// #     }
-    /// # }
-    /// # impl<'a> PartialEq for FooSoaRef<'a> {
-    /// #     fn eq(&self, other: &FooSoaRef) -> bool {
-    /// #         self.with_ref(|me| other.with_ref(|other| me == other))
-    /// #     }
-    /// # }
-    /// let soa = soa![Foo(10), Foo(40), Foo(30), Foo(90)];
-    /// assert_eq!(soa.nth(1), FooSoaRef(&40));
-    /// assert_eq!(soa.nth(3), FooSoaRef(&90));
-    /// ```
-    ///
-    /// [`Index`]: std::ops::Index
-    pub fn nth(&self, index: usize) -> T::Ref<'_> {
-        if index >= self.len {
-            panic!("index out of bounds");
-        }
-        unsafe { self.raw.get_ref(index) }
-    }
-
-    /// Returns a mutable reference to the element at the given index.
-    ///
-    /// This is functionally equivalent to [`IndexMut`], which is not
-    /// implementable for this type.
-    ///
-    /// # Panics
-    ///
-    /// Panics if `index >= len`.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// # use std::fmt;
-    /// # use soapy::{Soa, Soapy, soa, WithRef};
-    /// # #[derive(Soapy, Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
-    /// # struct Foo(usize);
-    /// # impl<'a> fmt::Debug for FooSoaRef<'a> {
-    /// #     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-    /// #         self.with_ref(|me| me.fmt(f))
-    /// #     }
-    /// # }
-    /// # impl<'a> PartialEq for FooSoaRef<'a> {
-    /// #     fn eq(&self, other: &FooSoaRef) -> bool {
-    /// #         self.with_ref(|me| other.with_ref(|other| me == other))
-    /// #     }
-    /// # }
-    /// let mut soa = soa![Foo(10), Foo(20), Foo(30)];
-    /// *soa.nth_mut(1).0 = 42;
-    /// assert_eq!(soa, [Foo(10), Foo(42), Foo(30)]);
-    /// ```
-    ///
-    /// [`IndexMut`]: std::ops::Index
-    pub fn nth_mut(&mut self, index: usize) -> T::RefMut<'_> {
-        if index >= self.len {
-            panic!("index out of bounds");
-        }
-        unsafe { self.raw.get_mut(index) }
-    }
-
-    /// Returns slices for each of the SoA fields.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// # use soapy::{Soa, Soapy, soa};
-    /// #[derive(Soapy, Debug, Clone)]
-    /// struct Foo(usize, String);
-    /// let soa = soa![Foo(10, "Howdy".into()), Foo(20, "fren".into())];
-    /// assert_eq!(soa.slices().0, [10, 20]);
-    /// assert_eq!(soa.slices().1, ["Howdy", "fren"]);
-    /// ```
-    pub fn slices(&self) -> T::Slices<'_> {
-        unsafe { self.raw.slices(0, self.len) }
-    }
-
-    /// Returns mutable slices for each of the SoA fields.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// # use soapy::{Soa, Soapy, soa};
-    /// #[derive(Soapy, Debug, Clone, PartialEq)]
-    /// struct Foo(usize, String);
-    /// let mut soa = soa![Foo(10, "Howdy".into()), Foo(20, "fren".into())];
-    /// let mut slices = soa.slices_mut();
-    /// slices.0[0] += 5;
-    /// for s in slices.1.iter_mut() {
-    ///     *s = s.chars().flat_map(|c| c.to_uppercase()).collect();
-    /// }
-    /// assert_eq!(soa, [Foo(15, "HOWDY".into()), Foo(20, "FREN".into())]);
-    /// ```
-    pub fn slices_mut(&mut self) -> T::SlicesMut<'_> {
-        unsafe { self.raw.slices_mut(0, self.len) }
-    }
-
-    /// Swaps the position of two elements.
-    ///
-    /// # Arguments
-    ///
-    /// - `a`: The index of the first element
-    /// - `b`: The index of the second element
-    ///
-    /// # Panics
-    ///
-    /// Panics if `a` or `b` is out of bounds.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// # use soapy::{Soa, Soapy, soa};
-    /// # #[derive(Soapy, Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
-    /// # struct Foo(usize);
-    /// let mut soa = soa![Foo(0), Foo(1), Foo(2), Foo(3), Foo(4)];
-    /// soa.swap(2, 4);
-    /// assert_eq!(soa, [Foo(0), Foo(1), Foo(4), Foo(3), Foo(2)]);
-    /// ```
-    pub fn swap(&mut self, a: usize, b: usize) {
-        if a >= self.len || b >= self.len {
-            panic!("index out of bounds");
-        }
-
-        unsafe {
-            let tmp = self.raw.get(a);
-            self.raw.copy(b, a, 1);
-            self.raw.set(b, tmp);
-        }
-    }
-
     /// Grows the allocated capacity if `len == cap`.
     fn maybe_grow(&mut self) {
-        if self.len < self.cap {
+        if self.slice.len < self.cap {
             return;
         }
         let new_cap = match self.cap {
@@ -1080,14 +757,16 @@ where
         if new_cap == 0 {
             debug_assert!(self.cap > 0);
             unsafe {
-                self.raw.dealloc(self.cap);
+                self.slice.dealloc(self.cap);
             }
-            self.raw = T::RawSoa::dangling();
+            self.slice.raw = T::RawSoa::dangling();
         } else {
             debug_assert!(new_cap < self.cap);
-            debug_assert!(self.len <= new_cap);
+            debug_assert!(self.slice.len <= new_cap);
             unsafe {
-                self.raw.realloc_shrink(self.cap, new_cap, self.len);
+                self.slice
+                    .raw
+                    .realloc_shrink(self.cap, new_cap, self.slice.len);
             }
         }
 
@@ -1101,11 +780,13 @@ where
 
         if self.cap == 0 {
             debug_assert!(new_cap > 0);
-            self.raw = unsafe { T::RawSoa::alloc(new_cap) };
+            self.slice.raw = unsafe { T::RawSoa::alloc(new_cap) };
         } else {
-            debug_assert!(self.len <= self.cap);
+            debug_assert!(self.slice.len <= self.cap);
             unsafe {
-                self.raw.realloc_grow(self.cap, new_cap, self.len);
+                self.slice
+                    .raw
+                    .realloc_grow(self.cap, new_cap, self.slice.len);
             }
         }
 
@@ -1121,7 +802,7 @@ where
         while self.pop().is_some() {}
         if size_of::<T>() > 0 && self.cap > 0 {
             unsafe {
-                self.raw.dealloc(self.cap);
+                self.slice.dealloc(self.cap);
             }
         }
     }
@@ -1139,8 +820,8 @@ where
         let soa = ManuallyDrop::new(self);
         IntoIter {
             start: 0,
-            end: soa.len,
-            raw: soa.raw,
+            end: soa.slice.len,
+            raw: soa.slice.raw,
             cap: soa.cap,
         }
     }
@@ -1151,7 +832,7 @@ where
     T: Soapy + Clone,
 {
     fn clone(&self) -> Self {
-        let mut out = Self::with_capacity(self.len());
+        let mut out = Self::with_capacity(self.slice.len);
         self.for_each(|el| {
             out.push(el.clone());
         });
@@ -1160,8 +841,8 @@ where
 
     fn clone_from(&mut self, source: &Self) {
         self.clear();
-        if self.cap < source.len {
-            self.reserve(source.len);
+        if self.cap < source.slice.len {
+            self.reserve(source.slice.len);
         }
         source.for_each(|el| {
             self.push(el.clone());
@@ -1251,17 +932,7 @@ where
     T: Soapy + PartialEq,
 {
     fn eq(&self, other: &Self) -> bool {
-        if self.len != other.len {
-            return false;
-        }
-
-        self.try_fold_zip(other, true, |_, a, b| {
-            if a == b {
-                ControlFlow::Continue(true)
-            } else {
-                ControlFlow::Break(false)
-            }
-        })
+        self.deref().eq(other.deref())
     }
 }
 
@@ -1271,23 +942,7 @@ where
     R: AsRef<[T]>,
 {
     fn eq(&self, other: &R) -> bool {
-        let other = other.as_ref();
-        if self.len() != other.len() {
-            return false;
-        }
-
-        let mut iter = other.into_iter();
-        self.try_fold(true, |_, a| {
-            let b = iter.next();
-            // SAFETY:
-            // We already checked that the lengths are the same
-            let b = unsafe { b.unwrap_unchecked() };
-            if a == b {
-                ControlFlow::Continue(true)
-            } else {
-                ControlFlow::Break(false)
-            }
-        })
+        self.deref().eq(other)
     }
 }
 
@@ -1298,11 +953,7 @@ where
     T: Soapy + fmt::Debug,
 {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        let mut list = f.debug_list();
-        self.for_each(|item| {
-            list.entry(&item);
-        });
-        list.finish()
+        self.deref().fmt(f)
     }
 }
 
@@ -1311,12 +962,7 @@ where
     T: Soapy + PartialOrd,
 {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        self.try_fold_zip(other, Some(Ordering::Equal), |_, a, b| {
-            match a.partial_cmp(b) {
-                ord @ (None | Some(Ordering::Less | Ordering::Greater)) => ControlFlow::Break(ord),
-                Some(Ordering::Equal) => ControlFlow::Continue(Some(self.len.cmp(&other.len))),
-            }
-        })
+        self.deref().partial_cmp(other)
     }
 }
 
@@ -1325,10 +971,7 @@ where
     T: Soapy + Ord,
 {
     fn cmp(&self, other: &Self) -> Ordering {
-        self.try_fold_zip(other, Ordering::Equal, |_, a, b| match a.cmp(b) {
-            ord @ (Ordering::Greater | Ordering::Less) => ControlFlow::Break(ord),
-            Ordering::Equal => ControlFlow::Continue(self.len.cmp(&other.len)),
-        })
+        self.deref().cmp(other)
     }
 }
 
@@ -1341,13 +984,12 @@ where
     }
 }
 
-impl<T> std::hash::Hash for Soa<T>
+impl<T> AsRef<Slice<T>> for Soa<T>
 where
-    T: Soapy + std::hash::Hash,
+    T: Soapy,
 {
-    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
-        self.len.hash(state);
-        self.for_each(|item| item.hash(state));
+    fn as_ref(&self) -> &Slice<T> {
+        &self.slice
     }
 }
 
@@ -1355,9 +997,18 @@ impl<T> Deref for Soa<T>
 where
     T: Soapy,
 {
-    type Target = T::RawSoa;
+    type Target = Slice<T>;
 
     fn deref(&self) -> &Self::Target {
-        &self.raw
+        &self.slice
+    }
+}
+
+impl<T> DerefMut for Soa<T>
+where
+    T: Soapy,
+{
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.slice
     }
 }

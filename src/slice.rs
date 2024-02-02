@@ -3,99 +3,48 @@ use soapy_shared::{RawSoa, Soapy};
 use std::{
     cmp::Ordering,
     fmt::{self, Formatter},
+    hash::{Hash, Hasher},
     marker::PhantomData,
     mem::ManuallyDrop,
-    ops::{ControlFlow, Deref},
+    ops::{ControlFlow, Deref, DerefMut},
 };
-
-// TODO: Replace references to soa to slice
 
 /// A growable array type that stores the values for each field of `T`
 /// contiguously.
-pub struct Slice<T, D = ()>
+pub struct Slice<T>
 where
     T: Soapy,
 {
     pub(crate) len: usize,
     pub(crate) raw: T::RawSoa,
-    _deref: PhantomData<D>,
 }
 
-unsafe impl<T, D> Send for Slice<T, D> where T: Send + Soapy {}
-unsafe impl<T, D> Sync for Slice<T, D> where T: Sync + Soapy {}
-
-/// Creates a `Soa<T>` from a pointer, a length, and a capacity.
-///
-/// # Safety
-///
-/// This is highly unsafe due to the number of invariants that aren't
-/// checked. Given that many of these invariants are private implementation
-/// details of [`RawSoa`], it is better not to uphold them manually. Rather,
-/// it only valid to call this method with the output of a previous call to
-/// [`Soa::into_raw_parts`].
-pub unsafe fn from_raw_parts<T, D>(ptr: *mut u8, length: usize, capacity: usize) -> Slice<T, D>
-where
-    T: Soapy,
-{
-    Slice {
-        len: length,
-        raw: T::RawSoa::from_parts(ptr, capacity),
-        _deref: PhantomData,
-    }
-}
+unsafe impl<T> Send for Slice<T> where T: Send + Soapy {}
+unsafe impl<T> Sync for Slice<T> where T: Sync + Soapy {}
 
 impl<T> Slice<T>
 where
     T: Soapy,
 {
-    /// Enables the [`Deref`] implementation for this container.
+    /// Constructs a new, empty `Soa<T>`.
     ///
-    /// This should be called after Rust has inferred the generic parameter `T`.
-    /// Manually enabling dereferencing is necessary because the
-    /// [`Deref::Target`] is an associated type, rather than a concrete type.
-    /// Because of this, Rust has a difficult time inferring the generic
-    /// parameters.
-    pub fn with_deref(self) -> Slice<T, DerefEnable<T::RawSoa>> {
-        let me = ManuallyDrop::new(self);
-        Slice {
-            len: me.len,
-            raw: me.raw,
-            // Can't transmute because Rust thinks the size could change based on D
-            _deref: PhantomData,
-        }
-    }
-}
-
-impl<T, D> Slice<T, D>
-where
-    T: Soapy,
-{
-    pub(crate) fn new(raw: T::RawSoa, length: usize) -> Self {
-        Self {
-            raw,
-            len: length,
-            _deref: PhantomData,
-        }
-    }
-
-    /// Constructs a new, empty [`Slice`].
+    /// The container will not allocate until elements are pushed onto it.
     ///
     /// # Examples
     /// ```
     /// # use soapy::{Soa, Soapy};
     /// # #[derive(Soapy)]
     /// # struct Foo;
-    /// let mut soa: Soa<Foo> = Soa::new();
+    /// let mut soa = Soa::<Foo>::new();
     /// ```
     pub fn empty() -> Self {
         Self {
             len: 0,
             raw: T::RawSoa::dangling(),
-            _deref: PhantomData,
         }
     }
 
-    /// Returns the number of elements in the container, also referred to as its
+    /// Returns the number of elements in the vector, also referred to as its
     /// length.
     ///
     /// # Examples
@@ -119,13 +68,53 @@ where
     /// # use soapy::{Soa, Soapy};
     /// # #[derive(Soapy)]
     /// # struct Foo(usize);
-    /// let mut soa = Soa::new();
+    /// let mut soa = Soa::<Foo>::new();
     /// assert!(soa.is_empty());
     /// soa.push(Foo(1));
     /// assert!(!soa.is_empty());
     /// ```
     pub fn is_empty(&self) -> bool {
         self.len == 0
+    }
+
+    /// Decomposes a `Soa<T>` into its raw components.
+    ///
+    /// Returns the raw pointer to the underlying data, the length of the vector (in
+    /// elements), and the allocated capacity of the data (in elements). These
+    /// are the same arguments in the same order as the arguments to
+    /// [`Soa::from_raw_parts`].
+    ///
+    /// After calling this function, the caller is responsible for the memory
+    /// previously managed by the `Soa`. The only way to do this is to convert the
+    /// raw pointer, length, and capacity back into a Vec with the
+    /// [`Soa::from_raw_parts`] function, allowing the destructor to perform the cleanup.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use soapy::{Soa, Soapy, soa};
+    /// # #[derive(Soapy, Debug, PartialEq)]
+    /// # struct Foo(usize);
+    /// let soa = soa![Foo(1), Foo(2)];
+    /// let (ptr, len, cap) = soa.into_raw_parts();
+    /// let rebuilt = unsafe { Soa::from_raw_parts(ptr, len, cap) };
+    /// assert_eq!(rebuilt, [Foo(1), Foo(2)]);
+    /// ```
+    pub fn into_raw_parts(self) -> (T::RawSoa, usize) {
+        (self.raw, self.len)
+    }
+
+    /// Creates a `Soa<T>` from a pointer, a length, and a capacity.
+    ///
+    /// # Safety
+    ///
+    /// This is highly unsafe due to the number of invariants that aren't
+    /// checked. Given that many of these invariants are private implementation
+    /// details of [`RawSoa`], it is better not to uphold them manually. Rather,
+    /// it only valid to call this method with the output of a previous call to
+    /// [`Soa::into_raw_parts`].
+    pub unsafe fn from_raw_parts(raw: T::RawSoa, length: usize) -> Self {
+        Self { len: length, raw }
     }
 
     /// Returns an iterator over the elements.
@@ -603,6 +592,42 @@ where
         unsafe { self.raw.get_mut(index) }
     }
 
+    /// Returns slices for each of the SoA fields.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use soapy::{Soa, Soapy, soa};
+    /// #[derive(Soapy, Debug, Clone)]
+    /// struct Foo(usize, String);
+    /// let soa = soa![Foo(10, "Howdy".into()), Foo(20, "fren".into())];
+    /// assert_eq!(soa.slices().0, [10, 20]);
+    /// assert_eq!(soa.slices().1, ["Howdy", "fren"]);
+    /// ```
+    pub fn slices(&self) -> T::Slices<'_> {
+        unsafe { self.raw.slices(0, self.len) }
+    }
+
+    /// Returns mutable slices for each of the SoA fields.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use soapy::{Soa, Soapy, soa};
+    /// #[derive(Soapy, Debug, Clone, PartialEq)]
+    /// struct Foo(usize, String);
+    /// let mut soa = soa![Foo(10, "Howdy".into()), Foo(20, "fren".into())];
+    /// let mut slices = soa.slices_mut();
+    /// slices.0[0] += 5;
+    /// for s in slices.1.iter_mut() {
+    ///     *s = s.chars().flat_map(|c| c.to_uppercase()).collect();
+    /// }
+    /// assert_eq!(soa, [Foo(15, "HOWDY".into()), Foo(20, "FREN".into())]);
+    /// ```
+    pub fn slices_mut(&mut self) -> T::SlicesMut<'_> {
+        unsafe { self.raw.slices_mut(0, self.len) }
+    }
+
     /// Swaps the position of two elements.
     ///
     /// # Arguments
@@ -637,7 +662,7 @@ where
     }
 }
 
-impl<'a, T, D> IntoIterator for &'a Slice<T, D>
+impl<'a, T> IntoIterator for &'a Slice<T>
 where
     T: Soapy,
 {
@@ -649,12 +674,12 @@ where
             start: 0,
             end: self.len,
             raw: self.raw,
-            _marker: PhantomData::<&T>,
+            _marker: PhantomData,
         }
     }
 }
 
-impl<'a, T, D> IntoIterator for &'a mut Slice<T, D>
+impl<'a, T> IntoIterator for &'a mut Slice<T>
 where
     T: Soapy,
 {
@@ -666,12 +691,12 @@ where
             start: 0,
             end: self.len,
             raw: self.raw,
-            _marker: PhantomData::<&mut T>,
+            _marker: PhantomData,
         }
     }
 }
 
-impl<T, D> PartialEq for Slice<T, D>
+impl<T> PartialEq for Slice<T>
 where
     T: Soapy + PartialEq,
 {
@@ -690,7 +715,7 @@ where
     }
 }
 
-impl<T, D, R> PartialEq<R> for Slice<T, D>
+impl<T, R> PartialEq<R> for Slice<T>
 where
     T: Soapy + PartialEq,
     R: AsRef<[T]>,
@@ -716,9 +741,9 @@ where
     }
 }
 
-impl<T, D> Eq for Slice<T, D> where T: Soapy + Eq {}
+impl<T> Eq for Slice<T> where T: Soapy + Eq {}
 
-impl<T, D> fmt::Debug for Slice<T, D>
+impl<T> fmt::Debug for Slice<T>
 where
     T: Soapy + fmt::Debug,
 {
@@ -731,7 +756,7 @@ where
     }
 }
 
-impl<T, D> PartialOrd for Slice<T, D>
+impl<T> PartialOrd for Slice<T>
 where
     T: Soapy + PartialOrd,
 {
@@ -745,7 +770,7 @@ where
     }
 }
 
-impl<T, D> Ord for Slice<T, D>
+impl<T> Ord for Slice<T>
 where
     T: Soapy + Ord,
 {
@@ -766,19 +791,17 @@ where
     }
 }
 
-impl<T, D> std::hash::Hash for Slice<T, D>
+impl<T> Hash for Slice<T>
 where
-    T: Soapy + std::hash::Hash,
+    T: Soapy + Hash,
 {
-    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+    fn hash<H: Hasher>(&self, state: &mut H) {
         self.len.hash(state);
         self.for_each(|item| item.hash(state));
     }
 }
 
-pub struct DerefEnable<T>(PhantomData<T>);
-
-impl<T> Deref for Slice<T, DerefEnable<T::RawSoa>>
+impl<T> Deref for Slice<T>
 where
     T: Soapy,
 {
@@ -786,5 +809,14 @@ where
 
     fn deref(&self) -> &Self::Target {
         &self.raw
+    }
+}
+
+impl<T> DerefMut for Slice<T>
+where
+    T: Soapy,
+{
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.raw
     }
 }

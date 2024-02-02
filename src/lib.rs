@@ -85,6 +85,7 @@ mod index;
 mod into_iter;
 mod iter;
 mod iter_mut;
+mod slice;
 mod soa;
 
 pub use into_iter::IntoIter;
@@ -125,6 +126,7 @@ macro_rules! soa {
     };
 
     ($($e:expr),*) => {
+        // TODO: Downside, does this array have to be constructed on the stack?
         [$($e),*].into_iter().collect::<$crate::Soa<_>>()
     };
 
