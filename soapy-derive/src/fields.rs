@@ -37,6 +37,7 @@ pub fn fields_struct(
     let ty_tail: Vec<_> = ty_all.iter().skip(1).cloned().collect();
     let ident_tail: Vec<_> = ident_all.iter().skip(1).cloned().collect();
 
+    let slice = format_ident!("{ident}SoaSlice");
     let slices = format_ident!("{ident}SoaSlices");
     let slices_mut = format_ident!("{ident}SoaSlicesMut");
     let item_ref = format_ident!("{ident}SoaRef");
@@ -58,6 +59,36 @@ pub fn fields_struct(
         #[automatically_derived]
         #[derive(Copy, Clone)]
         #vis struct #raw #raw_body
+    });
+
+    let (slice_getters_ref, slice_getters_mut): (Vec<_>, Vec<_>) = ident_all
+        .iter()
+        .map(|ident| match ident {
+            FieldIdent::Named(named) => (named.clone(), format_ident!("{named}_mut")),
+            FieldIdent::Unnamed(unnamed) => {
+                (format_ident!("f{unnamed}"), format_ident!("f{unnamed}_mut"))
+            }
+        })
+        .unzip();
+
+    out.append_all(quote! {
+        #[automatically_derived]
+        #vis struct #slice {
+            raw: #raw,
+            len: usize,
+        }
+
+        impl #slice {
+            #(
+            #vis_all fn #slice_getters_ref(&self) -> &[#ty_all] {
+                unsafe { ::std::slice::from_raw_parts(self.raw.#ident_all.as_ptr(), self.len) }
+            }
+
+            #vis_all fn #slice_getters_mut(&mut self) -> &mut [#ty_all] {
+                unsafe { ::std::slice::from_raw_parts_mut(self.raw.#ident_all.as_ptr(), self.len) }
+            }
+            )*
+        }
     });
 
     let slices_def = match kind {
@@ -247,6 +278,7 @@ pub fn fields_struct(
         #[automatically_derived]
         impl ::soapy_shared::Soapy for #ident {
             type RawSoa = #raw;
+            type Slice = #slice;
             type Slices<'a> = #slices<'a> where Self: 'a;
             type SlicesMut<'a> = #slices_mut<'a> where Self: 'a;
             type Ref<'a> = #item_ref<'a> where Self: 'a;

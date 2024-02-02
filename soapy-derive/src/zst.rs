@@ -14,6 +14,7 @@ pub fn zst_struct(ident: Ident, vis: Visibility, kind: ZstKind) -> TokenStream {
         #[automatically_derived]
         impl ::soapy_shared::Soapy for #ident {
             type RawSoa = #raw;
+            type Slice = ();
             type Slices<'a> = ();
             type SlicesMut<'a> = ();
             type Ref<'a> = #ident;

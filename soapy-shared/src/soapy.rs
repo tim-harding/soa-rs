@@ -7,6 +7,8 @@ pub trait Soapy: Sized {
     /// Implements internal, unsafe, low-level routines used by `Soa`
     type RawSoa: RawSoa<Item = Self>;
 
+    type Slice;
+
     /// For each field with type `F` in `T`, `Slices` has a field with type
     /// `&[F]`
     type Slices<'a>
