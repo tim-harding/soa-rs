@@ -38,6 +38,7 @@ pub fn fields_struct(
     let ident_tail: Vec<_> = ident_all.iter().skip(1).cloned().collect();
 
     let slice = format_ident!("{ident}SoaSlice");
+    let deref = format_ident!("{ident}SoaDeref");
     let slices = format_ident!("{ident}SoaSlices");
     let slices_mut = format_ident!("{ident}SoaSlicesMut");
     let item_ref = format_ident!("{ident}SoaRef");
@@ -63,18 +64,6 @@ pub fn fields_struct(
             len: usize,
         }
 
-        impl #slice {
-            #(
-            #vis_all fn #slice_getters_ref(&self) -> &[#ty_all] {
-                unsafe { ::std::slice::from_raw_parts(self.raw.#ident_all.as_ptr(), self.len) }
-            }
-
-            #vis_all fn #slice_getters_mut(&mut self) -> &mut [#ty_all] {
-                unsafe { ::std::slice::from_raw_parts_mut(self.raw.#ident_all.as_ptr(), self.len) }
-            }
-            )*
-        }
-
         impl ::soapy_shared::Slice for #slice {
             type Raw = #raw;
 
@@ -96,6 +85,30 @@ pub fn fields_struct(
             fn raw(&self) -> Self::Raw {
                 self.raw
             }
+        }
+
+        #[automatically_derived]
+        #[repr(transparent)]
+        #vis struct #deref(#slice);
+
+        impl #deref {
+            #(
+            #vis_all fn #slice_getters_ref(&self) -> &[#ty_all] {
+                let ptr = self.0.raw.#ident_all.as_ptr();
+                let len = self.0.len;
+                unsafe {
+                    ::std::slice::from_raw_parts(ptr, len)
+                }
+            }
+
+            #vis_all fn #slice_getters_mut(&mut self) -> &mut [#ty_all] {
+                let ptr = self.0.raw.#ident_all.as_ptr();
+                let len = self.0.len;
+                unsafe {
+                    ::std::slice::from_raw_parts_mut(ptr, len)
+                }
+            }
+            )*
         }
     });
 
@@ -300,6 +313,7 @@ pub fn fields_struct(
         impl ::soapy_shared::Soapy for #ident {
             type RawSoa = #raw;
             type Slice = #slice;
+            type Deref = #deref;
             type Slices<'a> = #slices<'a> where Self: 'a;
             type SlicesMut<'a> = #slices_mut<'a> where Self: 'a;
             type Ref<'a> = #item_ref<'a> where Self: 'a;

@@ -8,6 +8,7 @@ pub trait Soapy: Sized {
     type RawSoa: RawSoa<Item = Self>;
 
     type Slice: Slice;
+    type Deref;
 
     /// For each field with type `F` in `T`, `Slices` has a field with type
     /// `&[F]`
