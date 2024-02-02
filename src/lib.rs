@@ -103,20 +103,20 @@ pub use soapy_shared::{Soapy, WithRef};
 /// # use soapy::{Soapy, soa};
 /// # #[derive(Soapy)]
 /// # struct Foo(u8, u16);
-/// let s = soa![Foo(1, 2), Foo(3, 4)];
-/// assert_eq!(s.slices().0, &[1, 3]);
-/// assert_eq!(s.slices().1, &[2, 4]);
+/// let soa = soa![Foo(1, 2), Foo(3, 4)];
+/// assert_eq!(soa.slices().0, &[1, 3]);
+/// assert_eq!(soa.slices().1, &[2, 4]);
 /// ```
 ///
 /// - Create a [`Soa`] from a given element and size:
 ///
 /// ```
 /// # use soapy::{Soapy, soa};
-/// # #[derive(Soapy)]
+/// # #[derive(Soapy, Copy, Clone)]
 /// # struct Foo(u8, u16);
-/// let s = soa![Foo(1, 2); 2];
-/// assert_eq!(s.slices().0, &[1, 1]);
-/// assert_eq!(s.slices().1, &[2, 2]);
+/// let soa = soa![Foo(1, 2); 2];
+/// assert_eq!(soa.slices().0, &[1, 1]);
+/// assert_eq!(soa.slices().1, &[2, 2]);
 /// ```
 #[macro_export]
 macro_rules! soa {
@@ -124,21 +124,13 @@ macro_rules! soa {
         $crate::Soa::new()
     };
 
-    ($($e:expr),*) => {{
-        // TODO: with_capacity
-        let mut out = $crate::Soa::new();
-        $(out.push($e);)*
-        out
-    }};
+    ($($e:expr),*) => {
+        [$($e),*].into_iter().collect::<$crate::Soa<_>>()
+    };
 
     ($elem:expr; $n:expr) => {
-        {
-            let mut out = $crate::Soa::with_capacity($n);
-            for _ in 0..$n {
-                out.push($elem);
-            }
-            out
-        }
+        // TODO: Support Clone types in addition to Copy
+        [$elem; $n].into_iter().collect::<$crate::Soa<_>>()
     }
 }
 
@@ -210,7 +202,7 @@ mod tests {
 
     #[test]
     pub fn tuple() {
-        let mut soa = Soa::new();
+        let mut soa = Soa::<Tuple>::new();
         let elements = [Tuple(0, 1, 2), Tuple(3, 4, 5), Tuple(6, 7, 8)];
         for element in elements {
             soa.push(element);
@@ -220,7 +212,7 @@ mod tests {
 
     #[test]
     pub fn zst_fields() {
-        let mut soa = Soa::new();
+        let mut soa = Soa::<ZstFields>::new();
         for _ in 0..5 {
             soa.push(ZstFields::default());
         }
@@ -232,7 +224,7 @@ mod tests {
 
     #[test]
     pub fn empty_tuple() {
-        let mut soa = Soa::new();
+        let mut soa = Soa::<EmptyTuple>::new();
         for _ in 0..5 {
             soa.push(EmptyTuple());
         }
@@ -244,7 +236,7 @@ mod tests {
 
     #[test]
     pub fn empty_struct() {
-        let mut soa = Soa::new();
+        let mut soa = Soa::<Empty>::new();
         for _ in 0..5 {
             soa.push(Empty {});
         }
@@ -256,7 +248,7 @@ mod tests {
 
     #[test]
     pub fn unit_struct() {
-        let mut soa = Soa::new();
+        let mut soa = Soa::<Unit>::new();
         for _ in 0..5 {
             soa.push(Unit);
         }
@@ -268,7 +260,7 @@ mod tests {
 
     #[test]
     pub fn push_and_pop() {
-        let mut soa = Soa::new();
+        let mut soa = Soa::<El>::new();
         for element in ABCDE.into_iter() {
             soa.push(element);
         }
@@ -286,7 +278,7 @@ mod tests {
     }
 
     fn test_insert(index: usize, expected: [El; 4]) {
-        let mut soa = Soa::new();
+        let mut soa = Soa::<El>::new();
         for element in [A, A, A].into_iter() {
             soa.push(element);
         }
@@ -304,7 +296,7 @@ mod tests {
     }
 
     fn test_remove(index: usize, expected_return: El, expected_contents: [El; 4]) {
-        let mut soa = Soa::new();
+        let mut soa = Soa::<El>::new();
         for element in ABCDE.into_iter() {
             soa.push(element);
         }
@@ -314,7 +306,7 @@ mod tests {
 
     #[test]
     pub fn with_capacity() {
-        let mut soa = Soa::with_capacity(5);
+        let mut soa = Soa::<El>::with_capacity(5);
         assert_eq!(soa.capacity(), 5);
         assert_eq!(soa.len(), 0);
         for element in ABCDE.into_iter() {

@@ -39,7 +39,7 @@ where
     /// # use soapy::{Soa, Soapy};
     /// # #[derive(Soapy)]
     /// # struct Foo;
-    /// let mut soa: Soa<Foo> = Soa::new();
+    /// let mut soa = Soa::<Foo>::new();
     /// ```
     pub fn new() -> Self {
         Self {
@@ -64,7 +64,7 @@ where
     /// #[derive(Soapy)]
     /// struct Foo(u8, u8);
     ///
-    /// let mut soa = Soa::with_capacity(10);
+    /// let mut soa = Soa::<Foo>::with_capacity(10);
     /// assert_eq!(soa.len(), 0);
     /// assert_eq!(soa.capacity(), 10);
     ///
@@ -84,7 +84,7 @@ where
     /// struct Bar;
     ///
     /// // A SOA of a zero-sized type always over-allocates
-    /// let soa: Soa<Bar> = Soa::with_capacity(10);
+    /// let soa = Soa::<Bar>::with_capacity(10);
     /// assert_eq!(soa.capacity(), usize::MAX);
     /// ```
     pub fn with_capacity(capacity: usize) -> Self {
@@ -132,7 +132,7 @@ where
     /// # use soapy::{Soa, Soapy};
     /// # #[derive(Soapy)]
     /// # struct Foo(usize);
-    /// let mut soa = Soa::new();
+    /// let mut soa = Soa::<Foo>::new();
     /// assert!(soa.is_empty());
     /// soa.push(Foo(1));
     /// assert!(!soa.is_empty());
@@ -150,7 +150,7 @@ where
     /// # use soapy::{Soa, Soapy};
     /// # #[derive(Soapy)]
     /// # struct Foo(usize);
-    /// let mut soa = Soa::new();
+    /// let mut soa = Soa::<Foo>::new();
     /// for i in 0..42 {
     ///     assert!(soa.capacity() >= i);
     ///     soa.push(Foo(i));
@@ -359,7 +359,7 @@ where
     /// # use soapy::{Soa, Soapy, soa};
     /// # #[derive(Soapy, Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
     /// # struct Foo(usize);
-    /// let mut soa = Soa::with_capacity(10);
+    /// let mut soa = Soa::<Foo>::with_capacity(10);
     /// soa.extend([Foo(1), Foo(2), Foo(3)]);
     /// assert_eq!(soa.capacity(), 10);
     /// soa.shrink_to_fit();
@@ -381,7 +381,7 @@ where
     /// # use soapy::{Soa, Soapy, soa};
     /// # #[derive(Soapy, Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
     /// # struct Foo(usize);
-    /// let mut soa = Soa::with_capacity(10);
+    /// let mut soa = Soa::<Foo>::with_capacity(10);
     /// soa.extend([Foo(1), Foo(2), Foo(3)]);
     /// assert_eq!(soa.capacity(), 10);
     /// soa.shrink_to(4);
@@ -1348,5 +1348,16 @@ where
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
         self.len.hash(state);
         self.for_each(|item| item.hash(state));
+    }
+}
+
+impl<T> Deref for Soa<T>
+where
+    T: Soapy,
+{
+    type Target = T::RawSoa;
+
+    fn deref(&self) -> &Self::Target {
+        &self.raw
     }
 }
