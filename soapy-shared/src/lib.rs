@@ -20,3 +20,6 @@ pub use with_ref::WithRef;
 
 mod soapy;
 pub use soapy::Soapy;
+
+mod slice;
+pub use slice::Slice;

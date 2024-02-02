@@ -89,6 +89,29 @@ pub fn fields_struct(
             }
             )*
         }
+
+        impl ::soapy_shared::Slice for #slice {
+            type Raw = #raw;
+
+            fn empty() -> Self {
+                Self {
+                    raw: <#raw as ::soapy_shared::RawSoa>::dangling(),
+                    len: 0,
+                }
+            }
+
+            fn len(&self) -> usize {
+                self.len
+            }
+
+            unsafe fn set_len(&mut self, length: usize) {
+                self.len = length
+            }
+
+            fn raw(&self) -> Self::Raw {
+                self.raw
+            }
+        }
     });
 
     let slices_def = match kind {

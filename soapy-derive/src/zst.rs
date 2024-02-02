@@ -4,6 +4,7 @@ use syn::Visibility;
 
 pub fn zst_struct(ident: Ident, vis: Visibility, kind: ZstKind) -> TokenStream {
     let raw = format_ident!("{ident}RawSoa");
+    let slice = format_ident!("{ident}SoaSlice");
     let unit_construct = match kind {
         ZstKind::Unit => quote! {},
         ZstKind::Empty => quote! { {} },
@@ -14,7 +15,7 @@ pub fn zst_struct(ident: Ident, vis: Visibility, kind: ZstKind) -> TokenStream {
         #[automatically_derived]
         impl ::soapy_shared::Soapy for #ident {
             type RawSoa = #raw;
-            type Slice = ();
+            type Slice = #slice;
             type Slices<'a> = ();
             type SlicesMut<'a> = ();
             type Ref<'a> = #ident;
@@ -38,8 +39,38 @@ pub fn zst_struct(ident: Ident, vis: Visibility, kind: ZstKind) -> TokenStream {
         #vis struct #raw;
 
         #[automatically_derived]
+        #vis struct #slice {
+            raw: #raw,
+            len: usize,
+        }
+
+        impl ::soapy_shared::Slice for #slice {
+            type Raw = #raw;
+
+            fn empty() -> Self {
+                Self {
+                    raw: #raw,
+                    len: 0,
+                }
+            }
+
+            fn len(&self) -> usize {
+                self.len
+            }
+
+            unsafe fn set_len(&mut self, length: usize) {
+                self.len = length
+            }
+
+            fn raw(&self) -> Self::Raw {
+                self.raw
+            }
+        }
+
+        #[automatically_derived]
         unsafe impl ::soapy_shared::RawSoa for #raw {
             type Item = #ident;
+
             #[inline]
             fn dangling() -> Self { Self }
             #[inline]
