@@ -14,6 +14,3 @@ members = ["soapy-derive", "soapy-shared"]
 [dependencies]
 soapy-derive = { path = "soapy-derive", version = "0.2.0" }
 soapy-shared = { path = "soapy-shared", version = "0.2.0" }
-
-[features]
-deref = []

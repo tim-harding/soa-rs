@@ -1,38 +1,84 @@
-use crate::{index::SoaIndex, IntoIter, Iter, IterMut};
+use crate::{index::SoaIndex, Iter, IterMut};
 use soapy_shared::{RawSoa, Soapy};
 use std::{
     cmp::Ordering,
     fmt::{self, Formatter},
     marker::PhantomData,
-    mem::{size_of, ManuallyDrop},
+    mem::ManuallyDrop,
     ops::{ControlFlow, Deref},
 };
 
+// TODO: Replace references to soa to slice
+
 /// A growable array type that stores the values for each field of `T`
 /// contiguously.
-pub struct Soa<T>
+pub struct Slice<T, D = ()>
 where
     T: Soapy,
 {
     pub(crate) len: usize,
-    pub(crate) cap: usize,
     pub(crate) raw: T::RawSoa,
+    _deref: PhantomData<D>,
 }
 
-unsafe impl<T> Send for Soa<T> where T: Send + Soapy {}
-unsafe impl<T> Sync for Soa<T> where T: Sync + Soapy {}
+unsafe impl<T, D> Send for Slice<T, D> where T: Send + Soapy {}
+unsafe impl<T, D> Sync for Slice<T, D> where T: Sync + Soapy {}
 
-impl<T> Soa<T>
+/// Creates a `Soa<T>` from a pointer, a length, and a capacity.
+///
+/// # Safety
+///
+/// This is highly unsafe due to the number of invariants that aren't
+/// checked. Given that many of these invariants are private implementation
+/// details of [`RawSoa`], it is better not to uphold them manually. Rather,
+/// it only valid to call this method with the output of a previous call to
+/// [`Soa::into_raw_parts`].
+pub unsafe fn from_raw_parts<T, D>(ptr: *mut u8, length: usize, capacity: usize) -> Slice<T, D>
 where
     T: Soapy,
 {
-    /// The capacity of the initial allocation. This is an optimization to avoid
-    /// excessive reallocation for small array sizes.
-    const SMALL_CAPACITY: usize = 4;
+    Slice {
+        len: length,
+        raw: T::RawSoa::from_parts(ptr, capacity),
+        _deref: PhantomData,
+    }
+}
 
-    /// Constructs a new, empty `Soa<T>`.
+impl<T> Slice<T>
+where
+    T: Soapy,
+{
+    /// Enables the [`Deref`] implementation for this container.
     ///
-    /// The container will not allocate until elements are pushed onto it.
+    /// This should be called after Rust has inferred the generic parameter `T`.
+    /// Manually enabling dereferencing is necessary because the
+    /// [`Deref::Target`] is an associated type, rather than a concrete type.
+    /// Because of this, Rust has a difficult time inferring the generic
+    /// parameters.
+    pub fn with_deref(self) -> Slice<T, DerefEnable<T::RawSoa>> {
+        let me = ManuallyDrop::new(self);
+        Slice {
+            len: me.len,
+            raw: me.raw,
+            // Can't transmute because Rust thinks the size could change based on D
+            _deref: PhantomData,
+        }
+    }
+}
+
+impl<T, D> Slice<T, D>
+where
+    T: Soapy,
+{
+    pub(crate) fn new(raw: T::RawSoa, length: usize) -> Self {
+        Self {
+            raw,
+            len: length,
+            _deref: PhantomData,
+        }
+    }
+
+    /// Constructs a new, empty [`Slice`].
     ///
     /// # Examples
     /// ```
@@ -41,74 +87,15 @@ where
     /// # struct Foo;
     /// let mut soa: Soa<Foo> = Soa::new();
     /// ```
-    pub fn new() -> Self {
+    pub fn empty() -> Self {
         Self {
             len: 0,
-            cap: if size_of::<T>() == 0 { usize::MAX } else { 0 },
             raw: T::RawSoa::dangling(),
+            _deref: PhantomData,
         }
     }
 
-    /// Construct a new, empty `Soa<T>` with at least the specified capacity.
-    ///
-    /// The container will be able to hold `capacity` elements without
-    /// reallocating. If the `capacity` is 0, the container will not allocate.
-    /// Note that although the returned vector has the minimum capacity
-    /// specified, the vector will have a zero length. The capacity will be as
-    /// specified unless `T` is zero-sized, in which case the capacity will be
-    /// `usize::MAX`.
-    ///
-    /// # Examples
-    /// ```
-    /// # use soapy::{Soa, Soapy};
-    /// #[derive(Soapy)]
-    /// struct Foo(u8, u8);
-    ///
-    /// let mut soa = Soa::with_capacity(10);
-    /// assert_eq!(soa.len(), 0);
-    /// assert_eq!(soa.capacity(), 10);
-    ///
-    /// // These pushes do not reallocate...
-    /// for i in 0..10 {
-    ///     soa.push(Foo(i, i));
-    /// }
-    /// assert_eq!(soa.len(), 10);
-    /// assert_eq!(soa.capacity(), 10);
-    ///
-    /// // ...but this one does
-    /// soa.push(Foo(11, 11));
-    /// assert_eq!(soa.len(), 11);
-    /// assert_eq!(soa.capacity(), 20);
-    ///
-    /// #[derive(Soapy)]
-    /// struct Bar;
-    ///
-    /// // A SOA of a zero-sized type always over-allocates
-    /// let soa: Soa<Bar> = Soa::with_capacity(10);
-    /// assert_eq!(soa.capacity(), usize::MAX);
-    /// ```
-    pub fn with_capacity(capacity: usize) -> Self {
-        match capacity {
-            0 => Self::new(),
-            capacity => {
-                if size_of::<T>() == 0 {
-                    Self {
-                        len: 0,
-                        cap: usize::MAX,
-                        raw: T::RawSoa::dangling(),
-                    }
-                } else {
-                    Self {
-                        len: 0,
-                        cap: capacity,
-                        raw: unsafe { T::RawSoa::alloc(capacity) },
-                    }
-                }
-            }
-        }
-    }
-
-    /// Returns the number of elements in the vector, also referred to as its
+    /// Returns the number of elements in the container, also referred to as its
     /// length.
     ///
     /// # Examples
@@ -139,360 +126,6 @@ where
     /// ```
     pub fn is_empty(&self) -> bool {
         self.len == 0
-    }
-
-    /// Returns the total number of elements the container can hold without
-    /// reallocating.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// # use soapy::{Soa, Soapy};
-    /// # #[derive(Soapy)]
-    /// # struct Foo(usize);
-    /// let mut soa = Soa::new();
-    /// for i in 0..42 {
-    ///     assert!(soa.capacity() >= i);
-    ///     soa.push(Foo(i));
-    /// }
-    /// ```
-    pub fn capacity(&self) -> usize {
-        self.cap
-    }
-
-    /// Decomposes a `Soa<T>` into its raw components.
-    ///
-    /// Returns the raw pointer to the underlying data, the length of the vector (in
-    /// elements), and the allocated capacity of the data (in elements). These
-    /// are the same arguments in the same order as the arguments to
-    /// [`Soa::from_raw_parts`].
-    ///
-    /// After calling this function, the caller is responsible for the memory
-    /// previously managed by the `Soa`. The only way to do this is to convert the
-    /// raw pointer, length, and capacity back into a Vec with the
-    /// [`Soa::from_raw_parts`] function, allowing the destructor to perform the cleanup.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// # use soapy::{Soa, Soapy, soa};
-    /// # #[derive(Soapy, Debug, PartialEq)]
-    /// # struct Foo(usize);
-    /// let soa = soa![Foo(1), Foo(2)];
-    /// let (ptr, len, cap) = soa.into_raw_parts();
-    /// let rebuilt = unsafe { Soa::from_raw_parts(ptr, len, cap) };
-    /// assert_eq!(rebuilt, [Foo(1), Foo(2)]);
-    /// ```
-    pub fn into_raw_parts(self) -> (*mut u8, usize, usize) {
-        let me = ManuallyDrop::new(self);
-        (me.raw.as_ptr(), me.len, me.cap)
-    }
-
-    /// Creates a `Soa<T>` from a pointer, a length, and a capacity.
-    ///
-    /// # Safety
-    ///
-    /// This is highly unsafe due to the number of invariants that aren't
-    /// checked. Given that many of these invariants are private implementation
-    /// details of [`RawSoa`], it is better not to uphold them manually. Rather,
-    /// it only valid to call this method with the output of a previous call to
-    /// [`Soa::into_raw_parts`].
-    pub unsafe fn from_raw_parts(ptr: *mut u8, length: usize, capacity: usize) -> Self {
-        Self {
-            len: length,
-            cap: capacity,
-            raw: T::RawSoa::from_parts(ptr, capacity),
-        }
-    }
-
-    /// Appends an element to the back of a collection.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// # use soapy::{Soa, Soapy, soa};
-    /// # #[derive(Soapy, Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
-    /// # struct Foo(usize);
-    /// let mut soa = soa![Foo(1), Foo(2)];
-    /// soa.push(Foo(3));
-    /// assert_eq!(soa, [Foo(1), Foo(2), Foo(3)]);
-    /// ```
-    pub fn push(&mut self, element: T) {
-        self.maybe_grow();
-        unsafe {
-            self.raw.set(self.len, element);
-        }
-        self.len += 1;
-    }
-
-    /// Removes the last element from a vector and returns it, or [`None`] if it
-    /// is empty.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// # use soapy::{Soa, Soapy, soa};
-    /// # #[derive(Soapy, Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
-    /// # struct Foo(usize);
-    /// let mut soa = soa![Foo(1), Foo(2), Foo(3)];
-    /// assert_eq!(soa.pop(), Some(Foo(3)));
-    /// assert_eq!(soa, [Foo(1), Foo(2)]);
-    /// ```
-    pub fn pop(&mut self) -> Option<T> {
-        if self.len == 0 {
-            None
-        } else {
-            self.len -= 1;
-            Some(unsafe { self.raw.get(self.len) })
-        }
-    }
-
-    /// Inserts an element at position `index`, shifting all elements after it
-    /// to the right.
-    ///
-    /// # Panics
-    ///
-    /// Panics if `index > len`
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// # use soapy::{Soa, Soapy, soa};
-    /// # #[derive(Soapy, Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
-    /// # struct Foo(usize);
-    /// let mut soa = soa![Foo(1), Foo(2), Foo(3)];
-    /// soa.insert(1, Foo(4));
-    /// assert_eq!(soa, [Foo(1), Foo(4), Foo(2), Foo(3)]);
-    /// soa.insert(4, Foo(5));
-    /// assert_eq!(soa, [Foo(1), Foo(4), Foo(2), Foo(3), Foo(5)]);
-    /// ```
-    pub fn insert(&mut self, index: usize, element: T) {
-        assert!(index <= self.len, "index out of bounds");
-        self.maybe_grow();
-        unsafe {
-            self.raw.copy(index, index + 1, self.len - index);
-            self.raw.set(index, element);
-        }
-        self.len += 1;
-    }
-
-    /// Removes and returns the element at position index within the vector,
-    /// shifting all elements after it to the left.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// # use soapy::{Soa, Soapy, soa};
-    /// # #[derive(Soapy, Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
-    /// # struct Foo(usize);
-    /// let mut soa = soa![Foo(1), Foo(2), Foo(3)];
-    /// assert_eq!(soa.remove(1), Foo(2));
-    /// assert_eq!(soa, [Foo(1), Foo(3)])
-    /// ```
-    pub fn remove(&mut self, index: usize) -> T {
-        assert!(index < self.len, "index out of bounds");
-        self.len -= 1;
-        let out = unsafe { self.raw.get(index) };
-        unsafe {
-            self.raw.copy(index + 1, index, self.len - index);
-        }
-        out
-    }
-
-    /// Reserves capacity for at least additional more elements to be inserted
-    /// in the given `Soa<T>`. The collection may reserve more space to
-    /// speculatively avoid frequent reallocations. After calling reserve,
-    /// capacity will be greater than or equal to `self.len() + additional`.
-    /// Does nothing if capacity is already sufficient.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// # use soapy::{Soa, Soapy, soa};
-    /// # #[derive(Soapy, Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
-    /// # struct Foo(usize);
-    /// let mut soa = soa![Foo(1)];
-    /// soa.reserve(10);
-    /// assert!(soa.capacity() >= 11);
-    /// ```
-    pub fn reserve(&mut self, additional: usize) {
-        if additional == 0 {
-            return;
-        }
-        let new_cap = (self.len + additional)
-            // Ensure exponential growth
-            .max(self.cap * 2)
-            .max(Self::SMALL_CAPACITY);
-        self.grow(new_cap);
-    }
-
-    /// Reserves the minimum capacity for at least additional more elements to
-    /// be inserted in the given `Soa<T>`. Unlike [`Soa::reserve`], this will
-    /// not deliberately over-allocate to speculatively avoid frequent
-    /// allocations. After calling `reserve_exact`, capacity will be equal to
-    /// self.len() + additional, or else `usize::MAX` if `T` is zero-sized. Does
-    /// nothing if the capacity is already sufficient.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// # use soapy::{Soa, Soapy, soa};
-    /// # #[derive(Soapy, Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
-    /// # struct Foo(usize);
-    /// let mut soa = soa![Foo(1)];
-    /// soa.reserve(10);
-    /// assert!(soa.capacity() == 11);
-    /// ```
-    pub fn reserve_exact(&mut self, additional: usize) {
-        if additional == 0 {
-            return;
-        }
-        let new_cap = (additional + self.len).max(self.cap);
-        self.grow(new_cap);
-    }
-
-    /// Shrinks the capacity of the container as much as possible.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// # use soapy::{Soa, Soapy, soa};
-    /// # #[derive(Soapy, Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
-    /// # struct Foo(usize);
-    /// let mut soa = Soa::with_capacity(10);
-    /// soa.extend([Foo(1), Foo(2), Foo(3)]);
-    /// assert_eq!(soa.capacity(), 10);
-    /// soa.shrink_to_fit();
-    /// assert_eq!(soa.capacity(), 3);
-    /// ```
-    pub fn shrink_to_fit(&mut self) {
-        self.shrink(self.len);
-    }
-
-    /// Shrinks the capacity of the vector with a lower bound.
-    ///
-    /// The capacity will remain at least as large as both the length and the
-    /// supplied value. If the current capacity is less than the lower limit,
-    /// this is a no-op.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// # use soapy::{Soa, Soapy, soa};
-    /// # #[derive(Soapy, Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
-    /// # struct Foo(usize);
-    /// let mut soa = Soa::with_capacity(10);
-    /// soa.extend([Foo(1), Foo(2), Foo(3)]);
-    /// assert_eq!(soa.capacity(), 10);
-    /// soa.shrink_to(4);
-    /// assert_eq!(soa.capacity(), 4);
-    /// soa.shrink_to(0);
-    /// assert_eq!(soa.capacity(), 3);
-    pub fn shrink_to(&mut self, min_capacity: usize) {
-        let new_cap = self.len.max(min_capacity);
-        if new_cap < self.cap {
-            self.shrink(new_cap);
-        }
-    }
-
-    /// Shortens the vector, keeping the first len elements and dropping the rest.
-    ///
-    /// If len is greater or equal to the vector’s current length, this has no
-    /// effect. Note that this method has no effect on the allocated capacity of
-    /// the vector.
-    ///
-    /// # Examples
-    ///
-    /// Truncating a five-element SOA to two elements:
-    /// ```
-    /// # use soapy::{Soa, Soapy, soa};
-    /// # #[derive(Soapy, Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
-    /// # struct Foo(usize);
-    /// let mut soa = soa![Foo(1), Foo(2), Foo(3), Foo(4), Foo(5)];
-    /// soa.truncate(2);
-    /// assert_eq!(soa, [Foo(1), Foo(2)]);
-    /// ```
-    ///
-    /// No truncation occurs when `len` is greater than the SOA's current
-    /// length:
-    /// ```
-    /// # use soapy::{Soa, Soapy, soa};
-    /// # #[derive(Soapy, Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
-    /// # struct Foo(usize);
-    /// let mut soa = soa![Foo(1), Foo(2), Foo(3)];
-    /// soa.truncate(8);
-    /// assert_eq!(soa, [Foo(1), Foo(2), Foo(3)]);
-    /// ```
-    ///
-    /// Truncating with `len == 0` is equivalent to [`Soa::clear`].
-    /// ```
-    /// # use soapy::{Soa, Soapy, soa};
-    /// # #[derive(Soapy, Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
-    /// # struct Foo(usize);
-    /// let mut soa = soa![Foo(1), Foo(2), Foo(3)];
-    /// soa.truncate(0);
-    /// assert_eq!(soa, []);
-    /// ```
-    pub fn truncate(&mut self, len: usize) {
-        while len < self.len {
-            self.pop();
-        }
-    }
-
-    /// Removes an element from the vector and returns it.
-    ///
-    /// The removed element is replaced by the last element of the vector. This
-    /// does not preserve ordering, but is O(1). If you need to preserve the
-    /// element order, use remove instead.
-    ///
-    /// # Panics
-    ///
-    /// Panics if index is out of bounds.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// # use soapy::{Soa, Soapy, soa};
-    /// # #[derive(Soapy, Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
-    /// # struct Foo(usize);
-    /// let mut soa = soa![Foo(0), Foo(1), Foo(2), Foo(3)];
-    ///
-    /// assert_eq!(soa.swap_remove(1), Foo(1));
-    /// assert_eq!(soa, [Foo(0), Foo(3), Foo(2)]);
-    ///
-    /// assert_eq!(soa.swap_remove(0), Foo(0));
-    /// assert_eq!(soa, [Foo(2), Foo(3)])
-    /// ```
-    pub fn swap_remove(&mut self, index: usize) -> T {
-        let out = unsafe { self.raw.get(index) };
-        let last = unsafe { self.raw.get(self.len - 1) };
-        unsafe {
-            self.raw.set(index, last);
-        }
-        self.len -= 1;
-        out
-    }
-
-    /// Moves all the elements of other into self, leaving other empty.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// # use soapy::{Soa, Soapy, soa};
-    /// # #[derive(Soapy, Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
-    /// # struct Foo(usize);
-    /// let mut soa1  = soa![Foo(1), Foo(2), Foo(3)];
-    /// let mut soa2 = soa![Foo(4), Foo(5), Foo(6)];
-    /// soa1.append(&mut soa2);
-    /// assert_eq!(soa1, [Foo(1), Foo(2), Foo(3), Foo(4), Foo(5), Foo(6)]);
-    /// assert_eq!(soa2, []);
-    /// ```
-    pub fn append(&mut self, other: &mut Self) {
-        for i in 0..other.len {
-            let element = unsafe { other.raw.get(i) };
-            self.push(element);
-        }
-        other.len = 0;
     }
 
     /// Returns an iterator over the elements.
@@ -750,25 +383,6 @@ where
         })
     }
 
-    /// Clears the vector, removing all values.
-    ///
-    /// Note that this method has no effect on the allocated capacity of the
-    /// vector.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// # use soapy::{Soa, Soapy, soa};
-    /// # #[derive(Soapy, Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
-    /// # struct Foo(usize);
-    /// let mut soa = soa![Foo(1), Foo(2)];
-    /// soa.clear();
-    /// assert!(soa.is_empty());
-    /// ```
-    pub fn clear(&mut self) {
-        while self.pop().is_some() {}
-    }
-
     /// Returns a reference to an element or subslice depending on the type of
     /// index.
     ///
@@ -989,42 +603,6 @@ where
         unsafe { self.raw.get_mut(index) }
     }
 
-    /// Returns slices for each of the SoA fields.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// # use soapy::{Soa, Soapy, soa};
-    /// #[derive(Soapy, Debug, Clone)]
-    /// struct Foo(usize, String);
-    /// let soa = soa![Foo(10, "Howdy".into()), Foo(20, "fren".into())];
-    /// assert_eq!(soa.slices().0, [10, 20]);
-    /// assert_eq!(soa.slices().1, ["Howdy", "fren"]);
-    /// ```
-    pub fn slices(&self) -> T::Slices<'_> {
-        unsafe { self.raw.slices(0, self.len) }
-    }
-
-    /// Returns mutable slices for each of the SoA fields.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// # use soapy::{Soa, Soapy, soa};
-    /// #[derive(Soapy, Debug, Clone, PartialEq)]
-    /// struct Foo(usize, String);
-    /// let mut soa = soa![Foo(10, "Howdy".into()), Foo(20, "fren".into())];
-    /// let mut slices = soa.slices_mut();
-    /// slices.0[0] += 5;
-    /// for s in slices.1.iter_mut() {
-    ///     *s = s.chars().flat_map(|c| c.to_uppercase()).collect();
-    /// }
-    /// assert_eq!(soa, [Foo(15, "HOWDY".into()), Foo(20, "FREN".into())]);
-    /// ```
-    pub fn slices_mut(&mut self) -> T::SlicesMut<'_> {
-        unsafe { self.raw.slices_mut(0, self.len) }
-    }
-
     /// Swaps the position of two elements.
     ///
     /// # Arguments
@@ -1057,196 +635,43 @@ where
             self.raw.set(b, tmp);
         }
     }
-
-    /// Grows the allocated capacity if `len == cap`.
-    fn maybe_grow(&mut self) {
-        if self.len < self.cap {
-            return;
-        }
-        let new_cap = match self.cap {
-            0 => Self::SMALL_CAPACITY,
-            old_cap => old_cap * 2,
-        };
-        self.grow(new_cap);
-    }
-
-    // Shrinks the allocated capacity.
-    fn shrink(&mut self, new_cap: usize) {
-        debug_assert!(new_cap <= self.cap);
-        if self.cap == 0 || new_cap == self.cap || size_of::<T>() == 0 {
-            return;
-        }
-
-        if new_cap == 0 {
-            debug_assert!(self.cap > 0);
-            unsafe {
-                self.raw.dealloc(self.cap);
-            }
-            self.raw = T::RawSoa::dangling();
-        } else {
-            debug_assert!(new_cap < self.cap);
-            debug_assert!(self.len <= new_cap);
-            unsafe {
-                self.raw.realloc_shrink(self.cap, new_cap, self.len);
-            }
-        }
-
-        self.cap = new_cap;
-    }
-
-    /// Grows the allocated capacity.
-    fn grow(&mut self, new_cap: usize) {
-        debug_assert!(size_of::<T>() > 0);
-        debug_assert!(new_cap > self.cap);
-
-        if self.cap == 0 {
-            debug_assert!(new_cap > 0);
-            self.raw = unsafe { T::RawSoa::alloc(new_cap) };
-        } else {
-            debug_assert!(self.len <= self.cap);
-            unsafe {
-                self.raw.realloc_grow(self.cap, new_cap, self.len);
-            }
-        }
-
-        self.cap = new_cap;
-    }
 }
 
-impl<T> Drop for Soa<T>
+impl<'a, T, D> IntoIterator for &'a Slice<T, D>
 where
     T: Soapy,
 {
-    fn drop(&mut self) {
-        while self.pop().is_some() {}
-        if size_of::<T>() > 0 && self.cap > 0 {
-            unsafe {
-                self.raw.dealloc(self.cap);
-            }
-        }
-    }
-}
-
-impl<T> IntoIterator for Soa<T>
-where
-    T: Soapy,
-{
-    type Item = T;
-
-    type IntoIter = IntoIter<T>;
+    type Item = T::Ref<'a>;
+    type IntoIter = Iter<'a, T>;
 
     fn into_iter(self) -> Self::IntoIter {
-        let soa = ManuallyDrop::new(self);
-        IntoIter {
+        Iter {
             start: 0,
-            end: soa.len,
-            raw: soa.raw,
-            cap: soa.cap,
+            end: self.len,
+            raw: self.raw,
+            _marker: PhantomData::<&T>,
         }
     }
 }
 
-impl<T> Clone for Soa<T>
-where
-    T: Soapy + Clone,
-{
-    fn clone(&self) -> Self {
-        let mut out = Self::with_capacity(self.len());
-        self.for_each(|el| {
-            out.push(el.clone());
-        });
-        out
-    }
-
-    fn clone_from(&mut self, source: &Self) {
-        self.clear();
-        if self.cap < source.len {
-            self.reserve(source.len);
-        }
-        source.for_each(|el| {
-            self.push(el.clone());
-        });
-    }
-}
-
-impl<T> Extend<T> for Soa<T>
+impl<'a, T, D> IntoIterator for &'a mut Slice<T, D>
 where
     T: Soapy,
 {
-    fn extend<I: IntoIterator<Item = T>>(&mut self, iter: I) {
-        for item in iter {
-            self.push(item);
+    type Item = T::RefMut<'a>;
+    type IntoIter = IterMut<'a, T>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        IterMut {
+            start: 0,
+            end: self.len,
+            raw: self.raw,
+            _marker: PhantomData::<&mut T>,
         }
     }
 }
 
-impl<T> FromIterator<T> for Soa<T>
-where
-    T: Soapy,
-{
-    fn from_iter<I: IntoIterator<Item = T>>(iter: I) -> Self {
-        let iter = iter.into_iter();
-        let (hint_min, hint_max) = iter.size_hint();
-        let cap = hint_max.unwrap_or(hint_min);
-        let mut out = Self::with_capacity(cap);
-        for item in iter {
-            out.push(item);
-        }
-        out
-    }
-}
-
-impl<T, const N: usize> From<[T; N]> for Soa<T>
-where
-    T: Soapy,
-{
-    /// Allocate a `Soa<T>` and move `value`'s items into it.
-    fn from(value: [T; N]) -> Self {
-        value.into_iter().collect()
-    }
-}
-
-impl<T, const N: usize> From<&[T; N]> for Soa<T>
-where
-    T: Soapy + Clone,
-{
-    /// Allocate a `Soa<T>` and fill it by cloning `value`'s items.
-    fn from(value: &[T; N]) -> Self {
-        value.iter().cloned().collect()
-    }
-}
-
-impl<T, const N: usize> From<&mut [T; N]> for Soa<T>
-where
-    T: Soapy + Clone,
-{
-    /// Allocate a `Soa<T>` and fill it by cloning `value`'s items.
-    fn from(value: &mut [T; N]) -> Self {
-        value.iter().cloned().collect()
-    }
-}
-
-impl<T> From<&[T]> for Soa<T>
-where
-    T: Soapy + Clone,
-{
-    /// Allocate a `Soa<T>` and fill it by cloning `value`'s items.
-    fn from(value: &[T]) -> Self {
-        value.iter().cloned().collect()
-    }
-}
-
-impl<T> From<&mut [T]> for Soa<T>
-where
-    T: Soapy + Clone,
-{
-    /// Allocate a `Soa<T>` and fill it by cloning `value`'s items.
-    fn from(value: &mut [T]) -> Self {
-        value.iter().cloned().collect()
-    }
-}
-
-impl<T> PartialEq for Soa<T>
+impl<T, D> PartialEq for Slice<T, D>
 where
     T: Soapy + PartialEq,
 {
@@ -1265,7 +690,7 @@ where
     }
 }
 
-impl<T, R> PartialEq<R> for Soa<T>
+impl<T, D, R> PartialEq<R> for Slice<T, D>
 where
     T: Soapy + PartialEq,
     R: AsRef<[T]>,
@@ -1291,9 +716,9 @@ where
     }
 }
 
-impl<T> Eq for Soa<T> where T: Soapy + Eq {}
+impl<T, D> Eq for Slice<T, D> where T: Soapy + Eq {}
 
-impl<T> fmt::Debug for Soa<T>
+impl<T, D> fmt::Debug for Slice<T, D>
 where
     T: Soapy + fmt::Debug,
 {
@@ -1306,7 +731,7 @@ where
     }
 }
 
-impl<T> PartialOrd for Soa<T>
+impl<T, D> PartialOrd for Slice<T, D>
 where
     T: Soapy + PartialOrd,
 {
@@ -1320,7 +745,7 @@ where
     }
 }
 
-impl<T> Ord for Soa<T>
+impl<T, D> Ord for Slice<T, D>
 where
     T: Soapy + Ord,
 {
@@ -1332,21 +757,34 @@ where
     }
 }
 
-impl<T> Default for Soa<T>
+impl<T> Default for Slice<T>
 where
     T: Soapy,
 {
     fn default() -> Self {
-        Self::new()
+        Self::empty()
     }
 }
 
-impl<T> std::hash::Hash for Soa<T>
+impl<T, D> std::hash::Hash for Slice<T, D>
 where
     T: Soapy + std::hash::Hash,
 {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
         self.len.hash(state);
         self.for_each(|item| item.hash(state));
+    }
+}
+
+pub struct DerefEnable<T>(PhantomData<T>);
+
+impl<T> Deref for Slice<T, DerefEnable<T::RawSoa>>
+where
+    T: Soapy,
+{
+    type Target = T::RawSoa;
+
+    fn deref(&self) -> &Self::Target {
+        &self.raw
     }
 }
