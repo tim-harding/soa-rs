@@ -46,21 +46,6 @@ pub fn fields_struct(
 
     let mut out = TokenStream::new();
 
-    let raw_body = match kind {
-        FieldKind::Named => quote! {
-            { #(#vis_all #ident_all: ::std::ptr::NonNull<#ty_all>,)* }
-        },
-        FieldKind::Unnamed => quote! {
-            ( #(#vis_all ::std::ptr::NonNull<#ty_all>),* );
-        },
-    };
-
-    out.append_all(quote! {
-        #[automatically_derived]
-        #[derive(Copy, Clone)]
-        #vis struct #raw #raw_body
-    });
-
     let (slice_getters_ref, slice_getters_mut): (Vec<_>, Vec<_>) = ident_all
         .iter()
         .map(|ident| match ident {
@@ -297,7 +282,20 @@ pub fn fields_struct(
 
     let indices = std::iter::repeat(()).enumerate().map(|(i, ())| i);
 
+    let raw_body = match kind {
+        FieldKind::Named => quote! {
+            { #(#vis_all #ident_all: ::std::ptr::NonNull<#ty_all>,)* }
+        },
+        FieldKind::Unnamed => quote! {
+            ( #(#vis_all ::std::ptr::NonNull<#ty_all>),* );
+        },
+    };
+
     out.append_all(quote! {
+        #[automatically_derived]
+        #[derive(Copy, Clone)]
+        #vis struct #raw #raw_body
+
         #[automatically_derived]
         impl ::soapy_shared::Soapy for #ident {
             type RawSoa = #raw;
