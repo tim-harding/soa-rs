@@ -1,6 +1,6 @@
 use std::{
     marker::PhantomData,
-    ops::{RangeFull, RangeTo, RangeToInclusive},
+    ops::{RangeFrom, RangeFull, RangeTo, RangeToInclusive},
 };
 
 use crate::{slice_mut::SliceMut, Slice, SliceRef};
@@ -136,6 +136,39 @@ where
             Slice(SliceData {
                 len: self.end + 1,
                 raw: slice.0.raw,
+            }),
+            PhantomData,
+        ))
+    }
+}
+
+impl<T> SoaIndex<T> for RangeFrom<usize>
+where
+    T: Soapy,
+{
+    type Output<'a> = SliceRef<'a, T>
+    where
+        T: 'a;
+
+    type OutputMut<'a> = SliceMut<'a, T>
+    where
+        T: 'a;
+
+    fn get<'a>(self, slice: &'a Slice<T>) -> Option<Self::Output<'a>> {
+        Some(SliceRef(
+            Slice(SliceData {
+                len: slice.len() - self.start,
+                raw: unsafe { slice.0.raw.offset(self.start) },
+            }),
+            PhantomData,
+        ))
+    }
+
+    fn get_mut<'a>(self, slice: &'a mut Slice<T>) -> Option<Self::OutputMut<'a>> {
+        Some(SliceMut(
+            Slice(SliceData {
+                len: slice.len() - self.start,
+                raw: unsafe { slice.0.raw.offset(self.start) },
             }),
             PhantomData,
         ))

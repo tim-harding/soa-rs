@@ -61,6 +61,8 @@ pub fn zst_struct(ident: Ident, vis: Visibility, kind: ZstKind) -> TokenStream {
             unsafe fn get_ref<'a>(&self, index: usize) -> <#ident as Soapy>::Ref<'a> { #ident #unit_construct }
             #[inline]
             unsafe fn get_mut<'a>(&self, index: usize) -> <#ident as Soapy>::RefMut<'a> { #ident #unit_construct }
+            #[inline]
+            unsafe fn offset(self, count: usize) -> Self { Self }
         }
     }
 }

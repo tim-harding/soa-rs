@@ -136,4 +136,17 @@ pub unsafe trait SoaRaw: Copy + Clone {
     ///
     /// - `index < PREV_CAP`
     unsafe fn get_mut<'a>(&self, index: usize) -> <Self::Item as Soapy>::RefMut<'a>;
+
+    /// Create a new [`SoaRaw`] starting at index `count`.
+    ///
+    /// This is similar to indexing by [`RangeFrom`].
+    ///
+    /// # Safety
+    ///
+    /// The caller must ensure that
+    ///
+    /// - `count <= length`
+    ///
+    /// [`RangeFrom`]: std::ops::RangeFrom
+    unsafe fn offset(self, count: usize) -> Self;
 }

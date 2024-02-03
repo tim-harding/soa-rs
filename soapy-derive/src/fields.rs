@@ -322,6 +322,17 @@ pub fn fields_struct(
                     #(#ident_all: self.#ident_all.as_ptr().add(index).as_mut().unwrap_unchecked(),)*
                 }
             }
+
+            #[inline]
+            unsafe fn offset(self, count: usize) -> Self {
+                Self {
+                    #(
+                    #ident_all: ::std::ptr::NonNull::new_unchecked(
+                        self.#ident_all.as_ptr().add(count)
+                    ),
+                    )*
+                }
+            }
         }
     });
 

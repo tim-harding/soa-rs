@@ -382,6 +382,7 @@ where
     /// assert_eq!(soa.get(..).unwrap(), [Foo(10), Foo(40), Foo(30), Foo(20)]);
     /// assert_eq!(soa.get(..2).unwrap(), [Foo(10), Foo(40)]);
     /// assert_eq!(soa.get(..=2).unwrap(), [Foo(10), Foo(40), Foo(30)]);
+    /// assert_eq!(soa.get(2..).unwrap(), [Foo(30), Foo(20)]);
     /// ```
     pub fn get<I>(&self, index: I) -> Option<I::Output<'_>>
     where
