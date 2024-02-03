@@ -129,7 +129,6 @@ eight static copies of their SoA type with fixed tuple sizes.
 - [ ] `is_sorted` / `is_sorted_by` / `is_sorted_by_key`
 - [ ] `chunks` / `rchunks`
 - [ ] `chunks_exact` / `rchunks_exact`
-- [ ] `first` / `last`
 - [ ] `rotate_left` / `rotate_right`
 - [ ] `split` / `rsplit` / `splitn`
 - [ ] `split_at` / `split_first` / `split_last`

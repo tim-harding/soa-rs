@@ -574,7 +574,7 @@ where
         }
     }
 
-    /// Returns the first element of the slice, or None if empty
+    /// Returns the first element of the slice, or None if empty.
     ///
     /// # Examples
     ///
@@ -583,14 +583,69 @@ where
     /// # #[derive(Soapy, Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
     /// # #[extra_impl(Debug, PartialEq)]
     /// # struct Foo(usize);
-    /// let mut soa = Soa::<Foo>::new();
-    /// assert_eq!(soa.first(), None);
-    /// soa.push(Foo(10));
-    /// soa.push(Foo(20));
+    /// let soa = soa![Foo(10), Foo(40), Foo(30)];
     /// assert_eq!(soa.first(), Some(FooSoaRef(&10)));
+    ///
+    /// let soa = Soa::<Foo>::new();
+    /// assert_eq!(soa.first(), None);
     /// ```
     pub fn first(&self) -> Option<T::Ref<'_>> {
         self.get(0)
+    }
+
+    /// Returns a mutable reference to the first element of the slice, or None if empty.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use soapy::{Soa, Soapy, soa};
+    /// # #[derive(Soapy, Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
+    /// # struct Foo(usize);
+    /// let mut soa = soa![Foo(0), Foo(1), Foo(2)];
+    /// if let Some(first) = soa.first_mut() {
+    ///     *first.0 = 5;
+    /// }
+    /// assert_eq!(soa, [Foo(5), Foo(1), Foo(2)]);
+    /// ```
+    pub fn first_mut(&mut self) -> Option<T::RefMut<'_>> {
+        self.get_mut(0)
+    }
+
+    /// Returns the last element of the slice, or None if empty.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use soapy::{Soa, Soapy, soa};
+    /// # #[derive(Soapy, Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
+    /// # #[extra_impl(Debug, PartialEq)]
+    /// # struct Foo(usize);
+    /// let soa = soa![Foo(10), Foo(40), Foo(30)];
+    /// assert_eq!(soa.last(), Some(FooSoaRef(&30)));
+    ///
+    /// let soa = Soa::<Foo>::new();
+    /// assert_eq!(soa.last(), None);
+    /// ```
+    pub fn last(&self) -> Option<T::Ref<'_>> {
+        self.get(self.len().saturating_sub(1))
+    }
+
+    /// Returns a mutable reference to the last element of the slice, or None if empty.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use soapy::{Soa, Soapy, soa};
+    /// # #[derive(Soapy, Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
+    /// # struct Foo(usize);
+    /// let mut soa = soa![Foo(0), Foo(1), Foo(2)];
+    /// if let Some(last) = soa.last_mut() {
+    ///     *last.0 = 5;
+    /// }
+    /// assert_eq!(soa, [Foo(0), Foo(1), Foo(5)]);
+    /// ```
+    pub fn last_mut(&mut self) -> Option<T::RefMut<'_>> {
+        self.get_mut(self.len().saturating_sub(1))
     }
 }
 
