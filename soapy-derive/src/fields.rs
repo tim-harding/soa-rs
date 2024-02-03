@@ -66,24 +66,30 @@ pub fn fields_struct(
 
         impl ::soapy_shared::Slice for #slice {
             type Raw = #raw;
+            type Deref = #deref;
 
-            fn empty() -> Self {
-                Self {
-                    raw: <#raw as ::soapy_shared::RawSoa>::dangling(),
-                    len: 0,
-                }
+            fn from_raw_parts(raw: Self::Raw, length: usize) -> Self {
+                Self { raw, len: length }
+            }
+
+            fn as_deref(&self) -> &Self::Deref {
+                unsafe { ::std::mem::transmute(self) }
             }
 
             fn len(&self) -> usize {
                 self.len
             }
 
-            unsafe fn set_len(&mut self, length: usize) {
-                self.len = length
+            fn len_mut(&mut self) -> &mut usize {
+                &mut self.len
             }
 
             fn raw(&self) -> Self::Raw {
                 self.raw
+            }
+
+            fn raw_mut(&mut self) -> &mut Self::Raw {
+                &mut self.raw
             }
         }
 

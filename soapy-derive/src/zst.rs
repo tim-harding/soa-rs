@@ -47,24 +47,30 @@ pub fn zst_struct(ident: Ident, vis: Visibility, kind: ZstKind) -> TokenStream {
 
         impl ::soapy_shared::Slice for #slice {
             type Raw = #raw;
+            type Deref = ();
 
-            fn empty() -> Self {
-                Self {
-                    raw: #raw,
-                    len: 0,
-                }
+            fn from_raw_parts(raw: Self::Raw, length: usize) -> Self {
+                Self { raw, len: length }
+            }
+
+            fn as_deref(&self) -> &Self::Deref {
+                &()
             }
 
             fn len(&self) -> usize {
                 self.len
             }
 
-            unsafe fn set_len(&mut self, length: usize) {
-                self.len = length
+            fn len_mut(&mut self) -> &mut usize {
+                &mut self.len
             }
 
             fn raw(&self) -> Self::Raw {
                 self.raw
+            }
+
+            fn raw_mut(&mut self) -> &mut Self::Raw {
+                &mut self.raw
             }
         }
 
