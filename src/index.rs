@@ -1,10 +1,10 @@
 use std::{
     marker::PhantomData,
-    ops::{RangeFull, RangeTo},
+    ops::{RangeFull, RangeTo, RangeToInclusive},
 };
 
 use crate::{slice_mut::SliceMut, Slice, SliceRef};
-use soapy_shared::{SoaRaw, Soapy};
+use soapy_shared::{SliceData, SoaRaw, Soapy};
 
 /// A helper trait for indexing operations.
 pub trait SoaIndex<T>
@@ -90,7 +90,7 @@ where
 
     fn get<'a>(self, slice: &'a Slice<T>) -> Option<Self::Output<'a>> {
         Some(SliceRef(
-            Slice(soapy_shared::SliceData {
+            Slice(SliceData {
                 len: self.end,
                 raw: slice.0.raw,
             }),
@@ -100,8 +100,41 @@ where
 
     fn get_mut<'a>(self, slice: &'a mut Slice<T>) -> Option<Self::OutputMut<'a>> {
         Some(SliceMut(
-            Slice(soapy_shared::SliceData {
+            Slice(SliceData {
                 len: self.end,
+                raw: slice.0.raw,
+            }),
+            PhantomData,
+        ))
+    }
+}
+
+impl<T> SoaIndex<T> for RangeToInclusive<usize>
+where
+    T: Soapy,
+{
+    type Output<'a> = SliceRef<'a, T>
+    where
+        T: 'a;
+
+    type OutputMut<'a> = SliceMut<'a, T>
+    where
+        T: 'a;
+
+    fn get<'a>(self, slice: &'a Slice<T>) -> Option<Self::Output<'a>> {
+        Some(SliceRef(
+            Slice(SliceData {
+                len: self.end + 1,
+                raw: slice.0.raw,
+            }),
+            PhantomData,
+        ))
+    }
+
+    fn get_mut<'a>(self, slice: &'a mut Slice<T>) -> Option<Self::OutputMut<'a>> {
+        Some(SliceMut(
+            Slice(SliceData {
+                len: self.end + 1,
                 raw: slice.0.raw,
             }),
             PhantomData,
