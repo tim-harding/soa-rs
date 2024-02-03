@@ -42,8 +42,6 @@ pub fn zst_struct(ident: Ident, vis: Visibility, kind: ZstKind) -> TokenStream {
             #[inline]
             fn dangling() -> Self { Self }
             #[inline]
-            fn as_ptr(self) -> *mut u8 { ::std::ptr::null::<u8>() as *mut _ }
-            #[inline]
             unsafe fn from_parts(ptr: *mut u8, capacity: usize) -> Self { Self }
             #[inline]
             unsafe fn alloc(capacity: usize) -> Self { Self }

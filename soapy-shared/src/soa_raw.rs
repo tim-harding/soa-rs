@@ -27,13 +27,6 @@ pub unsafe trait SoaRaw: Copy + Clone {
     /// allocating memory.
     fn dangling() -> Self;
 
-    /// Returns the pointer that contains the allocated capacity.
-    ///
-    /// The pointer will point to invalid memory in these circumstances:
-    /// - `PREV_CAP == 0`
-    /// - `size_of::<T>() == 0`
-    fn as_ptr(self) -> *mut u8;
-
     /// Construct a new `Self` with the given pointer and capacity.
     ///
     /// # Safety
