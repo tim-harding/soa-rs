@@ -12,14 +12,14 @@ use std::{
 /// A growable array type that stores the values for each field of `T`
 /// contiguously.
 #[repr(transparent)]
-pub struct Slice<T>(pub(crate) SliceData<T::Raw>)
+pub struct SliceRaw<T>(pub(crate) SliceData<T::Raw>)
 where
     T: Soapy;
 
-unsafe impl<T> Send for Slice<T> where T: Send + Soapy {}
-unsafe impl<T> Sync for Slice<T> where T: Sync + Soapy {}
+unsafe impl<T> Send for SliceRaw<T> where T: Send + Soapy {}
+unsafe impl<T> Sync for SliceRaw<T> where T: Sync + Soapy {}
 
-impl<T> Slice<T>
+impl<T> SliceRaw<T>
 where
     T: Soapy,
 {
@@ -574,7 +574,7 @@ where
     }
 }
 
-impl<'a, T> IntoIterator for &'a Slice<T>
+impl<'a, T> IntoIterator for &'a SliceRaw<T>
 where
     T: Soapy,
 {
@@ -591,7 +591,7 @@ where
     }
 }
 
-impl<'a, T> IntoIterator for &'a mut Slice<T>
+impl<'a, T> IntoIterator for &'a mut SliceRaw<T>
 where
     T: Soapy,
 {
@@ -608,7 +608,7 @@ where
     }
 }
 
-impl<T> PartialEq for Slice<T>
+impl<T> PartialEq for SliceRaw<T>
 where
     T: Soapy + PartialEq,
 {
@@ -627,7 +627,7 @@ where
     }
 }
 
-impl<T, R> PartialEq<R> for Slice<T>
+impl<T, R> PartialEq<R> for SliceRaw<T>
 where
     T: Soapy + PartialEq,
     R: AsRef<[T]>,
@@ -653,9 +653,9 @@ where
     }
 }
 
-impl<T> Eq for Slice<T> where T: Soapy + Eq {}
+impl<T> Eq for SliceRaw<T> where T: Soapy + Eq {}
 
-impl<T> fmt::Debug for Slice<T>
+impl<T> fmt::Debug for SliceRaw<T>
 where
     T: Soapy + fmt::Debug,
 {
@@ -668,7 +668,7 @@ where
     }
 }
 
-impl<T> PartialOrd for Slice<T>
+impl<T> PartialOrd for SliceRaw<T>
 where
     T: Soapy + PartialOrd,
 {
@@ -682,7 +682,7 @@ where
     }
 }
 
-impl<T> Ord for Slice<T>
+impl<T> Ord for SliceRaw<T>
 where
     T: Soapy + Ord,
 {
@@ -694,7 +694,7 @@ where
     }
 }
 
-impl<T> Default for Slice<T>
+impl<T> Default for SliceRaw<T>
 where
     T: Soapy,
 {
@@ -703,7 +703,7 @@ where
     }
 }
 
-impl<T> Hash for Slice<T>
+impl<T> Hash for SliceRaw<T>
 where
     T: Soapy + Hash,
 {
@@ -713,7 +713,7 @@ where
     }
 }
 
-impl<T> Deref for Slice<T>
+impl<T> Deref for SliceRaw<T>
 where
     T: Soapy,
 {
@@ -724,7 +724,7 @@ where
     }
 }
 
-impl<T> DerefMut for Slice<T>
+impl<T> DerefMut for SliceRaw<T>
 where
     T: Soapy,
 {

@@ -1,4 +1,4 @@
-use crate::slice::Slice;
+use crate::slice_raw::SliceRaw;
 use soapy_shared::{SoaRaw, Soapy};
 
 /// A helper trait for indexing operations.
@@ -17,10 +17,10 @@ where
         T: 'a;
 
     /// Returns the output at this location, if in bounds.
-    fn get(self, slice: &Slice<T>) -> Option<Self::Output<'_>>;
+    fn get(self, slice: &SliceRaw<T>) -> Option<Self::Output<'_>>;
 
     /// Returns the mutable output at this location, if in bounds.
-    fn get_mut(self, slice: &mut Slice<T>) -> Option<Self::OutputMut<'_>>;
+    fn get_mut(self, slice: &mut SliceRaw<T>) -> Option<Self::OutputMut<'_>>;
 }
 
 impl<T> SoaIndex<T> for usize
@@ -33,7 +33,7 @@ where
     where
         T: 'a;
 
-    fn get(self, slice: &Slice<T>) -> Option<Self::Output<'_>> {
+    fn get(self, slice: &SliceRaw<T>) -> Option<Self::Output<'_>> {
         if self < slice.0.len {
             Some(unsafe { slice.0.raw.get_ref(self) })
         } else {
@@ -41,7 +41,7 @@ where
         }
     }
 
-    fn get_mut(self, slice: &mut Slice<T>) -> Option<Self::OutputMut<'_>> {
+    fn get_mut(self, slice: &mut SliceRaw<T>) -> Option<Self::OutputMut<'_>> {
         if self < slice.0.len {
             Some(unsafe { slice.0.raw.get_mut(self) })
         } else {

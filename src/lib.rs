@@ -76,18 +76,29 @@
 //! struct, you should consider whether to include them in the `pub` items of
 //! your module.
 
-mod index;
-mod into_iter;
-mod iter;
-mod iter_mut;
-mod slice;
 mod soa;
-
-pub use into_iter::IntoIter;
-pub use iter::Iter;
-pub use iter_mut::IterMut;
 pub use soa::Soa;
+
+mod index;
+pub use index::SoaIndex;
+
+mod into_iter;
+pub use into_iter::IntoIter;
+
+mod iter;
+pub use iter::Iter;
+
+mod iter_mut;
+pub use iter_mut::IterMut;
+
+mod slice_raw;
+
 pub use soapy_shared::{Soapy, WithRef};
+
+/// Derive macro for the [`Soapy`] trait.
+///
+/// [`Soapy`]: soapy_shared::Soapy
+pub use soapy_derive::Soapy;
 
 /// Creates a [`Soa`] containing the arguments.
 ///
@@ -130,11 +141,6 @@ macro_rules! soa {
         [$elem; $n].into_iter().collect::<$crate::Soa<_>>()
     }
 }
-
-/// Derive macro for the [`Soapy`] trait.
-///
-/// [`Soapy`]: soapy_shared::Soapy
-pub use soapy_derive::Soapy;
 
 #[cfg(test)]
 mod tests {

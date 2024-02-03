@@ -1,4 +1,4 @@
-use crate::{slice::Slice, IntoIter, Iter, IterMut};
+use crate::{slice_raw::SliceRaw, IntoIter, Iter, IterMut};
 use soapy_shared::{SoaRaw, Soapy};
 use std::{
     cmp::Ordering,
@@ -15,7 +15,7 @@ where
     T: Soapy,
 {
     pub(crate) cap: usize,
-    pub(crate) slice: Slice<T>,
+    pub(crate) slice: SliceRaw<T>,
 }
 
 unsafe impl<T> Send for Soa<T> where T: Send + Soapy {}
@@ -43,7 +43,7 @@ where
     pub fn new() -> Self {
         Self {
             cap: if size_of::<T>() == 0 { usize::MAX } else { 0 },
-            slice: Slice::empty(),
+            slice: SliceRaw::empty(),
         }
     }
 
@@ -92,12 +92,12 @@ where
                 if size_of::<T>() == 0 {
                     Self {
                         cap: usize::MAX,
-                        slice: Slice::empty(),
+                        slice: SliceRaw::empty(),
                     }
                 } else {
                     Self {
                         cap: capacity,
-                        slice: unsafe { Slice::from_raw_parts(T::Raw::alloc(capacity), 0) },
+                        slice: unsafe { SliceRaw::from_raw_parts(T::Raw::alloc(capacity), 0) },
                     }
                 }
             }
@@ -163,7 +163,7 @@ where
     pub unsafe fn from_raw_parts(raw: T::Raw, length: usize, capacity: usize) -> Self {
         Self {
             cap: capacity,
-            slice: unsafe { Slice::from_raw_parts(raw, length) },
+            slice: unsafe { SliceRaw::from_raw_parts(raw, length) },
         }
     }
 
@@ -988,11 +988,11 @@ where
     }
 }
 
-impl<T> AsRef<Slice<T>> for Soa<T>
+impl<T> AsRef<SliceRaw<T>> for Soa<T>
 where
     T: Soapy,
 {
-    fn as_ref(&self) -> &Slice<T> {
+    fn as_ref(&self) -> &SliceRaw<T> {
         &self.slice
     }
 }
@@ -1001,7 +1001,7 @@ impl<T> Deref for Soa<T>
 where
     T: Soapy,
 {
-    type Target = Slice<T>;
+    type Target = SliceRaw<T>;
 
     fn deref(&self) -> &Self::Target {
         &self.slice
