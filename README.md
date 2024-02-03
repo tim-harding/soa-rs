@@ -10,6 +10,7 @@ is to array-of-structures (AoS), `Soa<T>` is to structure-of-arrays (SoA).
 ## Example
 
 ```rust
+# use soapy::{Soa, Soapy};
 #[derive(Soapy, Debug, Clone, Copy, PartialEq)]
 struct Example {
     foo: u8,
@@ -23,9 +24,8 @@ let mut soa: Soa<_> = elements.into_iter().collect();
 *soa.nth_mut(0).foo += 10;
 
 // We can get the fields as slices as well:
-let slices = soa.slices();
-assert_eq!(slices.foo, &[11, 3][..]);
-assert_eq!(slices.bar, &[2, 4][..]);
+assert_eq!(soa.foo(), &[11, 3][..]);
+assert_eq!(soa.bar(), &[2, 4][..]);
 
 for (actual, expected) in soa.iter().zip(elements.iter()) {
     assert_eq!(&expected.bar, actual.bar);
@@ -35,7 +35,7 @@ for (actual, expected) in soa.iter().zip(elements.iter()) {
 ## What is SoA?
 
 The following types illustrate the difference between AoS and SoA:
-```
+```text
 [(u8,   u64)] // AoS
 ([u8], [u64]) // SoA
 ```

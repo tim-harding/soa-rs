@@ -49,7 +49,7 @@ pub use soapy_derive::Soapy;
 /// ```
 /// # use soapy::{Soapy, soa};
 /// # #[derive(Soapy, Debug, PartialEq, Copy, Clone)]
-/// # #[extra_impl(Debug)]
+/// # #[extra_impl(Debug, PartialEq)]
 /// # struct Foo(u8, u16);
 /// let soa = soa![Foo(1, 2); 2];
 /// assert_eq!(soa, [Foo(1, 2); 2]);
@@ -60,15 +60,37 @@ macro_rules! soa {
         $crate::Soa::new()
     };
 
-    ($($e:expr),*) => {
-        // TODO: Downside, does this array have to be constructed on the stack?
-        [$($e),*].into_iter().collect::<$crate::Soa<_>>()
+    ($x:expr $(,$xs:expr)*) => {
+        {
+            let mut out = $crate::Soa::with($x);
+            $(
+            out.push($xs);
+            )*
+            out
+        }
+    };
+
+    ($elem:expr; 0) => {
+        soa![]
+    };
+
+    ($elem:expr; 1) => {
+        $crate::Soa::with($elem)
     };
 
     ($elem:expr; $n:expr) => {
-        // TODO: Support Clone types in addition to Copy
-        [$elem; $n].into_iter().collect::<$crate::Soa<_>>()
-    }
+        {
+            let mut out = $crate::Soa::with($elem);
+            for _ in 1..$n {
+                let first = out.first();
+                // SAFETY: We already added the first element in Soa::with
+                let first = unsafe { first.unwrap_unchecked() };
+                let clone = $crate::WithRef::with_ref(&first, |first| first.clone());
+                out.push(clone);
+            }
+            out
+        }
+    };
 }
 
 #[cfg(test)]

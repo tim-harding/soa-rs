@@ -573,6 +573,25 @@ where
             self.0.raw.set(b, tmp);
         }
     }
+
+    /// Returns the first element of the slice, or None if empty
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use soapy::{Soa, Soapy, soa};
+    /// # #[derive(Soapy, Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
+    /// # #[extra_impl(Debug, PartialEq)]
+    /// # struct Foo(usize);
+    /// let mut soa = Soa::<Foo>::new();
+    /// assert_eq!(soa.first(), None);
+    /// soa.push(Foo(10));
+    /// soa.push(Foo(20));
+    /// assert_eq!(soa.first(), Some(FooSoaRef(&10)));
+    /// ```
+    pub fn first(&self) -> Option<T::Ref<'_>> {
+        self.get(0)
+    }
 }
 
 impl<'a, T> IntoIterator for &'a SliceRaw<T>

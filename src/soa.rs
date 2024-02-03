@@ -104,6 +104,30 @@ where
         }
     }
 
+    /// Constructs a new `Soa<T>` with the given first element.
+    ///
+    /// This is mainly useful to get around type inference limitations in some
+    /// situations, namely macros. Type inference can struggle sometimes due to
+    /// dereferencing to an associated type of `T`, which causes Rust to get
+    /// confused about whether, for example, `push`ing and element should coerce
+    /// `self` to the argument's type.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use soapy::{Soa, Soapy, soa};
+    /// # #[derive(Soapy, Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
+    /// # #[extra_impl(Debug, PartialEq)]
+    /// # struct Foo(usize);
+    /// let soa = Soa::with(Foo(10));
+    /// assert_eq!(soa, [Foo(10)]);
+    /// ```
+    pub fn with(element: T) -> Self {
+        let mut out = Self::new();
+        out.push(element);
+        out
+    }
+
     /// Returns the total number of elements the container can hold without
     /// reallocating.
     ///
