@@ -42,7 +42,7 @@ pub fn fields_struct(
     let slices_mut = format_ident!("{ident}SoaSlicesMut");
     let item_ref = format_ident!("{ident}SoaRef");
     let item_ref_mut = format_ident!("{ident}SoaRefMut");
-    let raw = format_ident!("{ident}RawSoa");
+    let raw = format_ident!("{ident}SoaRaw");
 
     let mut out = TokenStream::new();
 
@@ -281,7 +281,7 @@ pub fn fields_struct(
 
         #[automatically_derived]
         impl ::soapy_shared::Soapy for #ident {
-            type RawSoa = #raw;
+            type Raw = #raw;
             type Deref = #deref;
             type Slices<'a> = #slices<'a> where Self: 'a;
             type SlicesMut<'a> = #slices_mut<'a> where Self: 'a;
@@ -320,7 +320,7 @@ pub fn fields_struct(
         }
 
         #[automatically_derived]
-        unsafe impl ::soapy_shared::RawSoa for #raw {
+        unsafe impl ::soapy_shared::SoaRaw for #raw {
             type Item = #ident;
 
             #[inline]

@@ -12,8 +12,8 @@
 mod slices;
 pub use slices::Slices;
 
-mod raw_soa;
-pub use raw_soa::RawSoa;
+mod soa_raw;
+pub use soa_raw::SoaRaw;
 
 mod with_ref;
 pub use with_ref::WithRef;

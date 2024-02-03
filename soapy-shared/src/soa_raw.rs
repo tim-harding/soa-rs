@@ -20,7 +20,7 @@ use crate::Soapy;
 /// made, or
 /// - the same value as was used for `new_capacity` in previous calls
 /// to [`RawSoa::realloc_grow`] and [`RawSoa::realloc_shrink`]
-pub unsafe trait RawSoa: Copy + Clone {
+pub unsafe trait SoaRaw: Copy + Clone {
     type Item: Soapy;
 
     /// Creates a `Self` with dangling pointers for all its fields and without

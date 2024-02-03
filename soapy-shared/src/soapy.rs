@@ -1,11 +1,11 @@
-use crate::{RawSoa, WithRef};
+use crate::{SoaRaw, WithRef};
 
 /// Provides SOA data structure compatibility.
 ///
 /// This trait should be derived using the `soapy-derive` crate.
 pub trait Soapy: Sized {
     /// Implements internal, unsafe, low-level routines used by `Soa`
-    type RawSoa: RawSoa<Item = Self>;
+    type Raw: SoaRaw<Item = Self>;
 
     type Deref;
 

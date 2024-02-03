@@ -1,4 +1,4 @@
-use soapy_shared::{RawSoa, Soapy};
+use soapy_shared::{SoaRaw, Soapy};
 use std::mem::size_of;
 
 /// An iterator that moves out of a [`Soa`].
@@ -12,7 +12,7 @@ pub struct IntoIter<T>
 where
     T: Soapy,
 {
-    pub(crate) raw: T::RawSoa,
+    pub(crate) raw: T::Raw,
     pub(crate) cap: usize,
     pub(crate) start: usize,
     pub(crate) end: usize,

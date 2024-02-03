@@ -3,7 +3,7 @@ use quote::{format_ident, quote};
 use syn::Visibility;
 
 pub fn zst_struct(ident: Ident, vis: Visibility, kind: ZstKind) -> TokenStream {
-    let raw = format_ident!("{ident}RawSoa");
+    let raw = format_ident!("{ident}SoaRaw");
     let unit_construct = match kind {
         ZstKind::Unit => quote! {},
         ZstKind::Empty => quote! { {} },
@@ -13,7 +13,7 @@ pub fn zst_struct(ident: Ident, vis: Visibility, kind: ZstKind) -> TokenStream {
     quote! {
         #[automatically_derived]
         impl ::soapy_shared::Soapy for #ident {
-            type RawSoa = #raw;
+            type Raw = #raw;
             type Deref = ();
             type Slices<'a> = ();
             type SlicesMut<'a> = ();
@@ -38,7 +38,7 @@ pub fn zst_struct(ident: Ident, vis: Visibility, kind: ZstKind) -> TokenStream {
         #vis struct #raw;
 
         #[automatically_derived]
-        unsafe impl ::soapy_shared::RawSoa for #raw {
+        unsafe impl ::soapy_shared::SoaRaw for #raw {
             type Item = #ident;
 
             #[inline]

@@ -1,5 +1,5 @@
 use crate::{index::SoaIndex, Iter, IterMut};
-use soapy_shared::{RawSoa, Soapy};
+use soapy_shared::{SoaRaw, Soapy};
 use std::{
     cmp::Ordering,
     fmt::{self, Formatter},
@@ -16,7 +16,7 @@ where
     T: Soapy,
 {
     pub(crate) len: usize,
-    pub(crate) raw: T::RawSoa,
+    pub(crate) raw: T::Raw,
 }
 
 unsafe impl<T> Send for Slice<T> where T: Send + Soapy {}
@@ -40,7 +40,7 @@ where
     pub fn empty() -> Self {
         Self {
             len: 0,
-            raw: T::RawSoa::dangling(),
+            raw: T::Raw::dangling(),
         }
     }
 
@@ -100,7 +100,7 @@ where
     /// let rebuilt = unsafe { Soa::from_raw_parts(ptr, len, cap) };
     /// assert_eq!(rebuilt, [Foo(1), Foo(2)]);
     /// ```
-    pub fn into_raw_parts(self) -> (T::RawSoa, usize) {
+    pub fn into_raw_parts(self) -> (T::Raw, usize) {
         (self.raw, self.len)
     }
 
@@ -110,10 +110,10 @@ where
     ///
     /// This is highly unsafe due to the number of invariants that aren't
     /// checked. Given that many of these invariants are private implementation
-    /// details of [`RawSoa`], it is better not to uphold them manually. Rather,
+    /// details of [`Raw`], it is better not to uphold them manually. Rather,
     /// it only valid to call this method with the output of a previous call to
     /// [`Soa::into_raw_parts`].
-    pub unsafe fn from_raw_parts(raw: T::RawSoa, length: usize) -> Self {
+    pub unsafe fn from_raw_parts(raw: T::Raw, length: usize) -> Self {
         Self { len: length, raw }
     }
 
@@ -805,7 +805,7 @@ impl<T> Deref for Slice<T>
 where
     T: Soapy,
 {
-    type Target = T::RawSoa;
+    type Target = T::Raw;
 
     fn deref(&self) -> &Self::Target {
         &self.raw

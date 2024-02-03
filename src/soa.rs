@@ -1,5 +1,5 @@
 use crate::{slice::Slice, IntoIter, Iter, IterMut};
-use soapy_shared::{RawSoa, Soapy};
+use soapy_shared::{SoaRaw, Soapy};
 use std::{
     cmp::Ordering,
     fmt::{self, Formatter},
@@ -97,7 +97,7 @@ where
                 } else {
                     Self {
                         cap: capacity,
-                        slice: unsafe { Slice::from_raw_parts(T::RawSoa::alloc(capacity), 0) },
+                        slice: unsafe { Slice::from_raw_parts(T::Raw::alloc(capacity), 0) },
                     }
                 }
             }
@@ -146,7 +146,7 @@ where
     /// let rebuilt = unsafe { Soa::from_raw_parts(ptr, len, cap) };
     /// assert_eq!(rebuilt, [Foo(1), Foo(2)]);
     /// ```
-    pub fn into_raw_parts(self) -> (T::RawSoa, usize, usize) {
+    pub fn into_raw_parts(self) -> (T::Raw, usize, usize) {
         let me = ManuallyDrop::new(self);
         (me.slice.raw, me.slice.len, me.cap)
     }
@@ -157,10 +157,10 @@ where
     ///
     /// This is highly unsafe due to the number of invariants that aren't
     /// checked. Given that many of these invariants are private implementation
-    /// details of [`RawSoa`], it is better not to uphold them manually. Rather,
+    /// details of [`SoaRaw`], it is better not to uphold them manually. Rather,
     /// it only valid to call this method with the output of a previous call to
     /// [`Soa::into_raw_parts`].
-    pub unsafe fn from_raw_parts(raw: T::RawSoa, length: usize, capacity: usize) -> Self {
+    pub unsafe fn from_raw_parts(raw: T::Raw, length: usize, capacity: usize) -> Self {
         Self {
             cap: capacity,
             slice: unsafe { Slice::from_raw_parts(raw, length) },
@@ -759,7 +759,7 @@ where
             unsafe {
                 self.slice.dealloc(self.cap);
             }
-            self.slice.raw = T::RawSoa::dangling();
+            self.slice.raw = T::Raw::dangling();
         } else {
             debug_assert!(new_cap < self.cap);
             debug_assert!(self.slice.len <= new_cap);
@@ -780,7 +780,7 @@ where
 
         if self.cap == 0 {
             debug_assert!(new_cap > 0);
-            self.slice.raw = unsafe { T::RawSoa::alloc(new_cap) };
+            self.slice.raw = unsafe { T::Raw::alloc(new_cap) };
         } else {
             debug_assert!(self.slice.len <= self.cap);
             unsafe {

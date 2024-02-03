@@ -1,8 +1,8 @@
-use crate::RawSoa;
+use crate::SoaRaw;
 
 pub struct SliceRaw<T>
 where
-    T: RawSoa,
+    T: SoaRaw,
 {
     pub len: usize,
     pub raw: T,

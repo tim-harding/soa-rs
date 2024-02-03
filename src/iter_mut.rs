@@ -1,4 +1,4 @@
-use soapy_shared::{RawSoa, Soapy};
+use soapy_shared::{SoaRaw, Soapy};
 use std::marker::PhantomData;
 
 /// Mutable [`Soa`] iterator.
@@ -11,7 +11,7 @@ pub struct IterMut<'a, T>
 where
     T: Soapy,
 {
-    pub(crate) raw: T::RawSoa,
+    pub(crate) raw: T::Raw,
     pub(crate) start: usize,
     pub(crate) end: usize,
     pub(crate) _marker: PhantomData<&'a mut T>,

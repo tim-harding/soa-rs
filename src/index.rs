@@ -1,5 +1,5 @@
 use crate::slice::Slice;
-use soapy_shared::{RawSoa, Soapy};
+use soapy_shared::{SoaRaw, Soapy};
 use std::ops::{Range, RangeFrom, RangeFull, RangeInclusive, RangeTo, RangeToInclusive};
 
 /// A helper trait for indexing operations.
