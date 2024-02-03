@@ -12,9 +12,9 @@ pub unsafe trait Soapy: Sized {
     ///
     /// # Safety
     ///
-    /// Must be `#[repr(transparent)]` with a [`SliceRaw<Self::Raw>`].
+    /// Must be `#[repr(transparent)]` with a [`SliceData<Self::Raw>`].
     ///
-    /// [`SliceRaw<Self::Raw>`]: crate::SliceRaw
+    /// [`SliceData<Self::Raw>`]: crate::SliceData
     type Deref;
 
     /// For each field with type `F` in `T`, `Ref` has a field with type

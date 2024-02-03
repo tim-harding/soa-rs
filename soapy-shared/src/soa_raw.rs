@@ -16,10 +16,10 @@ use crate::Soapy;
 ///
 /// In the method documentation, it is established that `PREV_CAP` is
 ///
-/// - 0 if no previous calls to [`RawSoa::realloc_grow`] or [`RawSoa::realloc_shrink`] have been
+/// - 0 if no previous calls to [`SoaRaw::realloc_grow`] or [`SoaRaw::realloc_shrink`] have been
 /// made, or
 /// - the same value as was used for `new_capacity` in previous calls
-/// to [`RawSoa::realloc_grow`] and [`RawSoa::realloc_shrink`]
+/// to [`SoaRaw::realloc_grow`] and [`SoaRaw::realloc_shrink`]
 pub unsafe trait SoaRaw: Copy + Clone {
     type Item: Soapy;
 
@@ -50,7 +50,7 @@ pub unsafe trait SoaRaw: Copy + Clone {
     ///
     /// - `size_of::<T>() > 0`
     /// - `capacity > 0`
-    /// - `PREV_CAP == 0` (Otherwise use [`RawSoa::realloc_grow`])
+    /// - `PREV_CAP == 0` (Otherwise use [`SoaRaw::realloc_grow`])
     unsafe fn alloc(capacity: usize) -> Self;
 
     /// Grows the allocation with room for `old_capacity` elements to fit
@@ -64,7 +64,7 @@ pub unsafe trait SoaRaw: Copy + Clone {
     /// - `size_of::<T>() > 0`
     /// - `new_capacity > old_capacity`
     /// - `length <= old_capacity`
-    /// - `old_capacity > 0` (Otherwise use [`RawSoa::alloc`])
+    /// - `old_capacity > 0` (Otherwise use [`SoaRaw::alloc`])
     unsafe fn realloc_grow(&mut self, old_capacity: usize, new_capacity: usize, length: usize);
 
     /// Shrinks the allocation with room for `old_capacity` elements to fit
@@ -78,11 +78,11 @@ pub unsafe trait SoaRaw: Copy + Clone {
     /// - `size_of::<T>() > 0`
     /// - `new_capacity < old_capacity`
     /// - `length <= new_capacity`
-    /// - `old_capacity > 0` (Otherwise use [`RawSoa::dealloc`])
+    /// - `old_capacity > 0` (Otherwise use [`SoaRaw::dealloc`])
     unsafe fn realloc_shrink(&mut self, old_capacity: usize, new_capacity: usize, length: usize);
 
     /// Deallocates the allocation with room for `capacity` elements. The state
-    /// after calling this method is equivalent to [`RawSoa::dangling`].
+    /// after calling this method is equivalent to [`SoaRaw::dangling`].
     ///
     /// # Safety
     ///

@@ -34,10 +34,10 @@ for (actual, expected) in soa.iter().zip(elements.iter()) {
 
 ## What is SoA?
 
-The following types illustrate the difference between AoS and Soa:
+The following types illustrate the difference between AoS and SoA:
 ```
 [(u8,   u64)] // AoS
-([u8], [u64]) // Soa
+([u8], [u64]) // SoA
 ```
 
 Whereas AoS stores all the fields of a type in each element of the array,
