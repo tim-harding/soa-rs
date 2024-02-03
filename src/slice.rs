@@ -377,9 +377,10 @@ where
     /// # #[derive(Soapy, Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
     /// # #[extra_impl(PartialEq, Debug)]
     /// # struct Foo(usize);
-    /// let soa = soa![Foo(10), Foo(40), Foo(30)];
+    /// let soa = soa![Foo(10), Foo(40), Foo(30), Foo(20)];
     /// assert_eq!(soa.get(1).unwrap(), Foo(40));
-    /// assert_eq!(soa.get(..).unwrap(), [Foo(10), Foo(40), Foo(30)]);
+    /// assert_eq!(soa.get(..).unwrap(), [Foo(10), Foo(40), Foo(30), Foo(20)]);
+    /// assert_eq!(soa.get(..2).unwrap(), [Foo(10), Foo(40)]);
     /// ```
     pub fn get<I>(&self, index: I) -> Option<I::Output<'_>>
     where

@@ -1,6 +1,9 @@
-use std::{marker::PhantomData, ops::RangeFull};
+use std::{
+    marker::PhantomData,
+    ops::{RangeFull, RangeTo},
+};
 
-use crate::{slice_mut::SliceMut, SliceRef};
+use crate::{slice_mut::SliceMut, Slice, SliceRef};
 use soapy_shared::{SoaRaw, Soapy};
 
 /// A helper trait for indexing operations.
@@ -19,10 +22,10 @@ where
         T: 'a;
 
     /// Returns the output at this location, if in bounds.
-    fn get<'a>(self, slice: &'a SliceRef<T>) -> Option<Self::Output<'a>>;
+    fn get<'a>(self, slice: &'a Slice<T>) -> Option<Self::Output<'a>>;
 
     /// Returns the mutable output at this location, if in bounds.
-    fn get_mut<'a>(self, slice: &'a mut SliceMut<T>) -> Option<Self::OutputMut<'a>>;
+    fn get_mut<'a>(self, slice: &'a mut Slice<T>) -> Option<Self::OutputMut<'a>>;
 }
 
 impl<T> SoaIndex<T> for usize
@@ -35,17 +38,17 @@ where
     where
         T: 'a;
 
-    fn get<'a>(self, slice: &'a SliceRef<T>) -> Option<Self::Output<'a>> {
+    fn get<'a>(self, slice: &'a Slice<T>) -> Option<Self::Output<'a>> {
         if self < slice.len() {
-            Some(unsafe { slice.0 .0.raw.get_ref(self) })
+            Some(unsafe { slice.0.raw.get_ref(self) })
         } else {
             None
         }
     }
 
-    fn get_mut<'a>(self, slice: &'a mut SliceMut<T>) -> Option<Self::OutputMut<'a>> {
+    fn get_mut<'a>(self, slice: &'a mut Slice<T>) -> Option<Self::OutputMut<'a>> {
         if self < slice.len() {
-            Some(unsafe { slice.0 .0.raw.get_mut(self) })
+            Some(unsafe { slice.0.raw.get_mut(self) })
         } else {
             None
         }
@@ -64,12 +67,44 @@ where
     where
         T: 'a;
 
-    fn get<'a>(self, slice: &'a SliceRef<T>) -> Option<Self::Output<'a>> {
-        Some(*slice)
+    fn get<'a>(self, slice: &'a Slice<T>) -> Option<Self::Output<'a>> {
+        Some(SliceRef(*slice, PhantomData))
     }
 
-    fn get_mut<'a>(self, slice: &'a mut SliceMut<T>) -> Option<Self::OutputMut<'a>> {
-        // TODO: Verify that the input slice cannot be accessed while this value lives
-        Some(SliceMut(slice.0, PhantomData))
+    fn get_mut<'a>(self, slice: &'a mut Slice<T>) -> Option<Self::OutputMut<'a>> {
+        Some(SliceMut(Slice(slice.0), PhantomData))
+    }
+}
+
+impl<T> SoaIndex<T> for RangeTo<usize>
+where
+    T: Soapy,
+{
+    type Output<'a> = SliceRef<'a, T>
+    where
+        T: 'a;
+
+    type OutputMut<'a> = SliceMut<'a, T>
+    where
+        T: 'a;
+
+    fn get<'a>(self, slice: &'a Slice<T>) -> Option<Self::Output<'a>> {
+        Some(SliceRef(
+            Slice(soapy_shared::SliceData {
+                len: self.end,
+                raw: slice.0.raw,
+            }),
+            PhantomData,
+        ))
+    }
+
+    fn get_mut<'a>(self, slice: &'a mut Slice<T>) -> Option<Self::OutputMut<'a>> {
+        Some(SliceMut(
+            Slice(soapy_shared::SliceData {
+                len: self.end,
+                raw: slice.0.raw,
+            }),
+            PhantomData,
+        ))
     }
 }
