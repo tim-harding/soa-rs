@@ -91,6 +91,11 @@ pub use iter::Iter;
 mod iter_mut;
 pub use iter_mut::IterMut;
 
+mod slice;
+pub use slice::Slice;
+
+mod slice_mut;
+
 mod slice_raw;
 
 pub use soapy_shared::{Soapy, WithRef};

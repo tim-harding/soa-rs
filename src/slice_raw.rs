@@ -11,6 +11,7 @@ use std::{
 
 /// A growable array type that stores the values for each field of `T`
 /// contiguously.
+#[derive(Copy, Clone)]
 #[repr(transparent)]
 pub struct SliceRaw<T>(pub(crate) SliceData<T::Raw>)
 where
