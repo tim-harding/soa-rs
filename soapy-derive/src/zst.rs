@@ -4,7 +4,6 @@ use syn::Visibility;
 
 pub fn zst_struct(ident: Ident, vis: Visibility, kind: ZstKind) -> TokenStream {
     let raw = format_ident!("{ident}RawSoa");
-    let slice = format_ident!("{ident}SoaSlice");
     let unit_construct = match kind {
         ZstKind::Unit => quote! {},
         ZstKind::Empty => quote! { {} },
@@ -15,7 +14,6 @@ pub fn zst_struct(ident: Ident, vis: Visibility, kind: ZstKind) -> TokenStream {
         #[automatically_derived]
         impl ::soapy_shared::Soapy for #ident {
             type RawSoa = #raw;
-            type Slice = #slice;
             type Deref = ();
             type Slices<'a> = ();
             type SlicesMut<'a> = ();
@@ -38,41 +36,6 @@ pub fn zst_struct(ident: Ident, vis: Visibility, kind: ZstKind) -> TokenStream {
         #[automatically_derived]
         #[derive(Copy, Clone)]
         #vis struct #raw;
-
-        #[automatically_derived]
-        #vis struct #slice {
-            raw: #raw,
-            len: usize,
-        }
-
-        impl ::soapy_shared::Slice for #slice {
-            type Raw = #raw;
-            type Deref = ();
-
-            fn from_raw_parts(raw: Self::Raw, length: usize) -> Self {
-                Self { raw, len: length }
-            }
-
-            fn as_deref(&self) -> &Self::Deref {
-                &()
-            }
-
-            fn len(&self) -> usize {
-                self.len
-            }
-
-            fn len_mut(&mut self) -> &mut usize {
-                &mut self.len
-            }
-
-            fn raw(&self) -> Self::Raw {
-                self.raw
-            }
-
-            fn raw_mut(&mut self) -> &mut Self::Raw {
-                &mut self.raw
-            }
-        }
 
         #[automatically_derived]
         unsafe impl ::soapy_shared::RawSoa for #raw {

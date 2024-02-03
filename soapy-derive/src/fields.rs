@@ -37,7 +37,6 @@ pub fn fields_struct(
     let ty_tail: Vec<_> = ty_all.iter().skip(1).cloned().collect();
     let ident_tail: Vec<_> = ident_all.iter().skip(1).cloned().collect();
 
-    let slice = format_ident!("{ident}SoaSlice");
     let deref = format_ident!("{ident}SoaDeref");
     let slices = format_ident!("{ident}SoaSlices");
     let slices_mut = format_ident!("{ident}SoaSlicesMut");
@@ -59,43 +58,8 @@ pub fn fields_struct(
 
     out.append_all(quote! {
         #[automatically_derived]
-        #vis struct #slice {
-            raw: #raw,
-            len: usize,
-        }
-
-        impl ::soapy_shared::Slice for #slice {
-            type Raw = #raw;
-            type Deref = #deref;
-
-            fn from_raw_parts(raw: Self::Raw, length: usize) -> Self {
-                Self { raw, len: length }
-            }
-
-            fn as_deref(&self) -> &Self::Deref {
-                unsafe { ::std::mem::transmute(self) }
-            }
-
-            fn len(&self) -> usize {
-                self.len
-            }
-
-            fn len_mut(&mut self) -> &mut usize {
-                &mut self.len
-            }
-
-            fn raw(&self) -> Self::Raw {
-                self.raw
-            }
-
-            fn raw_mut(&mut self) -> &mut Self::Raw {
-                &mut self.raw
-            }
-        }
-
-        #[automatically_derived]
         #[repr(transparent)]
-        #vis struct #deref(#slice);
+        #vis struct #deref(::soapy_shared::SliceRaw<#raw>);
 
         impl #deref {
             #(
@@ -318,7 +282,6 @@ pub fn fields_struct(
         #[automatically_derived]
         impl ::soapy_shared::Soapy for #ident {
             type RawSoa = #raw;
-            type Slice = #slice;
             type Deref = #deref;
             type Slices<'a> = #slices<'a> where Self: 'a;
             type SlicesMut<'a> = #slices_mut<'a> where Self: 'a;

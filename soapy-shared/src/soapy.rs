@@ -1,4 +1,4 @@
-use crate::{RawSoa, Slice, WithRef};
+use crate::{RawSoa, WithRef};
 
 /// Provides SOA data structure compatibility.
 ///
@@ -7,7 +7,6 @@ pub trait Soapy: Sized {
     /// Implements internal, unsafe, low-level routines used by `Soa`
     type RawSoa: RawSoa<Item = Self>;
 
-    type Slice: Slice;
     type Deref;
 
     /// For each field with type `F` in `T`, `Slices` has a field with type
