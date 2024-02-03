@@ -1,5 +1,5 @@
 use crate::{index::SoaIndex, Iter, IterMut};
-use soapy_shared::{SoaRaw, Soapy};
+use soapy_shared::{SliceRaw, SoaRaw, Soapy};
 use std::{
     cmp::Ordering,
     fmt::{self, Formatter},
@@ -11,13 +11,9 @@ use std::{
 
 /// A growable array type that stores the values for each field of `T`
 /// contiguously.
-pub struct Slice<T>
+pub struct Slice<T>(pub(crate) SliceRaw<T::Raw>)
 where
-    T: Soapy,
-{
-    pub(crate) len: usize,
-    pub(crate) raw: T::Raw,
-}
+    T: Soapy;
 
 unsafe impl<T> Send for Slice<T> where T: Send + Soapy {}
 unsafe impl<T> Sync for Slice<T> where T: Sync + Soapy {}
@@ -38,10 +34,10 @@ where
     /// let mut soa = Soa::<Foo>::new();
     /// ```
     pub fn empty() -> Self {
-        Self {
+        Self(SliceRaw {
             len: 0,
-            raw: T::Raw::dangling(),
-        }
+            raw: <T::Raw as SoaRaw>::dangling(),
+        })
     }
 
     /// Returns the number of elements in the vector, also referred to as its
@@ -57,7 +53,7 @@ where
     /// assert_eq!(soa.len(), 3);
     /// ```
     pub fn len(&self) -> usize {
-        self.len
+        self.0.len
     }
 
     /// Returns true if the container contains no elements.
@@ -74,7 +70,7 @@ where
     /// assert!(!soa.is_empty());
     /// ```
     pub fn is_empty(&self) -> bool {
-        self.len == 0
+        self.len() == 0
     }
 
     /// Decomposes a `Soa<T>` into its raw components.
@@ -101,7 +97,7 @@ where
     /// assert_eq!(rebuilt, [Foo(1), Foo(2)]);
     /// ```
     pub fn into_raw_parts(self) -> (T::Raw, usize) {
-        (self.raw, self.len)
+        (self.0.raw, self.0.len)
     }
 
     /// Creates a `Soa<T>` from a pointer, a length, and a capacity.
@@ -114,7 +110,7 @@ where
     /// it only valid to call this method with the output of a previous call to
     /// [`Soa::into_raw_parts`].
     pub unsafe fn from_raw_parts(raw: T::Raw, length: usize) -> Self {
-        Self { len: length, raw }
+        Self(SliceRaw { len: length, raw })
     }
 
     /// Returns an iterator over the elements.
@@ -147,9 +143,9 @@ where
     /// ```
     pub fn iter(&self) -> Iter<T> {
         Iter {
-            raw: self.raw,
             start: 0,
-            end: self.len,
+            end: self.0.len,
+            raw: self.0.raw,
             _marker: PhantomData,
         }
     }
@@ -173,9 +169,9 @@ where
     /// ```
     pub fn iter_mut(&mut self) -> IterMut<T> {
         IterMut {
-            raw: self.raw,
             start: 0,
-            end: self.len,
+            end: self.0.len,
+            raw: self.0.raw,
             _marker: PhantomData,
         }
     }
@@ -244,11 +240,11 @@ where
         F: FnMut(B, &T) -> ControlFlow<B, B>,
     {
         let mut acc = init;
-        for i in 0..self.len {
+        for i in 0..self.0.len {
             // SAFETY:
             // Okay to construct an element and take its reference, so long as
             // we don't run its destructor.
-            let element = ManuallyDrop::new(unsafe { self.raw.get(i) });
+            let element = ManuallyDrop::new(unsafe { self.0.raw.get(i) });
             let result = f(acc, &element);
             match result {
                 ControlFlow::Continue(b) => acc = b,
@@ -310,13 +306,13 @@ where
         F: FnMut(B, &T, &T) -> ControlFlow<B, B>,
     {
         let mut acc = init;
-        let len = self.len.min(other.len);
+        let len = self.0.len.min(other.0.len);
         for i in 0..len {
             // SAFETY:
             // Okay to construct an element and take its reference, so long as
             // we don't run its destructor.
-            let a = ManuallyDrop::new(unsafe { self.raw.get(i) });
-            let b = ManuallyDrop::new(unsafe { other.raw.get(i) });
+            let a = ManuallyDrop::new(unsafe { self.0.raw.get(i) });
+            let b = ManuallyDrop::new(unsafe { other.0.raw.get(i) });
             let result = f(acc, &a, &b);
             match result {
                 ControlFlow::Continue(b) => acc = b,
@@ -473,10 +469,10 @@ where
     where
         T: Clone,
     {
-        if index >= self.len {
+        if index >= self.0.len {
             panic!("index out of bounds");
         }
-        let el = ManuallyDrop::new(unsafe { self.raw.get(index) });
+        let el = ManuallyDrop::new(unsafe { self.0.raw.get(index) });
         el.deref().clone()
     }
 
@@ -508,10 +504,10 @@ where
     where
         T: Copy,
     {
-        if index >= self.len {
+        if index >= self.0.len {
             panic!("index out of bounds");
         }
-        unsafe { self.raw.get(index) }
+        unsafe { self.0.raw.get(index) }
     }
 
     /// Returns a reference to the element at the given index.
@@ -547,10 +543,10 @@ where
     ///
     /// [`Index`]: std::ops::Index
     pub fn nth(&self, index: usize) -> T::Ref<'_> {
-        if index >= self.len {
+        if index >= self.0.len {
             panic!("index out of bounds");
         }
-        unsafe { self.raw.get_ref(index) }
+        unsafe { self.0.raw.get_ref(index) }
     }
 
     /// Returns a mutable reference to the element at the given index.
@@ -586,10 +582,10 @@ where
     ///
     /// [`IndexMut`]: std::ops::Index
     pub fn nth_mut(&mut self, index: usize) -> T::RefMut<'_> {
-        if index >= self.len {
+        if index >= self.0.len {
             panic!("index out of bounds");
         }
-        unsafe { self.raw.get_mut(index) }
+        unsafe { self.0.raw.get_mut(index) }
     }
 
     /// Returns slices for each of the SoA fields.
@@ -605,7 +601,7 @@ where
     /// assert_eq!(soa.slices().1, ["Howdy", "fren"]);
     /// ```
     pub fn slices(&self) -> T::Slices<'_> {
-        unsafe { self.raw.slices(0, self.len) }
+        unsafe { self.0.raw.slices(0, self.0.len) }
     }
 
     /// Returns mutable slices for each of the SoA fields.
@@ -625,7 +621,7 @@ where
     /// assert_eq!(soa, [Foo(15, "HOWDY".into()), Foo(20, "FREN".into())]);
     /// ```
     pub fn slices_mut(&mut self) -> T::SlicesMut<'_> {
-        unsafe { self.raw.slices_mut(0, self.len) }
+        unsafe { self.0.raw.slices_mut(0, self.0.len) }
     }
 
     /// Swaps the position of two elements.
@@ -650,14 +646,14 @@ where
     /// assert_eq!(soa, [Foo(0), Foo(1), Foo(4), Foo(3), Foo(2)]);
     /// ```
     pub fn swap(&mut self, a: usize, b: usize) {
-        if a >= self.len || b >= self.len {
+        if a >= self.0.len || b >= self.0.len {
             panic!("index out of bounds");
         }
 
         unsafe {
-            let tmp = self.raw.get(a);
-            self.raw.copy(b, a, 1);
-            self.raw.set(b, tmp);
+            let tmp = self.0.raw.get(a);
+            self.0.raw.copy(b, a, 1);
+            self.0.raw.set(b, tmp);
         }
     }
 }
@@ -672,8 +668,8 @@ where
     fn into_iter(self) -> Self::IntoIter {
         Iter {
             start: 0,
-            end: self.len,
-            raw: self.raw,
+            end: self.0.len,
+            raw: self.0.raw,
             _marker: PhantomData,
         }
     }
@@ -689,8 +685,8 @@ where
     fn into_iter(self) -> Self::IntoIter {
         IterMut {
             start: 0,
-            end: self.len,
-            raw: self.raw,
+            end: self.0.len,
+            raw: self.0.raw,
             _marker: PhantomData,
         }
     }
@@ -701,7 +697,7 @@ where
     T: Soapy + PartialEq,
 {
     fn eq(&self, other: &Self) -> bool {
-        if self.len != other.len {
+        if self.0.len != other.0.len {
             return false;
         }
 
@@ -764,7 +760,7 @@ where
         self.try_fold_zip(other, Some(Ordering::Equal), |_, a, b| {
             match a.partial_cmp(b) {
                 ord @ (None | Some(Ordering::Less | Ordering::Greater)) => ControlFlow::Break(ord),
-                Some(Ordering::Equal) => ControlFlow::Continue(Some(self.len.cmp(&other.len))),
+                Some(Ordering::Equal) => ControlFlow::Continue(Some(self.0.len.cmp(&other.0.len))),
             }
         })
     }
@@ -777,7 +773,7 @@ where
     fn cmp(&self, other: &Self) -> Ordering {
         self.try_fold_zip(other, Ordering::Equal, |_, a, b| match a.cmp(b) {
             ord @ (Ordering::Greater | Ordering::Less) => ControlFlow::Break(ord),
-            Ordering::Equal => ControlFlow::Continue(self.len.cmp(&other.len)),
+            Ordering::Equal => ControlFlow::Continue(self.0.len.cmp(&other.0.len)),
         })
     }
 }
@@ -796,7 +792,7 @@ where
     T: Soapy + Hash,
 {
     fn hash<H: Hasher>(&self, state: &mut H) {
-        self.len.hash(state);
+        self.0.len.hash(state);
         self.for_each(|item| item.hash(state));
     }
 }
@@ -808,7 +804,7 @@ where
     type Target = T::Raw;
 
     fn deref(&self) -> &Self::Target {
-        &self.raw
+        &self.0.raw
     }
 }
 
@@ -817,6 +813,6 @@ where
     T: Soapy,
 {
     fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.raw
+        &mut self.0.raw
     }
 }

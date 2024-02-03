@@ -148,7 +148,7 @@ where
     /// ```
     pub fn into_raw_parts(self) -> (T::Raw, usize, usize) {
         let me = ManuallyDrop::new(self);
-        (me.slice.raw, me.slice.len, me.cap)
+        (me.slice.0.raw, me.slice.0.len, me.cap)
     }
 
     /// Creates a `Soa<T>` from a pointer, a length, and a capacity.
@@ -182,9 +182,9 @@ where
     pub fn push(&mut self, element: T) {
         self.maybe_grow();
         unsafe {
-            self.slice.raw.set(self.slice.len, element);
+            self.slice.0.raw.set(self.slice.0.len, element);
         }
-        self.slice.len += 1;
+        self.slice.0.len += 1;
     }
 
     /// Removes the last element from a vector and returns it, or [`None`] if it
@@ -201,11 +201,11 @@ where
     /// assert_eq!(soa, [Foo(1), Foo(2)]);
     /// ```
     pub fn pop(&mut self) -> Option<T> {
-        if self.slice.len == 0 {
+        if self.slice.0.len == 0 {
             None
         } else {
-            self.slice.len -= 1;
-            Some(unsafe { self.slice.raw.get(self.slice.len) })
+            self.slice.0.len -= 1;
+            Some(unsafe { self.slice.0.raw.get(self.slice.0.len) })
         }
     }
 
@@ -229,15 +229,16 @@ where
     /// assert_eq!(soa, [Foo(1), Foo(4), Foo(2), Foo(3), Foo(5)]);
     /// ```
     pub fn insert(&mut self, index: usize, element: T) {
-        assert!(index <= self.slice.len, "index out of bounds");
+        assert!(index <= self.slice.0.len, "index out of bounds");
         self.maybe_grow();
         unsafe {
             self.slice
+                .0
                 .raw
-                .copy(index, index + 1, self.slice.len - index);
-            self.slice.raw.set(index, element);
+                .copy(index, index + 1, self.slice.0.len - index);
+            self.slice.0.raw.set(index, element);
         }
-        self.slice.len += 1;
+        self.slice.0.len += 1;
     }
 
     /// Removes and returns the element at position index within the vector,
@@ -254,13 +255,14 @@ where
     /// assert_eq!(soa, [Foo(1), Foo(3)])
     /// ```
     pub fn remove(&mut self, index: usize) -> T {
-        assert!(index < self.slice.len, "index out of bounds");
-        self.slice.len -= 1;
-        let out = unsafe { self.slice.raw.get(index) };
+        assert!(index < self.slice.0.len, "index out of bounds");
+        self.slice.0.len -= 1;
+        let out = unsafe { self.slice.0.raw.get(index) };
         unsafe {
             self.slice
+                .0
                 .raw
-                .copy(index + 1, index, self.slice.len - index);
+                .copy(index + 1, index, self.slice.0.len - index);
         }
         out
     }
@@ -285,7 +287,7 @@ where
         if additional == 0 {
             return;
         }
-        let new_cap = (self.slice.len + additional)
+        let new_cap = (self.slice.0.len + additional)
             // Ensure exponential growth
             .max(self.cap * 2)
             .max(Self::SMALL_CAPACITY);
@@ -313,7 +315,7 @@ where
         if additional == 0 {
             return;
         }
-        let new_cap = (additional + self.slice.len).max(self.cap);
+        let new_cap = (additional + self.slice.0.len).max(self.cap);
         self.grow(new_cap);
     }
 
@@ -332,7 +334,7 @@ where
     /// assert_eq!(soa.capacity(), 3);
     /// ```
     pub fn shrink_to_fit(&mut self) {
-        self.shrink(self.slice.len);
+        self.shrink(self.slice.0.len);
     }
 
     /// Shrinks the capacity of the vector with a lower bound.
@@ -355,7 +357,7 @@ where
     /// soa.shrink_to(0);
     /// assert_eq!(soa.capacity(), 3);
     pub fn shrink_to(&mut self, min_capacity: usize) {
-        let new_cap = self.slice.len.max(min_capacity);
+        let new_cap = self.slice.0.len.max(min_capacity);
         if new_cap < self.cap {
             self.shrink(new_cap);
         }
@@ -400,7 +402,7 @@ where
     /// assert_eq!(soa, []);
     /// ```
     pub fn truncate(&mut self, len: usize) {
-        while len < self.slice.len {
+        while len < self.slice.0.len {
             self.pop();
         }
     }
@@ -430,12 +432,12 @@ where
     /// assert_eq!(soa, [Foo(2), Foo(3)])
     /// ```
     pub fn swap_remove(&mut self, index: usize) -> T {
-        let out = unsafe { self.slice.raw.get(index) };
-        let last = unsafe { self.slice.raw.get(self.slice.len - 1) };
+        let out = unsafe { self.slice.0.raw.get(index) };
+        let last = unsafe { self.slice.0.raw.get(self.slice.0.len - 1) };
         unsafe {
-            self.slice.raw.set(index, last);
+            self.slice.0.raw.set(index, last);
         }
-        self.slice.len -= 1;
+        self.slice.0.len -= 1;
         out
     }
 
@@ -454,11 +456,11 @@ where
     /// assert_eq!(soa2, []);
     /// ```
     pub fn append(&mut self, other: &mut Self) {
-        for i in 0..other.slice.len {
-            let element = unsafe { other.slice.raw.get(i) };
+        for i in 0..other.slice.0.len {
+            let element = unsafe { other.slice.0.raw.get(i) };
             self.push(element);
         }
-        other.slice.len = 0;
+        other.slice.0.len = 0;
     }
 
     /// Returns an iterator over the elements.
@@ -491,9 +493,9 @@ where
     /// ```
     pub fn iter(&self) -> Iter<T> {
         Iter {
-            raw: self.slice.raw,
+            raw: self.slice.0.raw,
             start: 0,
-            end: self.slice.len,
+            end: self.slice.0.len,
             _marker: PhantomData,
         }
     }
@@ -517,9 +519,9 @@ where
     /// ```
     pub fn iter_mut(&mut self) -> IterMut<T> {
         IterMut {
-            raw: self.slice.raw,
+            raw: self.slice.0.raw,
             start: 0,
-            end: self.slice.len,
+            end: self.slice.0.len,
             _marker: PhantomData,
         }
     }
@@ -588,11 +590,11 @@ where
         F: FnMut(B, &T) -> ControlFlow<B, B>,
     {
         let mut acc = init;
-        for i in 0..self.slice.len {
+        for i in 0..self.slice.0.len {
             // SAFETY:
             // Okay to construct an element and take its reference, so long as
             // we don't run its destructor.
-            let element = ManuallyDrop::new(unsafe { self.slice.raw.get(i) });
+            let element = ManuallyDrop::new(unsafe { self.slice.0.raw.get(i) });
             let result = f(acc, &element);
             match result {
                 ControlFlow::Continue(b) => acc = b,
@@ -654,13 +656,13 @@ where
         F: FnMut(B, &T, &T) -> ControlFlow<B, B>,
     {
         let mut acc = init;
-        let len = self.slice.len.min(other.slice.len);
+        let len = self.slice.0.len.min(other.slice.0.len);
         for i in 0..len {
             // SAFETY:
             // Okay to construct an element and take its reference, so long as
             // we don't run its destructor.
-            let a = ManuallyDrop::new(unsafe { self.slice.raw.get(i) });
-            let b = ManuallyDrop::new(unsafe { other.slice.raw.get(i) });
+            let a = ManuallyDrop::new(unsafe { self.slice.0.raw.get(i) });
+            let b = ManuallyDrop::new(unsafe { other.slice.0.raw.get(i) });
             let result = f(acc, &a, &b);
             match result {
                 ControlFlow::Continue(b) => acc = b,
@@ -737,7 +739,7 @@ where
 
     /// Grows the allocated capacity if `len == cap`.
     fn maybe_grow(&mut self) {
-        if self.slice.len < self.cap {
+        if self.slice.0.len < self.cap {
             return;
         }
         let new_cap = match self.cap {
@@ -759,14 +761,15 @@ where
             unsafe {
                 self.slice.dealloc(self.cap);
             }
-            self.slice.raw = T::Raw::dangling();
+            self.slice.0.raw = T::Raw::dangling();
         } else {
             debug_assert!(new_cap < self.cap);
-            debug_assert!(self.slice.len <= new_cap);
+            debug_assert!(self.slice.0.len <= new_cap);
             unsafe {
                 self.slice
+                    .0
                     .raw
-                    .realloc_shrink(self.cap, new_cap, self.slice.len);
+                    .realloc_shrink(self.cap, new_cap, self.slice.0.len);
             }
         }
 
@@ -780,13 +783,14 @@ where
 
         if self.cap == 0 {
             debug_assert!(new_cap > 0);
-            self.slice.raw = unsafe { T::Raw::alloc(new_cap) };
+            self.slice.0.raw = unsafe { T::Raw::alloc(new_cap) };
         } else {
-            debug_assert!(self.slice.len <= self.cap);
+            debug_assert!(self.slice.0.len <= self.cap);
             unsafe {
                 self.slice
+                    .0
                     .raw
-                    .realloc_grow(self.cap, new_cap, self.slice.len);
+                    .realloc_grow(self.cap, new_cap, self.slice.0.len);
             }
         }
 
@@ -820,8 +824,8 @@ where
         let soa = ManuallyDrop::new(self);
         IntoIter {
             start: 0,
-            end: soa.slice.len,
-            raw: soa.slice.raw,
+            end: soa.slice.0.len,
+            raw: soa.slice.0.raw,
             cap: soa.cap,
         }
     }
@@ -832,7 +836,7 @@ where
     T: Soapy + Clone,
 {
     fn clone(&self) -> Self {
-        let mut out = Self::with_capacity(self.slice.len);
+        let mut out = Self::with_capacity(self.slice.0.len);
         self.for_each(|el| {
             out.push(el.clone());
         });
@@ -841,8 +845,8 @@ where
 
     fn clone_from(&mut self, source: &Self) {
         self.clear();
-        if self.cap < source.slice.len {
-            self.reserve(source.slice.len);
+        if self.cap < source.slice.0.len {
+            self.reserve(source.slice.0.len);
         }
         source.for_each(|el| {
             self.push(el.clone());

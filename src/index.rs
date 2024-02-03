@@ -35,16 +35,16 @@ where
         T: 'a;
 
     fn get(self, slice: &Slice<T>) -> Option<Self::Output<'_>> {
-        if self < slice.len {
-            Some(unsafe { slice.raw.get_ref(self) })
+        if self < slice.0.len {
+            Some(unsafe { slice.0.raw.get_ref(self) })
         } else {
             None
         }
     }
 
     fn get_mut(self, slice: &mut Slice<T>) -> Option<Self::OutputMut<'_>> {
-        if self < slice.len {
-            Some(unsafe { slice.raw.get_mut(self) })
+        if self < slice.0.len {
+            Some(unsafe { slice.0.raw.get_mut(self) })
         } else {
             None
         }
@@ -64,16 +64,16 @@ where
         T: 'a;
 
     fn get(self, slice: &Slice<T>) -> Option<Self::Output<'_>> {
-        if self.start <= slice.len && self.end <= slice.len {
-            Some(unsafe { slice.raw.slices(self.start, self.end) })
+        if self.start <= slice.0.len && self.end <= slice.0.len {
+            Some(unsafe { slice.0.raw.slices(self.start, self.end) })
         } else {
             None
         }
     }
 
     fn get_mut(self, slice: &mut Slice<T>) -> Option<Self::OutputMut<'_>> {
-        if self.start <= slice.len && self.end <= slice.len {
-            Some(unsafe { slice.raw.slices_mut(self.start, self.end) })
+        if self.start <= slice.0.len && self.end <= slice.0.len {
+            Some(unsafe { slice.0.raw.slices_mut(self.start, self.end) })
         } else {
             None
         }
@@ -93,11 +93,11 @@ where
         T: 'a;
 
     fn get(self, slice: &Slice<T>) -> Option<Self::Output<'_>> {
-        (self.start..slice.len).get(slice)
+        (self.start..slice.0.len).get(slice)
     }
 
     fn get_mut(self, slice: &mut Slice<T>) -> Option<Self::OutputMut<'_>> {
-        (self.start..slice.len).get_mut(slice)
+        (self.start..slice.0.len).get_mut(slice)
     }
 }
 
@@ -114,11 +114,11 @@ where
         T: 'a;
 
     fn get(self, slice: &Slice<T>) -> Option<Self::Output<'_>> {
-        (0..slice.len).get(slice)
+        (0..slice.0.len).get(slice)
     }
 
     fn get_mut(self, slice: &mut Slice<T>) -> Option<Self::OutputMut<'_>> {
-        (0..slice.len).get_mut(slice)
+        (0..slice.0.len).get_mut(slice)
     }
 }
 
