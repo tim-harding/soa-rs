@@ -759,7 +759,7 @@ where
         if new_cap == 0 {
             debug_assert!(self.cap > 0);
             unsafe {
-                self.slice.dealloc(self.cap);
+                self.slice.0.raw.dealloc(self.cap);
             }
             self.slice.0.raw = T::Raw::dangling();
         } else {
@@ -806,7 +806,7 @@ where
         while self.pop().is_some() {}
         if size_of::<T>() > 0 && self.cap > 0 {
             unsafe {
-                self.slice.dealloc(self.cap);
+                self.slice.0.raw.dealloc(self.cap);
             }
         }
     }

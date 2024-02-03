@@ -12,7 +12,7 @@ pub fn zst_struct(ident: Ident, vis: Visibility, kind: ZstKind) -> TokenStream {
 
     quote! {
         #[automatically_derived]
-        impl ::soapy_shared::Soapy for #ident {
+        unsafe impl ::soapy_shared::Soapy for #ident {
             type Raw = #raw;
             type Deref = ();
             type Slices<'a> = ();

@@ -512,7 +512,29 @@ mod tests {
         assert_eq!(a, b);
     }
 
-    #[derive(crate::Soapy)]
-    #[extra_impl(Debug, PartialEq)]
-    struct Example;
+    #[test]
+    pub fn field_getters() {
+        let mut soa: Soa<_> = ABCDE.into();
+
+        assert_eq!(soa.foo(), &[0, 4, 8, 12, 16]);
+        assert_eq!(soa.bar(), &[1, 5, 9, 13, 17]);
+        assert_eq!(soa.baz(), &[[2, 3], [6, 7], [10, 11], [14, 15], [18, 19]]);
+
+        for el in soa.foo_mut() {
+            *el += 1;
+        }
+
+        for el in soa.bar_mut() {
+            *el += 1;
+        }
+
+        for el in soa.baz_mut() {
+            el[0] += 1;
+            el[1] += 1;
+        }
+
+        assert_eq!(soa.foo(), &[1, 5, 9, 13, 17]);
+        assert_eq!(soa.bar(), &[2, 6, 10, 14, 18]);
+        assert_eq!(soa.baz(), &[[3, 4], [7, 8], [11, 12], [15, 16], [19, 20]]);
+    }
 }

@@ -5,12 +5,13 @@ use std::{
     fmt::{self, Formatter},
     hash::{Hash, Hasher},
     marker::PhantomData,
-    mem::ManuallyDrop,
+    mem::{transmute, ManuallyDrop},
     ops::{ControlFlow, Deref, DerefMut},
 };
 
 /// A growable array type that stores the values for each field of `T`
 /// contiguously.
+#[repr(transparent)]
 pub struct Slice<T>(pub(crate) SliceRaw<T::Raw>)
 where
     T: Soapy;
@@ -801,10 +802,10 @@ impl<T> Deref for Slice<T>
 where
     T: Soapy,
 {
-    type Target = T::Raw;
+    type Target = T::Deref;
 
     fn deref(&self) -> &Self::Target {
-        &self.0.raw
+        unsafe { transmute(self) }
     }
 }
 
@@ -813,6 +814,6 @@ where
     T: Soapy,
 {
     fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.0.raw
+        unsafe { transmute(self) }
     }
 }

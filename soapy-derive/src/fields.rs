@@ -280,7 +280,7 @@ pub fn fields_struct(
         #vis struct #raw #raw_body
 
         #[automatically_derived]
-        impl ::soapy_shared::Soapy for #ident {
+        unsafe impl ::soapy_shared::Soapy for #ident {
             type Raw = #raw;
             type Deref = #deref;
             type Slices<'a> = #slices<'a> where Self: 'a;
