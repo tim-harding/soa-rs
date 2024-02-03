@@ -17,11 +17,6 @@
 //! // The index operator is not possible, but we can use nth:
 //! *soa.nth_mut(0).foo += 10;
 //!
-//! // We can get the fields as slices as well:
-//! let slices = soa.slices();
-//! assert_eq!(slices.foo, &[11, 3][..]);
-//! assert_eq!(slices.bar, &[2, 4][..]);
-//!
 //! for (actual, expected) in soa.iter().zip(elements.iter()) {
 //!     assert_eq!(&expected.bar, actual.bar);
 //! }
@@ -102,22 +97,22 @@ pub use soapy_shared::{Soapy, WithRef};
 /// - Create a [`Soa`] containing a given list of elements:
 /// ```
 /// # use soapy::{Soapy, soa};
-/// # #[derive(Soapy)]
+/// # #[derive(Soapy, Debug, PartialEq, Copy, Clone)]
+/// # #[extra_impl(Debug)]
 /// # struct Foo(u8, u16);
 /// let soa = soa![Foo(1, 2), Foo(3, 4)];
-/// assert_eq!(soa.slices().0, &[1, 3]);
-/// assert_eq!(soa.slices().1, &[2, 4]);
+/// assert_eq!(soa, [Foo(1, 2), Foo(3, 4)]);
 /// ```
 ///
 /// - Create a [`Soa`] from a given element and size:
 ///
 /// ```
 /// # use soapy::{Soapy, soa};
-/// # #[derive(Soapy, Copy, Clone)]
+/// # #[derive(Soapy, Debug, PartialEq, Copy, Clone)]
+/// # #[extra_impl(Debug)]
 /// # struct Foo(u8, u16);
 /// let soa = soa![Foo(1, 2); 2];
-/// assert_eq!(soa.slices().0, &[1, 1]);
-/// assert_eq!(soa.slices().1, &[2, 2]);
+/// assert_eq!(soa, [Foo(1, 2); 2]);
 /// ```
 #[macro_export]
 macro_rules! soa {
@@ -465,25 +460,6 @@ mod tests {
         soa.hash(&mut actual);
 
         assert_eq!(actual.finish(), expected.finish());
-    }
-
-    #[test]
-    pub fn get_range() {
-        let soa: Soa<_> = ABCDE.into();
-        let slices = soa.get(1..3).unwrap();
-        for (&expected, (foo, (bar, baz))) in ABCDE[1..3].iter().zip(
-            slices
-                .foo
-                .iter()
-                .zip(slices.bar.iter().zip(slices.baz.iter())),
-        ) {
-            let actual = El {
-                foo: *foo,
-                bar: *bar,
-                baz: *baz,
-            };
-            assert_eq!(actual, expected);
-        }
     }
 
     #[test]

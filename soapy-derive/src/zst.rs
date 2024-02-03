@@ -15,8 +15,6 @@ pub fn zst_struct(ident: Ident, vis: Visibility, kind: ZstKind) -> TokenStream {
         unsafe impl ::soapy_shared::Soapy for #ident {
             type Raw = #raw;
             type Deref = ();
-            type Slices<'a> = ();
-            type SlicesMut<'a> = ();
             type Ref<'a> = #ident;
             type RefMut<'a> = #ident;
         }
@@ -45,10 +43,6 @@ pub fn zst_struct(ident: Ident, vis: Visibility, kind: ZstKind) -> TokenStream {
             fn dangling() -> Self { Self }
             #[inline]
             fn as_ptr(self) -> *mut u8 { ::std::ptr::null::<u8>() as *mut _ }
-            #[inline]
-            unsafe fn slices(&self, start: usize, end: usize) -> () { () }
-            #[inline]
-            unsafe fn slices_mut(&mut self, start: usize, end: usize) -> () { () }
             #[inline]
             unsafe fn from_parts(ptr: *mut u8, capacity: usize) -> Self { Self }
             #[inline]

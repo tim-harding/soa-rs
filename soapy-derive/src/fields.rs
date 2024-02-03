@@ -38,8 +38,6 @@ pub fn fields_struct(
     let ident_tail: Vec<_> = ident_all.iter().skip(1).cloned().collect();
 
     let deref = format_ident!("{ident}SoaDeref");
-    let slices = format_ident!("{ident}SoaSlices");
-    let slices_mut = format_ident!("{ident}SoaSlicesMut");
     let item_ref = format_ident!("{ident}SoaRef");
     let item_ref_mut = format_ident!("{ident}SoaRefMut");
     let raw = format_ident!("{ident}SoaRaw");
@@ -81,97 +79,6 @@ pub fn fields_struct(
             )*
         }
     });
-
-    let slices_def = match kind {
-        FieldKind::Named => quote! {
-            { #(#[automatically_derived] #vis_all #ident_all: &'a [#ty_all]),* }
-        },
-        FieldKind::Unnamed => quote! {
-            ( #(#[automatically_derived] #vis_all &'a [#ty_all]),* );
-        },
-    };
-
-    out.append_all(quote! {
-        #[automatically_derived]
-        #[derive(Copy, Clone)]
-        #vis struct #slices<'a> #slices_def
-    });
-
-    let slices_mut_def = match kind {
-        FieldKind::Named => quote! {
-            { #(#[automatically_derived] #vis_all #ident_all: &'a mut [#ty_all]),* }
-        },
-        FieldKind::Unnamed => quote! {
-            ( #(#[automatically_derived] #vis_all &'a mut [#ty_all]),* );
-        },
-    };
-
-    out.append_all(quote! {
-        #[automatically_derived]
-        #vis struct #slices_mut<'a> #slices_mut_def
-    });
-
-    let slices_impl = |item| {
-        let var_ident_head = format_ident!("var_{ident_head}");
-        let var_ident_tail: Vec<_> = ident_tail
-            .iter()
-            .cloned()
-            .map(|ident| format_ident!("var_{ident}"))
-            .collect();
-
-        let mut nested = quote! { #var_ident_head };
-        for var_ident in var_ident_tail.iter().cloned() {
-            nested = quote! {
-                (#nested, #var_ident)
-            };
-        }
-
-        quote! {
-            impl<'a> ::soapy_shared::Slices for #item<'a> {
-                type Item<'b> = #item_ref<'b> where Self: 'b;
-
-                fn iter(&self) -> impl ::std::iter::Iterator<Item = Self::Item<'_>> {
-                    // head
-                    // (head, tail_1)
-                    // ((head, tail_1), tail_2)
-                    // (((head, tail_1), tail_2), tail_3)
-                    let iter = self.#ident_head.iter();
-                    #(
-                    let iter = ::std::iter::zip(iter, self.#ident_tail.iter());
-                    )*
-
-                    iter.map(|items| {
-                        let #nested = items;
-                        #item_ref {
-                            #ident_head: #var_ident_head,
-                            #(#ident_tail: #var_ident_tail),*
-                        }
-                    })
-                }
-            }
-        }
-    };
-
-    out.append_all(slices_impl(slices.clone()));
-    out.append_all(slices_impl(slices_mut.clone()));
-
-    if extra_impl.partial_eq {
-        let partial_eq = |item| {
-            quote! {
-                impl<'a> ::std::cmp::PartialEq for #item<'a> {
-                    fn eq(&self, other: &Self) -> bool {
-                        ::std::iter::zip(
-                            <Self as ::soapy_shared::Slices>::iter(self),
-                            <Self as ::soapy_shared::Slices>::iter(other),
-                        ).all(|(me, them)| me == them)
-                    }
-                }
-            }
-        };
-
-        out.append_all(partial_eq(slices.clone()));
-        out.append_all(partial_eq(slices_mut.clone()));
-    }
 
     let item_ref_def = match kind {
         FieldKind::Named => quote! {
@@ -223,22 +130,21 @@ pub fn fields_struct(
     out.append_all(with_ref_impl(item_ref_mut.clone()));
 
     if extra_impl.partial_eq {
-        // TODO: Impls for slices, slices_mut
         let ref_impl = |item| {
             quote! {
-                impl ::std::cmp::PartialEq for #item {
+                impl<'a> ::std::cmp::PartialEq for #item<'a> {
                     fn eq(&self, other: &Self) -> bool {
-                        <Self as ::soapy_shared::WithRef<#ident>>::with_ref(self, |me| {
-                            <Self as ::soapy_shared::WithRef<#ident>>::with_ref(other, |them| {
+                        <Self as ::soapy_shared::WithRef>::with_ref(self, |me| {
+                            <Self as ::soapy_shared::WithRef>::with_ref(other, |them| {
                                 me == them
                             })
                         })
                     }
                 }
 
-                impl ::std::cmp::PartialEq<#ident> for #item {
+                impl<'a> ::std::cmp::PartialEq<#ident> for #item<'a> {
                     fn eq(&self, other: &#ident) -> bool {
-                        <Self as ::soapy_shared::WithRef<#ident>>::with_ref(self, |me| {
+                        <Self as ::soapy_shared::WithRef>::with_ref(self, |me| {
                             me == other
                         })
                     }
@@ -248,19 +154,21 @@ pub fn fields_struct(
 
         out.append_all(ref_impl(item_ref.clone()));
         out.append_all(ref_impl(item_ref_mut.clone()));
+    }
 
-        let slice_impl = |item| {
+    if extra_impl.debug {
+        let ref_impl = |item| {
             quote! {
-                impl ::std::cmp::PartialEq for #item {
-                    fn eq(&self, other: &Self) -> bool {
-                        todo!()
+                impl<'a> ::std::fmt::Debug for #item<'a> {
+                    fn fmt(&self, f: &mut ::std::fmt::Formatter<'_>) -> ::std::fmt::Result {
+                        <Self as ::soapy_shared::WithRef>::with_ref(self, |me| me.fmt(f))
                     }
                 }
             }
         };
 
-        out.append_all(slice_impl(slices.clone()));
-        out.append_all(slice_impl(slices_mut.clone()));
+        out.append_all(ref_impl(item_ref.clone()));
+        out.append_all(ref_impl(item_ref_mut.clone()));
     }
 
     let indices = std::iter::repeat(()).enumerate().map(|(i, ())| i);
@@ -283,8 +191,6 @@ pub fn fields_struct(
         unsafe impl ::soapy_shared::Soapy for #ident {
             type Raw = #raw;
             type Deref = #deref;
-            type Slices<'a> = #slices<'a> where Self: 'a;
-            type SlicesMut<'a> = #slices_mut<'a> where Self: 'a;
             type Ref<'a> = #item_ref<'a> where Self: 'a;
             type RefMut<'a> = #item_ref_mut<'a> where Self: 'a;
         }
@@ -327,32 +233,6 @@ pub fn fields_struct(
             fn dangling() -> Self {
                 Self {
                     #(#ident_all: ::std::ptr::NonNull::dangling(),)*
-                }
-            }
-
-            #[inline]
-            unsafe fn slices(&self, start: usize, end: usize) -> #slices<'_> {
-                let len = end - start;
-                #slices {
-                    #(
-                    #ident_all: ::std::slice::from_raw_parts(
-                        self.#ident_all.as_ptr().add(start),
-                        len,
-                    ),
-                    )*
-                }
-            }
-
-            #[inline]
-            unsafe fn slices_mut(&mut self, start: usize, end: usize) -> #slices_mut<'_> {
-                let len = end - start;
-                #slices_mut {
-                    #(
-                    #ident_all: ::std::slice::from_raw_parts_mut(
-                        self.#ident_all.as_ptr().add(start),
-                        len,
-                    ),
-                    )*
                 }
             }
 

@@ -27,32 +27,6 @@ pub unsafe trait SoaRaw: Copy + Clone {
     /// allocating memory.
     fn dangling() -> Self;
 
-    /// Constructs safe, immutable slices of the arrays managed by `Self` with
-    /// the range `start..end`.
-    ///
-    /// # Safety
-    ///
-    /// The caller must ensure that
-    /// - `start <= end`
-    /// - `start <= PREV_LEN`
-    /// - `end <= PREV_LEN`
-    unsafe fn slices(&self, start: usize, end: usize) -> <Self::Item as Soapy>::Slices<'_>;
-
-    /// Constructs safe, mutable slices of the arrays managed by `Self` with the
-    /// range `start..end`.
-    ///
-    /// # Safety
-    ///
-    /// The caller must ensure that
-    /// - `start <= end`
-    /// - `start <= PREV_LEN`
-    /// - `end <= PREV_LEN`
-    unsafe fn slices_mut(
-        &mut self,
-        start: usize,
-        end: usize,
-    ) -> <Self::Item as Soapy>::SlicesMut<'_>;
-
     /// Returns the pointer that contains the allocated capacity.
     ///
     /// The pointer will point to invalid memory in these circumstances:

@@ -124,17 +124,8 @@ where
     /// # use soapy::{Soa, Soapy, soa, WithRef};
     /// # use std::fmt;
     /// # #[derive(Soapy, Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
+    /// # #[extra_impl(Debug, PartialEq)]
     /// # struct Foo(usize);
-    /// # impl<'a> fmt::Debug for FooSoaRef<'a> {
-    /// #     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-    /// #         self.with_ref(|me| me.fmt(f))
-    /// #     }
-    /// # }
-    /// # impl<'a> PartialEq<FooSoaRef<'a>> for FooSoaRef<'a> {
-    /// #     fn eq(&self, other: &FooSoaRef) -> bool {
-    /// #         self.with_ref(|me| other.with_ref(|other| me == other))
-    /// #     }
-    /// # }
     /// let soa = soa![Foo(1), Foo(2), Foo(4)];
     /// let mut iter = soa.iter();
     /// assert_eq!(iter.next(), Some(FooSoaRef(&1)));
@@ -384,32 +375,10 @@ where
     /// # use std::fmt;
     /// # use soapy::{Soa, Soapy, soa, WithRef};
     /// # #[derive(Soapy, Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
+    /// # #[extra_impl(PartialEq, Debug)]
     /// # struct Foo(usize);
-    /// # impl<'a> fmt::Debug for FooSoaRef<'a> {
-    /// #     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-    /// #         self.with_ref(|me| me.fmt(f))
-    /// #     }
-    /// # }
-    /// # impl<'a> PartialEq for FooSoaRef<'a> {
-    /// #     fn eq(&self, other: &FooSoaRef) -> bool {
-    /// #         self.with_ref(|me| other.with_ref(|other| me == other))
-    /// #     }
-    /// # }
-    /// # impl<'a> fmt::Debug for FooSoaSlices<'a> {
-    /// #     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-    /// #         f.debug_struct("FooSoaSlices").field("0", &self.0).finish()
-    /// #     }
-    /// # }
-    /// # impl<'a> PartialEq for FooSoaSlices<'a> {
-    /// #     fn eq(&self, other: &Self) -> bool {
-    /// #         self.0 == other.0
-    /// #     }
-    /// # }
     /// let soa = soa![Foo(10), Foo(40), Foo(30)];
     /// assert_eq!(soa.get(1), Some(FooSoaRef(&40)));
-    /// assert_eq!(soa.get(1..3), Some(FooSoaSlices(&[40, 30][..])));
-    /// assert_eq!(soa.get(3), None);
-    /// assert_eq!(soa.get(..4), None);
     /// ```
     pub fn get<I>(&self, index: I) -> Option<I::Output<'_>>
     where
@@ -526,17 +495,8 @@ where
     /// # use std::fmt;
     /// # use soapy::{Soa, Soapy, soa, WithRef};
     /// # #[derive(Soapy, Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
+    /// # #[extra_impl(Debug, PartialEq)]
     /// # struct Foo(usize);
-    /// # impl<'a> fmt::Debug for FooSoaRef<'a> {
-    /// #     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-    /// #         self.with_ref(|me| me.fmt(f))
-    /// #     }
-    /// # }
-    /// # impl<'a> PartialEq for FooSoaRef<'a> {
-    /// #     fn eq(&self, other: &FooSoaRef) -> bool {
-    /// #         self.with_ref(|me| other.with_ref(|other| me == other))
-    /// #     }
-    /// # }
     /// let soa = soa![Foo(10), Foo(40), Foo(30), Foo(90)];
     /// assert_eq!(soa.nth(1), FooSoaRef(&40));
     /// assert_eq!(soa.nth(3), FooSoaRef(&90));
@@ -565,17 +525,8 @@ where
     /// # use std::fmt;
     /// # use soapy::{Soa, Soapy, soa, WithRef};
     /// # #[derive(Soapy, Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
+    /// # #[extra_impl(Debug, PartialEq)]
     /// # struct Foo(usize);
-    /// # impl<'a> fmt::Debug for FooSoaRef<'a> {
-    /// #     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-    /// #         self.with_ref(|me| me.fmt(f))
-    /// #     }
-    /// # }
-    /// # impl<'a> PartialEq for FooSoaRef<'a> {
-    /// #     fn eq(&self, other: &FooSoaRef) -> bool {
-    /// #         self.with_ref(|me| other.with_ref(|other| me == other))
-    /// #     }
-    /// # }
     /// let mut soa = soa![Foo(10), Foo(20), Foo(30)];
     /// *soa.nth_mut(1).0 = 42;
     /// assert_eq!(soa, [Foo(10), Foo(42), Foo(30)]);
@@ -587,42 +538,6 @@ where
             panic!("index out of bounds");
         }
         unsafe { self.0.raw.get_mut(index) }
-    }
-
-    /// Returns slices for each of the SoA fields.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// # use soapy::{Soa, Soapy, soa};
-    /// #[derive(Soapy, Debug, Clone)]
-    /// struct Foo(usize, String);
-    /// let soa = soa![Foo(10, "Howdy".into()), Foo(20, "fren".into())];
-    /// assert_eq!(soa.slices().0, [10, 20]);
-    /// assert_eq!(soa.slices().1, ["Howdy", "fren"]);
-    /// ```
-    pub fn slices(&self) -> T::Slices<'_> {
-        unsafe { self.0.raw.slices(0, self.0.len) }
-    }
-
-    /// Returns mutable slices for each of the SoA fields.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// # use soapy::{Soa, Soapy, soa};
-    /// #[derive(Soapy, Debug, Clone, PartialEq)]
-    /// struct Foo(usize, String);
-    /// let mut soa = soa![Foo(10, "Howdy".into()), Foo(20, "fren".into())];
-    /// let mut slices = soa.slices_mut();
-    /// slices.0[0] += 5;
-    /// for s in slices.1.iter_mut() {
-    ///     *s = s.chars().flat_map(|c| c.to_uppercase()).collect();
-    /// }
-    /// assert_eq!(soa, [Foo(15, "HOWDY".into()), Foo(20, "FREN".into())]);
-    /// ```
-    pub fn slices_mut(&mut self) -> T::SlicesMut<'_> {
-        unsafe { self.0.raw.slices_mut(0, self.0.len) }
     }
 
     /// Swaps the position of two elements.
