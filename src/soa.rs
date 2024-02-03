@@ -1,10 +1,10 @@
-use crate::{slice_raw::SliceRaw, IntoIter, Iter, IterMut};
+use crate::{IntoIter, Iter, IterMut, Slice, SliceMut, SliceRef};
 use soapy_shared::{SoaRaw, Soapy};
 use std::{
     cmp::Ordering,
     fmt::{self, Formatter},
     marker::PhantomData,
-    mem::{size_of, ManuallyDrop},
+    mem::{size_of, transmute, ManuallyDrop},
     ops::{ControlFlow, Deref, DerefMut},
 };
 
@@ -15,7 +15,7 @@ where
     T: Soapy,
 {
     pub(crate) cap: usize,
-    pub(crate) slice: SliceRaw<T>,
+    pub(crate) slice: Slice<T>,
 }
 
 unsafe impl<T> Send for Soa<T> where T: Send + Soapy {}
@@ -43,7 +43,7 @@ where
     pub fn new() -> Self {
         Self {
             cap: if size_of::<T>() == 0 { usize::MAX } else { 0 },
-            slice: SliceRaw::empty(),
+            slice: Slice::empty(),
         }
     }
 
@@ -92,12 +92,12 @@ where
                 if size_of::<T>() == 0 {
                     Self {
                         cap: usize::MAX,
-                        slice: SliceRaw::empty(),
+                        slice: Slice::empty(),
                     }
                 } else {
                     Self {
                         cap: capacity,
-                        slice: unsafe { SliceRaw::from_raw_parts(T::Raw::alloc(capacity), 0) },
+                        slice: unsafe { Slice::from_raw_parts(T::Raw::alloc(capacity), 0) },
                     }
                 }
             }
@@ -187,7 +187,7 @@ where
     pub unsafe fn from_raw_parts(raw: T::Raw, length: usize, capacity: usize) -> Self {
         Self {
             cap: capacity,
-            slice: unsafe { SliceRaw::from_raw_parts(raw, length) },
+            slice: unsafe { Slice::from_raw_parts(raw, length) },
         }
     }
 
@@ -1012,12 +1012,48 @@ where
     }
 }
 
-impl<T> AsRef<SliceRaw<T>> for Soa<T>
+impl<T> AsRef<Slice<T>> for Soa<T>
 where
     T: Soapy,
 {
-    fn as_ref(&self) -> &SliceRaw<T> {
+    fn as_ref(&self) -> &Slice<T> {
         &self.slice
+    }
+}
+
+impl<'a, T> AsRef<SliceRef<'a, T>> for Soa<T>
+where
+    T: 'a + Soapy,
+{
+    fn as_ref(&self) -> &SliceRef<'a, T> {
+        unsafe { transmute(&self.slice) }
+    }
+}
+
+impl<'a, T> AsRef<SliceMut<'a, T>> for Soa<T>
+where
+    T: 'a + Soapy,
+{
+    fn as_ref(&self) -> &SliceMut<'a, T> {
+        unsafe { transmute(&self.slice) }
+    }
+}
+
+impl<T> AsMut<Slice<T>> for Soa<T>
+where
+    T: Soapy,
+{
+    fn as_mut(&mut self) -> &mut Slice<T> {
+        &mut self.slice
+    }
+}
+
+impl<'a, T> AsMut<SliceMut<'a, T>> for Soa<T>
+where
+    T: 'a + Soapy,
+{
+    fn as_mut(&mut self) -> &mut SliceMut<'a, T> {
+        unsafe { transmute(&mut self.slice) }
     }
 }
 
@@ -1025,7 +1061,7 @@ impl<T> Deref for Soa<T>
 where
     T: Soapy,
 {
-    type Target = SliceRaw<T>;
+    type Target = Slice<T>;
 
     fn deref(&self) -> &Self::Target {
         &self.slice

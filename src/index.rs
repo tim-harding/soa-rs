@@ -1,4 +1,6 @@
-use crate::slice_raw::SliceRaw;
+use std::{marker::PhantomData, ops::RangeFull};
+
+use crate::{slice_mut::SliceMut, SliceRef};
 use soapy_shared::{SoaRaw, Soapy};
 
 /// A helper trait for indexing operations.
@@ -17,10 +19,10 @@ where
         T: 'a;
 
     /// Returns the output at this location, if in bounds.
-    fn get(self, slice: &SliceRaw<T>) -> Option<Self::Output<'_>>;
+    fn get<'a>(self, slice: &'a SliceRef<T>) -> Option<Self::Output<'a>>;
 
     /// Returns the mutable output at this location, if in bounds.
-    fn get_mut(self, slice: &mut SliceRaw<T>) -> Option<Self::OutputMut<'_>>;
+    fn get_mut<'a>(self, slice: &'a mut SliceMut<T>) -> Option<Self::OutputMut<'a>>;
 }
 
 impl<T> SoaIndex<T> for usize
@@ -33,21 +35,41 @@ where
     where
         T: 'a;
 
-    fn get(self, slice: &SliceRaw<T>) -> Option<Self::Output<'_>> {
-        if self < slice.0.len {
-            Some(unsafe { slice.0.raw.get_ref(self) })
+    fn get<'a>(self, slice: &'a SliceRef<T>) -> Option<Self::Output<'a>> {
+        if self < slice.len() {
+            Some(unsafe { slice.0 .0.raw.get_ref(self) })
         } else {
             None
         }
     }
 
-    fn get_mut(self, slice: &mut SliceRaw<T>) -> Option<Self::OutputMut<'_>> {
-        if self < slice.0.len {
-            Some(unsafe { slice.0.raw.get_mut(self) })
+    fn get_mut<'a>(self, slice: &'a mut SliceMut<T>) -> Option<Self::OutputMut<'a>> {
+        if self < slice.len() {
+            Some(unsafe { slice.0 .0.raw.get_mut(self) })
         } else {
             None
         }
     }
 }
 
-// TODO: Add back the impls for the range types
+impl<T> SoaIndex<T> for RangeFull
+where
+    T: Soapy,
+{
+    type Output<'a> = SliceRef<'a, T>
+    where
+        T: 'a;
+
+    type OutputMut<'a> = SliceMut<'a, T>
+    where
+        T: 'a;
+
+    fn get<'a>(self, slice: &'a SliceRef<T>) -> Option<Self::Output<'a>> {
+        Some(*slice)
+    }
+
+    fn get_mut<'a>(self, slice: &'a mut SliceMut<T>) -> Option<Self::OutputMut<'a>> {
+        // TODO: Verify that the input slice cannot be accessed while this value lives
+        Some(SliceMut(slice.0, PhantomData))
+    }
+}

@@ -19,8 +19,10 @@ mod slice;
 pub use slice::Slice;
 
 mod slice_mut;
+pub use slice_mut::SliceMut;
 
-mod slice_raw;
+mod slice_ref;
+pub use slice_ref::SliceRef;
 
 pub use soapy_shared::{Soapy, WithRef};
 

@@ -1,18 +1,29 @@
-use crate::{IterMut, Slice};
+use crate::{Iter, Slice};
 use soapy_shared::Soapy;
 use std::{
     cmp::Ordering,
     fmt::{self, Debug, Formatter},
     hash::{Hash, Hasher},
     marker::PhantomData,
-    ops::{Deref, DerefMut},
+    ops::Deref,
 };
 
-pub struct SliceMut<'a, T>(pub(crate) Slice<T>, pub(crate) PhantomData<&'a mut T>)
+pub struct SliceRef<'a, T>(pub(crate) Slice<T>, pub(crate) PhantomData<&'a T>)
 where
     T: 'a + Soapy;
 
-impl<'a, T> AsRef<Slice<T>> for SliceMut<'a, T>
+impl<'a, T> Clone for SliceRef<'a, T>
+where
+    T: 'a + Soapy,
+{
+    fn clone(&self) -> Self {
+        Self(self.0, PhantomData)
+    }
+}
+
+impl<'a, T> Copy for SliceRef<'a, T> where T: 'a + Soapy {}
+
+impl<'a, T> AsRef<Slice<T>> for SliceRef<'a, T>
 where
     T: 'a + Soapy,
 {
@@ -21,16 +32,7 @@ where
     }
 }
 
-impl<'a, T> AsMut<Slice<T>> for SliceMut<'a, T>
-where
-    T: 'a + Soapy,
-{
-    fn as_mut(&mut self) -> &mut Slice<T> {
-        &mut self.0
-    }
-}
-
-impl<'a, T> Deref for SliceMut<'a, T>
+impl<'a, T> Deref for SliceRef<'a, T>
 where
     T: 'a + Soapy,
 {
@@ -41,24 +43,15 @@ where
     }
 }
 
-impl<'a, T> DerefMut for SliceMut<'a, T>
+impl<'a, T> IntoIterator for SliceRef<'a, T>
 where
     T: 'a + Soapy,
 {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.0
-    }
-}
-
-impl<'a, T> IntoIterator for SliceMut<'a, T>
-where
-    T: 'a + Soapy,
-{
-    type Item = T::RefMut<'a>;
-    type IntoIter = IterMut<'a, T>;
+    type Item = T::Ref<'a>;
+    type IntoIter = Iter<'a, T>;
 
     fn into_iter(self) -> Self::IntoIter {
-        IterMut {
+        Iter {
             start: 0,
             end: self.len(),
             raw: self.0 .0.raw,
@@ -67,17 +60,17 @@ where
     }
 }
 
-impl<'a, T, R> PartialEq<R> for SliceMut<'a, T>
+impl<'a, T, R> PartialEq<R> for SliceRef<'a, T>
 where
     T: 'a + Soapy + PartialEq,
     R: AsRef<[T]>,
 {
     fn eq(&self, other: &R) -> bool {
-        (&self.0).eq(other)
+        self.0.eq(other)
     }
 }
 
-impl<'a, T> PartialEq<Slice<T>> for SliceMut<'a, T>
+impl<'a, T> PartialEq<Slice<T>> for SliceRef<'a, T>
 where
     T: 'a + Soapy + PartialEq,
 {
@@ -86,7 +79,7 @@ where
     }
 }
 
-impl<'a, T> PartialEq for SliceMut<'a, T>
+impl<'a, T> PartialEq for SliceRef<'a, T>
 where
     T: 'a + Soapy + PartialEq,
 {
@@ -95,9 +88,9 @@ where
     }
 }
 
-impl<'a, T> Eq for SliceMut<'a, T> where T: 'a + Soapy + Eq {}
+impl<'a, T> Eq for SliceRef<'a, T> where T: 'a + Soapy + Eq {}
 
-impl<'a, T> Debug for SliceMut<'a, T>
+impl<'a, T> Debug for SliceRef<'a, T>
 where
     T: 'a + Soapy + Debug,
 {
@@ -106,7 +99,7 @@ where
     }
 }
 
-impl<'a, T> PartialOrd for SliceMut<'a, T>
+impl<'a, T> PartialOrd for SliceRef<'a, T>
 where
     T: 'a + Soapy + PartialOrd,
 {
@@ -115,7 +108,7 @@ where
     }
 }
 
-impl<'a, T> Ord for SliceMut<'a, T>
+impl<'a, T> Ord for SliceRef<'a, T>
 where
     T: 'a + Soapy + Ord,
 {
@@ -124,7 +117,7 @@ where
     }
 }
 
-impl<'a, T> Hash for SliceMut<'a, T>
+impl<'a, T> Hash for SliceRef<'a, T>
 where
     T: 'a + Soapy + Hash,
 {

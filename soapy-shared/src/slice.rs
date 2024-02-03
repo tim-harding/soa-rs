@@ -1,8 +1,8 @@
 #[derive(Copy, Clone)]
-pub struct SliceData<T>
+pub struct SliceData<R>
 where
-    T: Copy + Clone,
+    R: Copy + Clone,
 {
     pub len: usize,
-    pub raw: T,
+    pub raw: R,
 }

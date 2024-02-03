@@ -7,9 +7,9 @@ use std::marker::PhantomData;
 ///
 /// [`Soa`]: crate::Soa
 /// [`iter`]: crate::Soa::iter
-pub struct Iter<'a, T: 'a>
+pub struct Iter<'a, T>
 where
-    T: Soapy,
+    T: 'a + Soapy,
 {
     pub(crate) raw: T::Raw,
     pub(crate) start: usize,
@@ -19,7 +19,7 @@ where
 
 impl<'a, T> Iterator for Iter<'a, T>
 where
-    T: Soapy,
+    T: 'a + Soapy,
 {
     type Item = T::Ref<'a>;
 
@@ -43,7 +43,7 @@ where
 
 impl<'a, T> DoubleEndedIterator for Iter<'a, T>
 where
-    T: Soapy,
+    T: 'a + Soapy,
 {
     fn next_back(&mut self) -> Option<Self::Item> {
         if self.start >= self.end {
