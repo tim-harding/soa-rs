@@ -22,4 +22,4 @@ mod soapy;
 pub use soapy::Soapy;
 
 mod slice;
-pub use slice::SliceRaw;
+pub use slice::SliceData;

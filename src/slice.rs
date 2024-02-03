@@ -1,5 +1,5 @@
 use crate::{index::SoaIndex, Iter, IterMut};
-use soapy_shared::{SliceRaw, SoaRaw, Soapy};
+use soapy_shared::{SliceData, SoaRaw, Soapy};
 use std::{
     cmp::Ordering,
     fmt::{self, Formatter},
@@ -12,7 +12,7 @@ use std::{
 /// A growable array type that stores the values for each field of `T`
 /// contiguously.
 #[repr(transparent)]
-pub struct Slice<T>(pub(crate) SliceRaw<T::Raw>)
+pub struct Slice<T>(pub(crate) SliceData<T::Raw>)
 where
     T: Soapy;
 
@@ -35,7 +35,7 @@ where
     /// let mut soa = Soa::<Foo>::new();
     /// ```
     pub fn empty() -> Self {
-        Self(SliceRaw {
+        Self(SliceData {
             len: 0,
             raw: <T::Raw as SoaRaw>::dangling(),
         })
@@ -111,7 +111,7 @@ where
     /// it only valid to call this method with the output of a previous call to
     /// [`Soa::into_raw_parts`].
     pub unsafe fn from_raw_parts(raw: T::Raw, length: usize) -> Self {
-        Self(SliceRaw { len: length, raw })
+        Self(SliceData { len: length, raw })
     }
 
     /// Returns an iterator over the elements.

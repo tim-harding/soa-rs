@@ -57,7 +57,7 @@ pub fn fields_struct(
     out.append_all(quote! {
         #[automatically_derived]
         #[repr(transparent)]
-        #vis struct #deref(::soapy_shared::SliceRaw<#raw>);
+        #vis struct #deref(::soapy_shared::SliceData<#raw>);
 
         impl #deref {
             #(
