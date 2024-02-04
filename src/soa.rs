@@ -1,10 +1,12 @@
-use crate::{IntoIter, Iter, IterMut, Slice, SliceMut, SliceRef};
+use crate::{IntoIter, Iter, IterMut, Slice};
 use soapy_shared::{SoaRaw, Soapy};
 use std::{
+    borrow::{Borrow, BorrowMut},
     cmp::Ordering,
     fmt::{self, Formatter},
+    hash::{Hash, Hasher},
     marker::PhantomData,
-    mem::{size_of, transmute, ManuallyDrop},
+    mem::{size_of, ManuallyDrop},
     ops::{ControlFlow, Deref, DerefMut},
 };
 
@@ -962,7 +964,16 @@ where
     T: Soapy + PartialEq,
 {
     fn eq(&self, other: &Self) -> bool {
-        self.deref().eq(other.deref())
+        self.slice.eq(&other.slice)
+    }
+}
+
+impl<T> PartialEq<Slice<T>> for Soa<T>
+where
+    T: Soapy + PartialEq,
+{
+    fn eq(&self, other: &Slice<T>) -> bool {
+        self.slice.eq(other)
     }
 }
 
@@ -972,7 +983,7 @@ where
     R: AsRef<[T]>,
 {
     fn eq(&self, other: &R) -> bool {
-        self.deref().eq(other)
+        self.slice.eq(other)
     }
 }
 
@@ -983,7 +994,7 @@ where
     T: Soapy + fmt::Debug,
 {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        self.deref().fmt(f)
+        self.slice.fmt(f)
     }
 }
 
@@ -992,7 +1003,7 @@ where
     T: Soapy + PartialOrd,
 {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        self.deref().partial_cmp(other)
+        self.slice.partial_cmp(other)
     }
 }
 
@@ -1001,7 +1012,16 @@ where
     T: Soapy + Ord,
 {
     fn cmp(&self, other: &Self) -> Ordering {
-        self.deref().cmp(other)
+        self.slice.cmp(other)
+    }
+}
+
+impl<T> Hash for Soa<T>
+where
+    T: Soapy + Hash,
+{
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.slice.hash(state)
     }
 }
 
@@ -1023,39 +1043,12 @@ where
     }
 }
 
-impl<'a, T> AsRef<SliceRef<'a, T>> for Soa<T>
-where
-    T: 'a + Soapy,
-{
-    fn as_ref(&self) -> &SliceRef<'a, T> {
-        unsafe { transmute(&self.slice) }
-    }
-}
-
-impl<'a, T> AsRef<SliceMut<'a, T>> for Soa<T>
-where
-    T: 'a + Soapy,
-{
-    fn as_ref(&self) -> &SliceMut<'a, T> {
-        unsafe { transmute(&self.slice) }
-    }
-}
-
 impl<T> AsMut<Slice<T>> for Soa<T>
 where
     T: Soapy,
 {
     fn as_mut(&mut self) -> &mut Slice<T> {
         &mut self.slice
-    }
-}
-
-impl<'a, T> AsMut<SliceMut<'a, T>> for Soa<T>
-where
-    T: 'a + Soapy,
-{
-    fn as_mut(&mut self) -> &mut SliceMut<'a, T> {
-        unsafe { transmute(&mut self.slice) }
     }
 }
 
@@ -1075,6 +1068,24 @@ where
     T: Soapy,
 {
     fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.slice
+    }
+}
+
+impl<T> Borrow<Slice<T>> for Soa<T>
+where
+    T: Soapy,
+{
+    fn borrow(&self) -> &Slice<T> {
+        &self.slice
+    }
+}
+
+impl<T> BorrowMut<Slice<T>> for Soa<T>
+where
+    T: Soapy,
+{
+    fn borrow_mut(&mut self) -> &mut Slice<T> {
         &mut self.slice
     }
 }
