@@ -74,43 +74,17 @@ where
         self.len() == 0
     }
 
-    /// Decomposes a `Soa<T>` into its raw components.
-    ///
-    /// Returns the raw pointer to the underlying data, the length of the vector (in
-    /// elements), and the allocated capacity of the data (in elements). These
-    /// are the same arguments in the same order as the arguments to
-    /// [`Soa::from_raw_parts`].
-    ///
-    /// After calling this function, the caller is responsible for the memory
-    /// previously managed by the `Soa`. The only way to do this is to convert the
-    /// raw pointer, length, and capacity back into a Vec with the
-    /// [`Soa::from_raw_parts`] function, allowing the destructor to perform the cleanup.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// # use soapy::{Soa, Soapy, soa};
-    /// # #[derive(Soapy, Debug, PartialEq)]
-    /// # struct Foo(usize);
-    /// let soa = soa![Foo(1), Foo(2)];
-    /// let (ptr, len, cap) = soa.into_raw_parts();
-    /// let rebuilt = unsafe { Soa::from_raw_parts(ptr, len, cap) };
-    /// assert_eq!(rebuilt, [Foo(1), Foo(2)]);
-    /// ```
-    pub fn into_raw_parts(self) -> (T::Raw, usize) {
-        (self.0.raw, self.0.len)
-    }
-
-    /// Creates a `Soa<T>` from a pointer, a length, and a capacity.
+    /// Creates a slice from a [`SoaRaw`] and a length.
     ///
     /// # Safety
     ///
     /// This is highly unsafe due to the number of invariants that aren't
     /// checked. Given that many of these invariants are private implementation
-    /// details of [`Raw`], it is better not to uphold them manually. Rather,
-    /// it only valid to call this method with the output of a previous call to
-    /// [`Soa::into_raw_parts`].
-    pub unsafe fn from_raw_parts(raw: T::Raw, length: usize) -> Self {
+    /// details, it is better not to uphold them manually. Instead, use the
+    /// methods of, for example, a [`Soa`] to get a handle to a slice.
+    ///
+    /// [`Soa`]: crate::Soa
+    pub(crate) unsafe fn from_raw_parts(raw: T::Raw, length: usize) -> Self {
         Self(SliceData { len: length, raw })
     }
 
@@ -288,7 +262,7 @@ where
     /// assert_eq!(sums, vec![4, 6]);
     /// ```
     ///
-    /// [`try_fold`]: Soa::try_fold
+    /// [`try_fold`]: Slice::try_fold
     /// [`Zip`]: std::iter::Zip
     /// [`Continue`]: ControlFlow::Continue
     /// [`Break`]: ControlFlow::Break
@@ -411,7 +385,7 @@ where
     /// assert_eq!(soa, [Foo(1), Foo(42), Foo(3)]);
     /// ```
     ///
-    /// [`get`]: Soa::get
+    /// [`get`]: Slice::get
     pub fn get_mut<I>(&mut self, index: I) -> Option<I::OutputMut<'_>>
     where
         I: SoaIndex<T>,
@@ -442,7 +416,7 @@ where
     ///
     /// [`index`]: std::ops::Index::index
     /// [`clone`]: std::clone::Clone::clone
-    /// [`nth_copied`]: Soa::nth_copied
+    /// [`nth_copied`]: Slice::nth_copied
     pub fn nth_cloned(&self, index: usize) -> T
     where
         T: Clone,
@@ -477,7 +451,7 @@ where
     /// ```
     ///
     /// [`index`]: std::ops::Index::index
-    /// [`nth_cloned`]: Soa::nth_cloned
+    /// [`nth_cloned`]: Slice::nth_cloned
     pub fn nth_copied(&self, index: usize) -> T
     where
         T: Copy,
