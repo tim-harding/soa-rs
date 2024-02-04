@@ -23,17 +23,27 @@ use crate::Soapy;
 pub unsafe trait SoaRaw: Copy + Clone {
     type Item: Soapy;
 
-    /// Creates a `Self` with dangling pointers for all its fields and without
+    /// Creates a [`SoaRaw`] with dangling pointers for all its fields and without
     /// allocating memory.
     fn dangling() -> Self;
 
-    /// Construct a new `Self` with the given pointer and capacity.
+    /// Construct a new [`SoaRaw`] with the given pointer and capacity.
     ///
     /// # Safety
     ///
-    /// The pointer should come from a previous instance of `Self` with
+    /// The pointer should come from a previous call to [`into_parts`] with
     /// `PREV_CAP == capacity`.
+    ///
+    /// [`into_parts`]: SoaRaw::into_parts
     unsafe fn from_parts(ptr: *mut u8, capacity: usize) -> Self;
+
+    /// Decomposes a [`SoaRaw`] into its raw components.
+    ///
+    /// Returns the raw pointer to the underlying data. The same pointer should
+    /// be used as the first argument to [`from_parts`].
+    ///
+    /// [`from_parts`]: SoaRaw::from_parts
+    fn into_parts(self) -> *mut u8;
 
     /// Allocates room for `capacity` elements.
     ///
@@ -79,7 +89,7 @@ pub unsafe trait SoaRaw: Copy + Clone {
     ///
     /// # Safety
     ///
-    /// `Self` no longer valid after calling this function. The caller must ensure that
+    /// [`SoaRaw`] no longer valid after calling this function. The caller must ensure that
     ///
     /// - `size_of::<T>() > 0`
     /// - `old_capacity > 0`
@@ -111,10 +121,10 @@ pub unsafe trait SoaRaw: Copy + Clone {
     ///
     /// # Safety
     ///
-    /// After calling `get`, the element at `index` should be treated as having
-    /// been moved out of `Self` and into the caller. Therefore, it is no longer
-    /// valid to reference this array element either by value or by reference.
-    /// The caller must ensure that
+    /// After calling this method, the element at `index` should be treated as
+    /// having been moved out of [`SoaRaw`] and into the caller. Therefore, it
+    /// is no longer valid to reference this array element either by value or by
+    /// reference. The caller must ensure that
     ///
     /// - `index < PREV_CAP`
     unsafe fn get(&self, index: usize) -> Self::Item;

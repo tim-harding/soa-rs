@@ -170,9 +170,9 @@ where
     /// let rebuilt = unsafe { Soa::from_raw_parts(ptr, len, cap) };
     /// assert_eq!(rebuilt, [Foo(1), Foo(2)]);
     /// ```
-    pub fn into_raw_parts(self) -> (T::Raw, usize, usize) {
+    pub fn into_raw_parts(self) -> (*mut u8, usize, usize) {
         let me = ManuallyDrop::new(self);
-        (me.slice.0.raw, me.slice.0.len, me.cap)
+        (me.slice.0.raw.into_parts(), me.slice.0.len, me.cap)
     }
 
     /// Creates a `Soa<T>` from a pointer, a length, and a capacity.
@@ -184,10 +184,12 @@ where
     /// details of [`SoaRaw`], it is better not to uphold them manually. Rather,
     /// it only valid to call this method with the output of a previous call to
     /// [`Soa::into_raw_parts`].
-    pub unsafe fn from_raw_parts(raw: T::Raw, length: usize, capacity: usize) -> Self {
+    pub unsafe fn from_raw_parts(ptr: *mut u8, length: usize, capacity: usize) -> Self {
         Self {
             cap: capacity,
-            slice: unsafe { Slice::from_raw_parts(raw, length) },
+            slice: unsafe {
+                Slice::from_raw_parts(<T::Raw as SoaRaw>::from_parts(ptr, capacity), length)
+            },
         }
     }
 

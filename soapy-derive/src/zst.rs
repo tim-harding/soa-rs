@@ -44,6 +44,8 @@ pub fn zst_struct(ident: Ident, vis: Visibility, kind: ZstKind) -> TokenStream {
             #[inline]
             unsafe fn from_parts(ptr: *mut u8, capacity: usize) -> Self { Self }
             #[inline]
+            fn into_parts(self) -> *mut u8 { ::std::ptr::NonNull::dangling().as_ptr() }
+            #[inline]
             unsafe fn alloc(capacity: usize) -> Self { Self }
             #[inline]
             unsafe fn realloc_grow(&mut self, old_capacity: usize, new_capacity: usize, length: usize) { }

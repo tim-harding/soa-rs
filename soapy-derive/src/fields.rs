@@ -243,6 +243,11 @@ pub fn fields_struct(
             }
 
             #[inline]
+            fn into_parts(self) -> *mut u8 {
+                self.#ident_head.as_ptr() as *mut _
+            }
+
+            #[inline]
             unsafe fn alloc(capacity: usize) -> Self {
                 let (new_layout, new_offsets) = Self::layout_and_offsets(capacity);
                 let ptr = ::std::alloc::alloc(new_layout);
