@@ -20,8 +20,8 @@ struct Example {
 let elements = [Example { foo: 1, bar: 2 }, Example { foo: 3, bar: 4 }];
 let mut soa: Soa<_> = elements.into_iter().collect();
 
-// The index operator is not possible, but we can use nth:
-*soa.nth_mut(0).foo += 10;
+// The index operator is not possible, but we can use idx:
+*soa.idx_mut(0).foo += 10;
 
 // We can get the fields as slices as well:
 assert_eq!(soa.foo(), &[11, 3][..]);

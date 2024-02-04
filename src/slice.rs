@@ -490,12 +490,13 @@ where
 
     /// Returns a reference to the element at the given index.
     ///
-    /// This is functionally equivalent to [`Index`], which is not implementable
-    /// for this type.
+    /// This is similar to [`Index`], which is not implementable for this type.
+    /// See [`get`] for a non-panicking version.
     ///
     /// # Panics
     ///
-    /// Panics if `index >= len`.
+    /// Panics if the index is out-of-bounds, which is whenever
+    /// [`SoaIndex::get`] returns [`None`].
     ///
     /// # Examples
     ///
@@ -506,26 +507,28 @@ where
     /// # #[extra_impl(Debug, PartialEq)]
     /// # struct Foo(usize);
     /// let soa = soa![Foo(10), Foo(40), Foo(30), Foo(90)];
-    /// assert_eq!(soa.nth(1), FooSoaRef(&40));
-    /// assert_eq!(soa.nth(3), FooSoaRef(&90));
+    /// assert_eq!(soa.idx(3), Foo(90));
+    /// assert_eq!(soa.idx(1..3), [Foo(40), Foo(30)]);
     /// ```
     ///
     /// [`Index`]: std::ops::Index
-    pub fn nth(&self, index: usize) -> T::Ref<'_> {
-        if index >= self.0.len {
-            panic!("index out of bounds");
-        }
-        unsafe { self.0.raw.get_ref(index) }
+    /// [`get`]: Slice::get
+    pub fn idx<I>(&self, index: I) -> I::Output<'_>
+    where
+        I: SoaIndex<T>,
+    {
+        self.get(index).expect("index out of bounds")
     }
 
     /// Returns a mutable reference to the element at the given index.
     ///
-    /// This is functionally equivalent to [`IndexMut`], which is not
-    /// implementable for this type.
+    /// This is similar to [`IndexMut`], which is not implementable for this
+    /// type. See [`get_mut`] for a non-panicking version.
     ///
     /// # Panics
     ///
-    /// Panics if `index >= len`.
+    /// Panics if the index is out-of-bounds, which is whenever
+    /// [`SoaIndex::get_mut`] returns [`None`].
     ///
     /// # Examples
     ///
@@ -536,16 +539,17 @@ where
     /// # #[extra_impl(Debug, PartialEq)]
     /// # struct Foo(usize);
     /// let mut soa = soa![Foo(10), Foo(20), Foo(30)];
-    /// *soa.nth_mut(1).0 = 42;
+    /// *soa.idx_mut(1).0 = 42;
     /// assert_eq!(soa, [Foo(10), Foo(42), Foo(30)]);
     /// ```
     ///
     /// [`IndexMut`]: std::ops::Index
-    pub fn nth_mut(&mut self, index: usize) -> T::RefMut<'_> {
-        if index >= self.0.len {
-            panic!("index out of bounds");
-        }
-        unsafe { self.0.raw.get_mut(index) }
+    /// [`get_mut`]: Slice::get_mut
+    pub fn idx_mut<I>(&mut self, index: I) -> I::OutputMut<'_>
+    where
+        I: SoaIndex<T>,
+    {
+        self.get_mut(index).expect("index out of bounds")
     }
 
     /// Swaps the position of two elements.
