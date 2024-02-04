@@ -1,6 +1,6 @@
 use std::{
     marker::PhantomData,
-    ops::{RangeFrom, RangeFull, RangeTo, RangeToInclusive},
+    ops::{Range, RangeFrom, RangeFull, RangeInclusive, RangeTo, RangeToInclusive},
 };
 
 use crate::{slice_mut::SliceMut, Slice, SliceRef};
@@ -76,6 +76,36 @@ where
     }
 }
 
+impl<T> SoaIndex<T> for Range<usize>
+where
+    T: Soapy,
+{
+    type Output<'a> = SliceRef<'a, T>
+    where
+        T: 'a;
+
+    type OutputMut<'a> = SliceMut<'a, T>
+    where
+        T: 'a;
+
+    fn get<'a>(self, slice: &'a Slice<T>) -> Option<Self::Output<'a>> {
+        let len = self.len();
+        (len + self.start <= slice.len()).then(|| {
+            SliceRef(
+                Slice(SliceData {
+                    len,
+                    raw: unsafe { slice.0.raw.offset(self.start) },
+                }),
+                PhantomData,
+            )
+        })
+    }
+
+    fn get_mut<'a>(self, slice: &'a mut Slice<T>) -> Option<Self::OutputMut<'a>> {
+        self.get(slice).map(|s| SliceMut(s.0, PhantomData))
+    }
+}
+
 impl<T> SoaIndex<T> for RangeTo<usize>
 where
     T: Soapy,
@@ -89,23 +119,11 @@ where
         T: 'a;
 
     fn get<'a>(self, slice: &'a Slice<T>) -> Option<Self::Output<'a>> {
-        Some(SliceRef(
-            Slice(SliceData {
-                len: self.end,
-                raw: slice.0.raw,
-            }),
-            PhantomData,
-        ))
+        (0..self.end).get(slice)
     }
 
     fn get_mut<'a>(self, slice: &'a mut Slice<T>) -> Option<Self::OutputMut<'a>> {
-        Some(SliceMut(
-            Slice(SliceData {
-                len: self.end,
-                raw: slice.0.raw,
-            }),
-            PhantomData,
-        ))
+        (0..self.end).get_mut(slice)
     }
 }
 
@@ -122,23 +140,11 @@ where
         T: 'a;
 
     fn get<'a>(self, slice: &'a Slice<T>) -> Option<Self::Output<'a>> {
-        Some(SliceRef(
-            Slice(SliceData {
-                len: self.end + 1,
-                raw: slice.0.raw,
-            }),
-            PhantomData,
-        ))
+        (0..self.end + 1).get(slice)
     }
 
     fn get_mut<'a>(self, slice: &'a mut Slice<T>) -> Option<Self::OutputMut<'a>> {
-        Some(SliceMut(
-            Slice(SliceData {
-                len: self.end + 1,
-                raw: slice.0.raw,
-            }),
-            PhantomData,
-        ))
+        (0..self.end + 1).get_mut(slice)
     }
 }
 
@@ -155,22 +161,31 @@ where
         T: 'a;
 
     fn get<'a>(self, slice: &'a Slice<T>) -> Option<Self::Output<'a>> {
-        Some(SliceRef(
-            Slice(SliceData {
-                len: slice.len() - self.start,
-                raw: unsafe { slice.0.raw.offset(self.start) },
-            }),
-            PhantomData,
-        ))
+        (self.start..slice.len()).get(slice)
     }
 
     fn get_mut<'a>(self, slice: &'a mut Slice<T>) -> Option<Self::OutputMut<'a>> {
-        Some(SliceMut(
-            Slice(SliceData {
-                len: slice.len() - self.start,
-                raw: unsafe { slice.0.raw.offset(self.start) },
-            }),
-            PhantomData,
-        ))
+        (self.start..slice.len()).get_mut(slice)
+    }
+}
+
+impl<T> SoaIndex<T> for RangeInclusive<usize>
+where
+    T: Soapy,
+{
+    type Output<'a> = SliceRef<'a, T>
+    where
+        T: 'a;
+
+    type OutputMut<'a> = SliceMut<'a, T>
+    where
+        T: 'a;
+
+    fn get<'a>(self, slice: &'a Slice<T>) -> Option<Self::Output<'a>> {
+        (*self.start()..*self.end() + 1).get(slice)
+    }
+
+    fn get_mut<'a>(self, slice: &'a mut Slice<T>) -> Option<Self::OutputMut<'a>> {
+        (*self.start()..*self.end() + 1).get_mut(slice)
     }
 }
