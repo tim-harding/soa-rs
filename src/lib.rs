@@ -26,6 +26,8 @@ pub use slice_ref::SliceRef;
 
 pub use soapy_shared::{Soapy, WithRef};
 
+mod eq_impl;
+
 /// Derive macro for the [`Soapy`] trait.
 ///
 /// [`Soapy`]: soapy_shared::Soapy

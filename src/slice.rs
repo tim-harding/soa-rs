@@ -709,12 +709,13 @@ where
     }
 }
 
-impl<T, R> PartialEq<R> for Slice<T>
+impl<T> Eq for Slice<T> where T: Soapy + Eq {}
+
+impl<T> PartialEq<[T]> for Slice<T>
 where
     T: Soapy + PartialEq,
-    R: AsRef<[T]>,
 {
-    fn eq(&self, other: &R) -> bool {
+    fn eq(&self, other: &[T]) -> bool {
         let other = other.as_ref();
         if self.len() != other.len() {
             return false;
@@ -735,7 +736,93 @@ where
     }
 }
 
-impl<T> Eq for Slice<T> where T: Soapy + Eq {}
+impl<T> PartialEq<Vec<T>> for Slice<T>
+where
+    T: Soapy + PartialEq,
+{
+    fn eq(&self, other: &Vec<T>) -> bool {
+        self.eq(other.as_slice())
+    }
+}
+
+impl<T> PartialEq<&[T]> for Slice<T>
+where
+    T: Soapy + PartialEq,
+{
+    fn eq(&self, other: &&[T]) -> bool {
+        self.eq(*other)
+    }
+}
+
+impl<T> PartialEq<&mut [T]> for Slice<T>
+where
+    T: Soapy + PartialEq,
+{
+    fn eq(&self, other: &&mut [T]) -> bool {
+        self.eq(*other)
+    }
+}
+
+impl<T, const N: usize> PartialEq<[T; N]> for Slice<T>
+where
+    T: Soapy + PartialEq,
+{
+    fn eq(&self, other: &[T; N]) -> bool {
+        self.eq(other.as_slice())
+    }
+}
+
+impl<T, const N: usize> PartialEq<&[T; N]> for Slice<T>
+where
+    T: Soapy + PartialEq,
+{
+    fn eq(&self, other: &&[T; N]) -> bool {
+        self.eq(*other)
+    }
+}
+
+impl<T, const N: usize> PartialEq<&mut [T; N]> for Slice<T>
+where
+    T: Soapy + PartialEq,
+{
+    fn eq(&self, other: &&mut [T; N]) -> bool {
+        self.eq(*other)
+    }
+}
+
+macro_rules! partial_eq_reflect {
+    ($t:ty) => {
+        impl<T> PartialEq<Slice<T>> for $t
+        where
+            T: Soapy + PartialEq,
+        {
+            fn eq(&self, other: &Slice<T>) -> bool {
+                other.eq(self)
+            }
+        }
+    };
+}
+
+macro_rules! partial_eq_reflect_array {
+    ($t:ty) => {
+        impl<T, const N: usize> PartialEq<Slice<T>> for $t
+        where
+            T: Soapy + PartialEq,
+        {
+            fn eq(&self, other: &Slice<T>) -> bool {
+                other.eq(self)
+            }
+        }
+    };
+}
+
+partial_eq_reflect!(Vec<T>);
+partial_eq_reflect!([T]);
+partial_eq_reflect!(&[T]);
+partial_eq_reflect!(&mut [T]);
+partial_eq_reflect_array!([T; N]);
+partial_eq_reflect_array!(&[T; N]);
+partial_eq_reflect_array!(&mut [T; N]);
 
 impl<T> fmt::Debug for Slice<T>
 where

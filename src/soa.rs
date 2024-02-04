@@ -1,4 +1,4 @@
-use crate::{IntoIter, Iter, IterMut, Slice};
+use crate::{eq_impl, IntoIter, Iter, IterMut, Slice, SliceMut, SliceRef};
 use soapy_shared::{SoaRaw, Soapy};
 use std::{
     borrow::{Borrow, BorrowMut},
@@ -765,6 +765,41 @@ where
         while self.pop().is_some() {}
     }
 
+    /// Extracts a slice with the entire container's contents.
+    ///
+    /// Equivalent to `s.get(..).unwrap()`
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use soapy::{Soa, Soapy, soa};
+    /// # #[derive(Soapy, Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
+    /// # struct Foo(usize);
+    /// let soa = soa![Foo(10), Foo(20)];
+    /// assert_eq!(soa.as_slice(), soa.get(..).unwrap());
+    /// ```
+    pub fn as_slice(&self) -> SliceRef<'_, T> {
+        SliceRef(self.slice, PhantomData)
+    }
+
+    /// Extracts a mutable slice with the entire container's contents.
+    ///
+    /// Equivalent to `s.get_mut(..).unwrap()`
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use soapy::{Soa, Soapy, soa};
+    /// # #[derive(Soapy, Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
+    /// # struct Foo(usize);
+    /// let mut soa = soa![Foo(10), Foo(20)];
+    /// soa.as_mut_slice().f0_mut()[0] = 30;
+    /// assert_eq!(soa, [Foo(30), Foo(20)]);
+    /// ```
+    pub fn as_mut_slice(&mut self) -> SliceMut<'_, T> {
+        SliceMut(self.slice, PhantomData)
+    }
+
     /// Grows the allocated capacity if `len == cap`.
     fn maybe_grow(&mut self) {
         if self.slice.0.len < self.cap {
@@ -959,35 +994,7 @@ where
     }
 }
 
-impl<T> PartialEq for Soa<T>
-where
-    T: Soapy + PartialEq,
-{
-    fn eq(&self, other: &Self) -> bool {
-        self.slice.eq(&other.slice)
-    }
-}
-
-impl<T> PartialEq<Slice<T>> for Soa<T>
-where
-    T: Soapy + PartialEq,
-{
-    fn eq(&self, other: &Slice<T>) -> bool {
-        self.slice.eq(other)
-    }
-}
-
-impl<T, R> PartialEq<R> for Soa<T>
-where
-    T: Soapy + PartialEq,
-    R: AsRef<[T]>,
-{
-    fn eq(&self, other: &R) -> bool {
-        self.slice.eq(other)
-    }
-}
-
-impl<T> Eq for Soa<T> where T: Soapy + Eq {}
+eq_impl::impl_for!(Soa<T>);
 
 impl<T> fmt::Debug for Soa<T>
 where

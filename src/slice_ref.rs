@@ -1,4 +1,4 @@
-use crate::{Iter, Slice};
+use crate::{eq_impl, Iter, Slice};
 use soapy_shared::Soapy;
 use std::{
     cmp::Ordering,
@@ -60,35 +60,7 @@ where
     }
 }
 
-impl<'a, T, R> PartialEq<R> for SliceRef<'a, T>
-where
-    T: 'a + Soapy + PartialEq,
-    R: AsRef<[T]>,
-{
-    fn eq(&self, other: &R) -> bool {
-        self.0.eq(other)
-    }
-}
-
-impl<'a, T> PartialEq<Slice<T>> for SliceRef<'a, T>
-where
-    T: 'a + Soapy + PartialEq,
-{
-    fn eq(&self, other: &Slice<T>) -> bool {
-        self.0.eq(other)
-    }
-}
-
-impl<'a, T> PartialEq for SliceRef<'a, T>
-where
-    T: 'a + Soapy + PartialEq,
-{
-    fn eq(&self, other: &Self) -> bool {
-        self.0.eq(&other.0)
-    }
-}
-
-impl<'a, T> Eq for SliceRef<'a, T> where T: 'a + Soapy + Eq {}
+eq_impl::impl_for!(SliceRef<'a, T>);
 
 impl<'a, T> Debug for SliceRef<'a, T>
 where

@@ -1,4 +1,4 @@
-use crate::{IterMut, Slice};
+use crate::{eq_impl, IterMut, Slice};
 use soapy_shared::Soapy;
 use std::{
     cmp::Ordering,
@@ -67,35 +67,7 @@ where
     }
 }
 
-impl<'a, T, R> PartialEq<R> for SliceMut<'a, T>
-where
-    T: 'a + Soapy + PartialEq,
-    R: AsRef<[T]>,
-{
-    fn eq(&self, other: &R) -> bool {
-        (&self.0).eq(other)
-    }
-}
-
-impl<'a, T> PartialEq<Slice<T>> for SliceMut<'a, T>
-where
-    T: 'a + Soapy + PartialEq,
-{
-    fn eq(&self, other: &Slice<T>) -> bool {
-        self.0.eq(other)
-    }
-}
-
-impl<'a, T> PartialEq for SliceMut<'a, T>
-where
-    T: 'a + Soapy + PartialEq,
-{
-    fn eq(&self, other: &Self) -> bool {
-        self.0.eq(&other.0)
-    }
-}
-
-impl<'a, T> Eq for SliceMut<'a, T> where T: 'a + Soapy + Eq {}
+eq_impl::impl_for!(SliceMut<'a, T>);
 
 impl<'a, T> Debug for SliceMut<'a, T>
 where
