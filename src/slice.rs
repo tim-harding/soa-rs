@@ -366,7 +366,7 @@ where
     where
         I: SoaIndex<T>,
     {
-        index.get(unsafe { transmute(self) })
+        index.get(self)
     }
 
     /// Returns a mutable reference to an element or subslice depending on the
@@ -390,7 +390,7 @@ where
     where
         I: SoaIndex<T>,
     {
-        index.get_mut(unsafe { transmute(self) })
+        index.get_mut(self)
     }
 
     /// Returns a clone of the element at the given index.
