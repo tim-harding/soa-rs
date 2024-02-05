@@ -23,3 +23,6 @@ pub use soapy::Soapy;
 
 mod slice;
 pub use slice::SliceData;
+
+mod array;
+pub use array::Array;

@@ -1,4 +1,4 @@
-use crate::{SoaRaw, WithRef};
+use crate::{Array, SoaRaw, WithRef};
 
 /// Provides SOA data structure compatibility.
 ///
@@ -16,6 +16,8 @@ pub unsafe trait Soapy: Sized {
     ///
     /// [`SliceData<Self::Raw>`]: crate::SliceData
     type Deref;
+
+    type Array<const N: usize>: Array<Raw = Self::Raw>;
 
     /// For each field with type `F` in `T`, `Ref` has a field with type
     /// `&F`

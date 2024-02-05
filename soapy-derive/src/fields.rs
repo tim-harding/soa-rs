@@ -38,6 +38,7 @@ pub fn fields_struct(
     let ident_tail: Vec<_> = ident_all.iter().skip(1).cloned().collect();
 
     let deref = format_ident!("{ident}SoaDeref");
+    let array = format_ident!("{ident}SoaArray");
     let item_ref = format_ident!("{ident}SoaRef");
     let item_ref_mut = format_ident!("{ident}SoaRefMut");
     let raw = format_ident!("{ident}SoaRaw");
@@ -77,6 +78,47 @@ pub fn fields_struct(
                 }
             }
             )*
+        }
+    });
+
+    let array_def = match kind {
+        FieldKind::Named => quote! {
+            {
+                #(
+                #[automatically_derived]
+                #vis_all #ident_all: [#ty_all; N],
+                )*
+            }
+        },
+
+        FieldKind::Unnamed => quote! {
+            (
+                #(
+                #[automatically_derived]
+                #vis_all [#ty_all; N],
+                )*
+            );
+        },
+    };
+
+    out.append_all(quote! {
+        #[automatically_derived]
+        #vis struct #array<const N: usize> #array_def
+
+        impl<const N: usize> ::soapy_shared::Array for #array<N> {
+            type Raw = #raw;
+
+            unsafe fn as_raw(&self) -> Self::Raw {
+                #raw {
+                    #(
+                    #ident_all: unsafe {
+                        ::std::ptr::NonNull::new_unchecked(
+                            self.#ident_all.as_slice().as_ptr() as *mut _
+                        )
+                    },
+                    )*
+                }
+            }
         }
     });
 
@@ -191,6 +233,7 @@ pub fn fields_struct(
         unsafe impl ::soapy_shared::Soapy for #ident {
             type Raw = #raw;
             type Deref = #deref;
+            type Array<const N: usize> = #array<N>;
             type Ref<'a> = #item_ref<'a> where Self: 'a;
             type RefMut<'a> = #item_ref_mut<'a> where Self: 'a;
         }
