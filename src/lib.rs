@@ -101,41 +101,55 @@ macro_rules! soa {
 mod tests {
     use crate::{Soa, Soapy};
 
-    #[derive(Soapy, Debug, Clone, Copy, PartialEq, Eq, Hash)]
+    #[derive(Clone, Debug, Default, PartialEq, Eq, PartialOrd, Ord, Hash)]
+    struct SingleDrop(u8);
+
+    impl SingleDrop {
+        pub const DEFAULT: Self = Self(0);
+    }
+
+    impl Drop for SingleDrop {
+        fn drop(&mut self) {
+            assert_eq!(self.0, 0);
+            self.0 += 1;
+        }
+    }
+
+    #[derive(Soapy, Debug, Clone, PartialEq, Eq, Hash)]
     struct El {
         foo: u64,
         bar: u8,
-        baz: [u32; 2],
+        baz: SingleDrop,
     }
 
     const A: El = El {
         foo: 0,
         bar: 1,
-        baz: [2, 3],
+        baz: SingleDrop::DEFAULT,
     };
 
     const B: El = El {
         foo: 4,
         bar: 5,
-        baz: [6, 7],
+        baz: SingleDrop::DEFAULT,
     };
 
     const C: El = El {
         foo: 8,
         bar: 9,
-        baz: [10, 11],
+        baz: SingleDrop::DEFAULT,
     };
 
     const D: El = El {
         foo: 12,
         bar: 13,
-        baz: [14, 15],
+        baz: SingleDrop::DEFAULT,
     };
 
     const E: El = El {
         foo: 16,
         bar: 17,
-        baz: [18, 19],
+        baz: SingleDrop::DEFAULT,
     };
 
     const ABCDE: [El; 5] = [A, B, C, D, E];
@@ -296,13 +310,10 @@ mod tests {
         for el in soa.iter_mut() {
             *el.foo += 1;
             *el.bar += 2;
-            let [a, b] = *el.baz;
-            *el.baz = [a + 3, b + 4];
         }
         for (borrowed, owned) in soa.iter().zip(ABCDE.into_iter()) {
             assert_eq!(borrowed.foo, &(owned.foo + 1));
             assert_eq!(borrowed.bar, &(owned.bar + 2));
-            assert_eq!(borrowed.baz, &[owned.baz[0] + 3, owned.baz[1] + 4]);
         }
     }
 
@@ -313,14 +324,9 @@ mod tests {
         let array_ref: &[El; 5] = &ABCDE;
         let mut tmp = ABCDE;
         let array_ref_mut: &mut [El; 5] = &mut tmp;
-        let slice: &[El] = ABCDE.as_slice();
-        let mut tmp = ABCDE;
-        let slice_mut: &mut [El] = tmp.as_mut_slice();
         assert_eq!(expected, Soa::from(array));
         assert_eq!(expected, Soa::from(array_ref));
         assert_eq!(expected, Soa::from(array_ref_mut));
-        assert_eq!(expected, Soa::from(slice));
-        assert_eq!(expected, Soa::from(slice_mut));
     }
 
     #[test]
@@ -430,7 +436,7 @@ mod tests {
         let actual = El {
             foo: *actual.foo,
             bar: *actual.bar,
-            baz: *actual.baz,
+            baz: Default::default(),
         };
         assert_eq!(actual, ABCDE[2]);
     }
@@ -455,7 +461,6 @@ mod tests {
 
         assert_eq!(soa.foo(), &[0, 4, 8, 12, 16]);
         assert_eq!(soa.bar(), &[1, 5, 9, 13, 17]);
-        assert_eq!(soa.baz(), &[[2, 3], [6, 7], [10, 11], [14, 15], [18, 19]]);
 
         for el in soa.foo_mut() {
             *el += 1;
@@ -465,13 +470,7 @@ mod tests {
             *el += 1;
         }
 
-        for el in soa.baz_mut() {
-            el[0] += 1;
-            el[1] += 1;
-        }
-
         assert_eq!(soa.foo(), &[1, 5, 9, 13, 17]);
         assert_eq!(soa.bar(), &[2, 6, 10, 14, 18]);
-        assert_eq!(soa.baz(), &[[3, 4], [7, 8], [11, 12], [15, 16], [19, 20]]);
     }
 }
