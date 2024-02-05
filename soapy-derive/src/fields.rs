@@ -39,6 +39,7 @@ pub fn fields_struct(
 
     let deref = format_ident!("{ident}SoaDeref");
     let array = format_ident!("{ident}SoaArray");
+    let uninit = format_ident!("{ident}SoaUninit");
     let item_ref = format_ident!("{ident}SoaRef");
     let item_ref_mut = format_ident!("{ident}SoaRefMut");
     let raw = format_ident!("{ident}SoaRaw");
@@ -101,6 +102,26 @@ pub fn fields_struct(
         },
     };
 
+    let uninit_def = match kind {
+        FieldKind::Named => quote! {
+            {
+                #(
+                #[automatically_derived]
+                #vis_all #ident_all: [::std::mem::MaybeUninit<#ty_all>; K],
+                )*
+            }
+        },
+
+        FieldKind::Unnamed => quote! {
+            (
+                #(
+                #[automatically_derived]
+                #vis_all [::std::mem::MaybeUninit<#ty_all>; K],
+                )*
+            );
+        },
+    };
+
     out.append_all(quote! {
         #[automatically_derived]
         #vis struct #array<const N: usize> #array_def
@@ -115,6 +136,45 @@ pub fn fields_struct(
                         ::std::ptr::NonNull::new_unchecked(
                             self.#ident_all.as_slice().as_ptr() as *mut _
                         )
+                    },
+                    )*
+                }
+            }
+        }
+
+        impl<const N: usize> #array<N> {
+            #vis const fn from_array(array: [#ident; N]) -> Self {
+                struct #uninit<const K: usize> #uninit_def;
+                let mut uninit: #uninit<N> = #uninit {
+                    #(
+                    // https://doc.rust-lang.org/std/mem/union.MaybeUninit.html#initializing-an-array-element-by-element
+                    //
+                    // TODO: Prefer when stablized:
+                    // https://doc.rust-lang.org/std/mem/union.MaybeUninit.html#method.uninit_array
+                    #ident_all: unsafe { ::std::mem::MaybeUninit::uninit().assume_init() },
+                    )*
+                };
+
+                let mut i = 0;
+                while i < N {
+                    #(
+                    let src = &array[i].#ident_all as *const #ty_all;
+                    let dst = uninit.#ident_all[i].as_ptr() as *mut #ty_all;
+                    unsafe {
+                        src.copy_to(dst, 1);
+                    }
+                    )*
+
+                    i += 1;
+                }
+
+                ::std::mem::forget(array);
+                Self {
+                    #(
+                    // TODO: Prefer when stabilized:
+                    // https://doc.rust-lang.org/std/primitive.array.html#method.transpose
+                    #ident_all: unsafe {
+                        ::std::mem::transmute_copy(&::std::mem::ManuallyDrop::new(uninit.#ident_all))
                     },
                     )*
                 }
