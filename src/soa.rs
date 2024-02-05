@@ -243,9 +243,7 @@ where
     pub unsafe fn from_raw_parts(ptr: *mut u8, length: usize, capacity: usize) -> Self {
         Self {
             cap: capacity,
-            slice: unsafe {
-                Slice::from_raw_parts(<T::Raw as SoaRaw>::from_parts(ptr, capacity), length)
-            },
+            slice: Slice::from_raw_parts(<T::Raw as SoaRaw>::from_parts(ptr, capacity), length),
         }
     }
 
@@ -514,12 +512,14 @@ where
     /// assert_eq!(soa, [Foo(2), Foo(3)])
     /// ```
     pub fn swap_remove(&mut self, index: usize) -> T {
-        let out = unsafe { self.slice.0.raw.get(index) };
-        let last = unsafe { self.slice.0.raw.get(self.slice.0.len - 1) };
-        unsafe {
-            self.slice.0.raw.set(index, last);
+        if index >= self.len() {
+            panic!("index out of bounds")
         }
         self.slice.0.len -= 1;
+        let out = unsafe { self.slice.0.raw.get(index) };
+        unsafe {
+            self.slice.0.raw.copy(self.len(), index, 1);
+        }
         out
     }
 
