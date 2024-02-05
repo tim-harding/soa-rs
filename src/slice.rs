@@ -207,9 +207,6 @@ where
     {
         let mut acc = init;
         for i in 0..self.0.len {
-            // SAFETY:
-            // Okay to construct an element and take its reference, so long as
-            // we don't run its destructor.
             let element = ManuallyDrop::new(unsafe { self.0.raw.get(i) });
             let result = f(acc, &element);
             match result {
@@ -274,9 +271,6 @@ where
         let mut acc = init;
         let len = self.0.len.min(other.0.len);
         for i in 0..len {
-            // SAFETY:
-            // Okay to construct an element and take its reference, so long as
-            // we don't run its destructor.
             let a = ManuallyDrop::new(unsafe { self.0.raw.get(i) });
             let b = ManuallyDrop::new(unsafe { other.0.raw.get(i) });
             let result = f(acc, &a, &b);
@@ -391,75 +385,6 @@ where
         I: SoaIndex<T>,
     {
         index.get_mut(self)
-    }
-
-    /// Returns a clone of the element at the given index.
-    ///
-    /// This is equivalent to [`index`] followed by a [`clone`]. Prefer
-    /// [`nth_copied`] for types that support it.
-    ///
-    /// # Panics
-    ///
-    /// Panics if `index >= len`.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// # use std::fmt;
-    /// # use soapy::{Soa, Soapy, soa, WithRef};
-    /// # #[derive(Soapy, Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
-    /// # struct Foo(usize);
-    /// let soa = soa![Foo(10), Foo(40), Foo(30), Foo(90)];
-    /// assert_eq!(soa.nth_cloned(1), Foo(40));
-    /// assert_eq!(soa.nth_cloned(3), Foo(90));
-    /// ```
-    ///
-    /// [`index`]: std::ops::Index::index
-    /// [`clone`]: std::clone::Clone::clone
-    /// [`nth_copied`]: Slice::nth_copied
-    pub fn nth_cloned(&self, index: usize) -> T
-    where
-        T: Clone,
-    {
-        if index >= self.0.len {
-            panic!("index out of bounds");
-        }
-        let el = ManuallyDrop::new(unsafe { self.0.raw.get(index) });
-        el.deref().clone()
-    }
-
-    /// Returns a copy of the element at the given index.
-    ///
-    /// This is equivalent to [`index`] except that it returns a copy rather
-    /// than a reference. Prefer this over [`nth_cloned`] for types that support
-    /// it.
-    ///
-    /// # Panics
-    ///
-    /// Panics if `index >= len`.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// # use std::fmt;
-    /// # use soapy::{Soa, Soapy, soa, WithRef};
-    /// # #[derive(Soapy, Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
-    /// # struct Foo(usize);
-    /// let soa = soa![Foo(10), Foo(40), Foo(30), Foo(90)];
-    /// assert_eq!(soa.nth_copied(1), Foo(40));
-    /// assert_eq!(soa.nth_copied(3), Foo(90));
-    /// ```
-    ///
-    /// [`index`]: std::ops::Index::index
-    /// [`nth_cloned`]: Slice::nth_cloned
-    pub fn nth_copied(&self, index: usize) -> T
-    where
-        T: Copy,
-    {
-        if index >= self.0.len {
-            panic!("index out of bounds");
-        }
-        unsafe { self.0.raw.get(index) }
     }
 
     /// Returns a reference to the element at the given index.
