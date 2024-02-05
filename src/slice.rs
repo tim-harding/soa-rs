@@ -803,6 +803,8 @@ where
     type Target = T::Deref;
 
     fn deref(&self) -> &Self::Target {
+        // SAFETY:
+        // Both Self and T::Deref are #[repr(transparent)] of SliceData
         unsafe { transmute(self) }
     }
 }
@@ -812,6 +814,8 @@ where
     T: Soapy,
 {
     fn deref_mut(&mut self) -> &mut Self::Target {
+        // SAFETY:
+        // Both Self and T::Deref are #[repr(transparent)] of SliceData
         unsafe { transmute(self) }
     }
 }
