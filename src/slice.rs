@@ -252,7 +252,7 @@ where
     /// # struct Foo(u8);
     /// let soa1 = soa![Foo(1), Foo(2)];
     /// let soa2 = soa![Foo(3), Foo(4), Foo(5)];
-    /// let sums = Soa::try_fold_zip(&soa1, &soa2, vec![], |mut acc, &a, &b| {
+    /// let sums = soa1.try_fold_zip(&soa2, vec![], |mut acc, &a, &b| {
     ///     acc.push(a.0 + b.0);
     ///     ControlFlow::Continue(acc)
     /// });
