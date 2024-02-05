@@ -538,11 +538,12 @@ where
     /// assert_eq!(soa2, []);
     /// ```
     pub fn append(&mut self, other: &mut Self) {
+        self.reserve(other.len());
         for i in 0..other.slice.0.len {
             let element = unsafe { other.slice.0.raw.get(i) };
             self.push(element);
         }
-        other.slice.0.len = 0;
+        other.clear();
     }
 
     /// Returns an iterator over the elements.
