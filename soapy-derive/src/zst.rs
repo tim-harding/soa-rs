@@ -13,7 +13,7 @@ pub fn zst_struct(ident: Ident, vis: Visibility, kind: ZstKind) -> TokenStream {
 
     quote! {
         #[automatically_derived]
-        unsafe impl ::soapy_shared::Soapy for #ident {
+        unsafe impl ::soapy::Soapy for #ident {
             type Raw = #raw;
             type Array<const N: usize> = #array<N>;
             type Deref = ();
@@ -22,7 +22,7 @@ pub fn zst_struct(ident: Ident, vis: Visibility, kind: ZstKind) -> TokenStream {
         }
 
         #[automatically_derived]
-        impl ::soapy_shared::WithRef for #ident {
+        impl ::soapy::WithRef for #ident {
             type Item = #ident;
 
             fn with_ref<F, R>(&self, f: F) -> R
@@ -36,7 +36,7 @@ pub fn zst_struct(ident: Ident, vis: Visibility, kind: ZstKind) -> TokenStream {
         #[automatically_derived]
         #vis struct #array<const N: usize>(pub [#ident; N]);
 
-        impl<const N: usize> ::soapy_shared::Array for #array<N> {
+        impl<const N: usize> ::soapy::Array for #array<N> {
             type Raw = #raw;
 
             unsafe fn as_raw(&self) -> Self::Raw {
@@ -49,7 +49,7 @@ pub fn zst_struct(ident: Ident, vis: Visibility, kind: ZstKind) -> TokenStream {
         #vis struct #raw;
 
         #[automatically_derived]
-        unsafe impl ::soapy_shared::SoaRaw for #raw {
+        unsafe impl ::soapy::SoaRaw for #raw {
             type Item = #ident;
 
             #[inline]

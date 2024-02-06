@@ -1,5 +1,6 @@
-use soapy_shared::{SoaRaw, Soapy};
 use std::marker::PhantomData;
+
+use crate::{SoaRaw, Soapy};
 
 /// Mutable [`Soa`] iterator.
 ///

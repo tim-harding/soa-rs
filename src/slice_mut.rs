@@ -1,5 +1,4 @@
-use crate::{eq_impl, IterMut, Slice};
-use soapy_shared::Soapy;
+use crate::{eq_impl, IterMut, Slice, Soapy};
 use std::{
     cmp::Ordering,
     fmt::{self, Debug, Formatter},
@@ -61,7 +60,7 @@ where
         IterMut {
             start: 0,
             end: self.len(),
-            raw: self.0 .0.raw,
+            raw: self.0.raw,
             _marker: PhantomData,
         }
     }

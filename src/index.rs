@@ -3,8 +3,7 @@ use std::{
     ops::{Range, RangeFrom, RangeFull, RangeInclusive, RangeTo, RangeToInclusive},
 };
 
-use crate::{slice_mut::SliceMut, Slice, SliceRef};
-use soapy_shared::{SliceData, SoaRaw, Soapy};
+use crate::{slice_mut::SliceMut, Slice, SliceRef, SoaRaw, Soapy};
 
 /// A helper trait for indexing operations.
 pub trait SoaIndex<T>
@@ -40,7 +39,7 @@ where
 
     fn get<'a>(self, slice: &'a Slice<T>) -> Option<Self::Output<'a>> {
         if self < slice.len() {
-            Some(unsafe { slice.0.raw.get_ref(self) })
+            Some(unsafe { slice.raw.get_ref(self) })
         } else {
             None
         }
@@ -48,7 +47,7 @@ where
 
     fn get_mut<'a>(self, slice: &'a mut Slice<T>) -> Option<Self::OutputMut<'a>> {
         if self < slice.len() {
-            Some(unsafe { slice.0.raw.get_mut(self) })
+            Some(unsafe { slice.raw.get_mut(self) })
         } else {
             None
         }
@@ -72,7 +71,7 @@ where
     }
 
     fn get_mut<'a>(self, slice: &'a mut Slice<T>) -> Option<Self::OutputMut<'a>> {
-        Some(SliceMut(Slice(slice.0), PhantomData))
+        Some(SliceMut(*slice, PhantomData))
     }
 }
 
@@ -92,10 +91,10 @@ where
         let len = self.len();
         (len + self.start <= slice.len()).then(|| {
             SliceRef(
-                Slice(SliceData {
+                Slice {
                     len,
-                    raw: unsafe { slice.0.raw.offset(self.start) },
-                }),
+                    raw: unsafe { slice.raw.offset(self.start) },
+                },
                 PhantomData,
             )
         })

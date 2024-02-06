@@ -1,4 +1,4 @@
-use soapy_shared::{SoaRaw, Soapy};
+use crate::{SoaRaw, Soapy};
 use std::marker::PhantomData;
 
 /// Immutable [`Soa`] iterator.

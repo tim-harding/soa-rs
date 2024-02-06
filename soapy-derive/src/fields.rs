@@ -59,21 +59,21 @@ pub fn fields_struct(
     out.append_all(quote! {
         #[automatically_derived]
         #[repr(transparent)]
-        #vis struct #deref(::soapy_shared::SliceData<#raw>);
+        #vis struct #deref(::soapy::Slice<#ident>);
 
         impl #deref {
             #(
             #vis_all fn #slice_getters_ref(&self) -> &[#ty_all] {
-                let ptr = self.0.raw.#ident_all.as_ptr();
-                let len = self.0.len;
+                let ptr = self.0.raw().#ident_all.as_ptr();
+                let len = self.0.len();
                 unsafe {
                     ::std::slice::from_raw_parts(ptr, len)
                 }
             }
 
             #vis_all fn #slice_getters_mut(&mut self) -> &mut [#ty_all] {
-                let ptr = self.0.raw.#ident_all.as_ptr();
-                let len = self.0.len;
+                let ptr = self.0.raw().#ident_all.as_ptr();
+                let len = self.0.len();
                 unsafe {
                     ::std::slice::from_raw_parts_mut(ptr, len)
                 }
@@ -126,7 +126,7 @@ pub fn fields_struct(
         #[automatically_derived]
         #vis struct #array<const N: usize> #array_def
 
-        impl<const N: usize> ::soapy_shared::Array for #array<N> {
+        impl<const N: usize> ::soapy::Array for #array<N> {
             type Raw = #raw;
 
             unsafe fn as_raw(&self) -> Self::Raw {
@@ -212,7 +212,7 @@ pub fn fields_struct(
 
     let with_ref_impl = |item| {
         quote! {
-            impl<'a> ::soapy_shared::WithRef for #item<'a> {
+            impl<'a> ::soapy::WithRef for #item<'a> {
                 type Item = #ident;
 
                 fn with_ref<F, R>(&self, f: F) -> R
@@ -236,8 +236,8 @@ pub fn fields_struct(
             quote! {
                 impl<'a> ::std::cmp::PartialEq for #item<'a> {
                     fn eq(&self, other: &Self) -> bool {
-                        <Self as ::soapy_shared::WithRef>::with_ref(self, |me| {
-                            <Self as ::soapy_shared::WithRef>::with_ref(other, |them| {
+                        <Self as ::soapy::WithRef>::with_ref(self, |me| {
+                            <Self as ::soapy::WithRef>::with_ref(other, |them| {
                                 me == them
                             })
                         })
@@ -246,7 +246,7 @@ pub fn fields_struct(
 
                 impl<'a> ::std::cmp::PartialEq<#ident> for #item<'a> {
                     fn eq(&self, other: &#ident) -> bool {
-                        <Self as ::soapy_shared::WithRef>::with_ref(self, |me| {
+                        <Self as ::soapy::WithRef>::with_ref(self, |me| {
                             me == other
                         })
                     }
@@ -263,7 +263,7 @@ pub fn fields_struct(
             quote! {
                 impl<'a> ::std::fmt::Debug for #item<'a> {
                     fn fmt(&self, f: &mut ::std::fmt::Formatter<'_>) -> ::std::fmt::Result {
-                        <Self as ::soapy_shared::WithRef>::with_ref(self, |me| me.fmt(f))
+                        <Self as ::soapy::WithRef>::with_ref(self, |me| me.fmt(f))
                     }
                 }
             }
@@ -290,7 +290,7 @@ pub fn fields_struct(
         #vis struct #raw #raw_body
 
         #[automatically_derived]
-        unsafe impl ::soapy_shared::Soapy for #ident {
+        unsafe impl ::soapy::Soapy for #ident {
             type Raw = #raw;
             type Deref = #deref;
             type Array<const N: usize> = #array<N>;
@@ -329,7 +329,7 @@ pub fn fields_struct(
         }
 
         #[automatically_derived]
-        unsafe impl ::soapy_shared::SoaRaw for #raw {
+        unsafe impl ::soapy::SoaRaw for #raw {
             type Item = #ident;
 
             #[inline]

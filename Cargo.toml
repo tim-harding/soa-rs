@@ -9,8 +9,7 @@ repository = "https://github.com/tim-harding/soapy"
 readme = "README.md"
 
 [workspace]
-members = ["soapy-derive", "soapy-shared"]
+members = ["soapy-derive", "soapy-testing"]
 
 [dependencies]
 soapy-derive = { path = "soapy-derive", version = "0.2.0" }
-soapy-shared = { path = "soapy-shared", version = "0.2.0" }

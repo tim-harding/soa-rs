@@ -1,4 +1,4 @@
-use soapy_shared::{SoaRaw, Soapy};
+use crate::{SoaRaw, Soapy};
 use std::mem::size_of;
 
 /// An iterator that moves out of a [`Soa`].
