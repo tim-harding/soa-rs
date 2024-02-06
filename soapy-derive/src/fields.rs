@@ -1,7 +1,7 @@
 use crate::zst::{zst_struct, ZstKind};
 use proc_macro2::TokenStream;
 use quote::{format_ident, quote, ToTokens, TokenStreamExt};
-use syn::{punctuated::Punctuated, token::Comma, Field, Ident, Index, Visibility};
+use syn::{punctuated::Punctuated, token::Comma, Attribute, Field, Ident, Index, Visibility};
 
 pub fn fields_struct(
     ident: Ident,
@@ -246,19 +246,65 @@ pub fn fields_struct(
             quote! {
                 impl<'a> ::std::cmp::PartialEq for #item<'a> {
                     fn eq(&self, other: &Self) -> bool {
-                        <Self as ::soapy::WithRef>::with_ref(self, |me| {
-                            <Self as ::soapy::WithRef>::with_ref(other, |them| {
-                                me == them
-                            })
-                        })
+                        use ::soapy::WithRef;
+                        self.partial_eq(other)
                     }
                 }
 
                 impl<'a> ::std::cmp::PartialEq<#ident> for #item<'a> {
                     fn eq(&self, other: &#ident) -> bool {
-                        <Self as ::soapy::WithRef>::with_ref(self, |me| {
-                            me == other
-                        })
+                        use ::soapy::WithRef;
+                        self.partial_eq(other)
+                    }
+                }
+            }
+        };
+
+        out.append_all(ref_impl(item_ref.clone()));
+        out.append_all(ref_impl(item_ref_mut.clone()));
+    }
+
+    if extra_impl.eq {
+        let ref_impl = |item| {
+            quote! {
+                impl<'a> ::std::cmp::Eq for #item<'a> {}
+            }
+        };
+
+        out.append_all(ref_impl(item_ref.clone()));
+        out.append_all(ref_impl(item_ref_mut.clone()));
+    }
+
+    if extra_impl.partial_ord {
+        let ref_impl = |item| {
+            quote! {
+                impl<'a> ::std::cmp::PartialOrd for #item<'a> {
+                    fn partial_cmp(&self, other: &Self) -> Option<::std::cmp::Ordering> {
+                        use ::soapy::WithRef;
+                        self.partial_ord(other)
+                    }
+                }
+
+                impl<'a> ::std::cmp::PartialOrd<#ident> for #item<'a> {
+                    fn partial_cmp(&self, other: &#ident) -> Option<::std::cmp::Ordering> {
+                        use ::soapy::WithRef;
+                        self.partial_ord(other)
+                    }
+                }
+            }
+        };
+
+        out.append_all(ref_impl(item_ref.clone()));
+        out.append_all(ref_impl(item_ref_mut.clone()));
+    }
+
+    if extra_impl.ord {
+        let ref_impl = |item| {
+            quote! {
+                impl<'a> ::std::cmp::Ord for #item<'a> {
+                    fn cmp(&self, other: &Self) -> ::std::cmp::Ordering {
+                        use ::soapy::WithRef;
+                        self.ord(other)
                     }
                 }
             }
@@ -273,7 +319,8 @@ pub fn fields_struct(
             quote! {
                 impl<'a> ::std::fmt::Debug for #item<'a> {
                     fn fmt(&self, f: &mut ::std::fmt::Formatter<'_>) -> ::std::fmt::Result {
-                        <Self as ::soapy::WithRef>::with_ref(self, |me| me.fmt(f))
+                        use ::soapy::WithRef;
+                        self.debug(f)
                     }
                 }
             }
@@ -451,6 +498,17 @@ pub fn fields_struct(
                 }
             }
         }
+
+        impl ::soapy::WithRef for #ident {
+            type Item = Self;
+
+            fn with_ref<F, R>(&self, f: F) -> R
+            where
+                F: FnOnce(&Self) -> R
+            {
+                f(self)
+            }
+        }
     });
 
     Ok(out)
@@ -499,4 +557,40 @@ pub enum FieldKind {
 pub struct ExtraImpl {
     pub debug: bool,
     pub partial_eq: bool,
+    pub eq: bool,
+    pub partial_ord: bool,
+    pub ord: bool,
+}
+
+impl TryFrom<Vec<Attribute>> for ExtraImpl {
+    type Error = syn::Error;
+
+    fn try_from(value: Vec<Attribute>) -> Result<Self, Self::Error> {
+        let mut out = Self::default();
+        for attr in value {
+            if attr.path().is_ident("extra_impl") {
+                attr.parse_nested_meta(|meta| {
+                    if meta.path.is_ident("Debug") {
+                        out.debug = true;
+                        Ok(())
+                    } else if meta.path.is_ident("PartialEq") {
+                        out.partial_eq = true;
+                        Ok(())
+                    } else if meta.path.is_ident("Eq") {
+                        out.eq = true;
+                        Ok(())
+                    } else if meta.path.is_ident("PartialOrd") {
+                        out.partial_ord = true;
+                        Ok(())
+                    } else if meta.path.is_ident("Ord") {
+                        out.ord = true;
+                        Ok(())
+                    } else {
+                        Err(meta.error("unrecognized extra impl"))
+                    }
+                })?;
+            }
+        }
+        Ok(out)
+    }
 }

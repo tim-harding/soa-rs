@@ -35,23 +35,7 @@ fn soa_inner(input: DeriveInput) -> Result<TokenStream2, SoapyError> {
         generics: _,
     } = input;
 
-    let mut extra_impl = ExtraImpl::default();
-    for attr in attrs {
-        if attr.path().is_ident("extra_impl") {
-            attr.parse_nested_meta(|meta| {
-                if meta.path.is_ident("Debug") {
-                    extra_impl.debug = true;
-                    Ok(())
-                } else if meta.path.is_ident("PartialEq") {
-                    extra_impl.partial_eq = true;
-                    Ok(())
-                } else {
-                    Err(meta.error("unrecognized extra impl"))
-                }
-            })?;
-        }
-    }
-
+    let extra_impl = ExtraImpl::try_from(attrs)?;
     match data {
         Data::Struct(strukt) => match strukt.fields {
             Fields::Named(fields) => Ok(fields_struct(
