@@ -37,8 +37,6 @@ pub fn fields_struct(
     let ident_tail: Vec<_> = ident_all.iter().skip(1).cloned().collect();
 
     let deref = format_ident!("{ident}SoaDeref");
-    let array = format_ident!("{ident}SoaArray");
-    let uninit = format_ident!("{ident}SoaUninit");
     let item_ref = format_ident!("{ident}SoaRef");
     let item_ref_mut = format_ident!("{ident}SoaRefMut");
     let raw = format_ident!("{ident}SoaRaw");
@@ -78,116 +76,6 @@ pub fn fields_struct(
                 }
             }
             )*
-        }
-    });
-
-    let array_def = match kind {
-        FieldKind::Named => quote! {
-            {
-                #(
-                #[automatically_derived]
-                #vis_all #ident_all: [#ty_all; N],
-                )*
-            }
-        },
-
-        FieldKind::Unnamed => quote! {
-            (
-                #(
-                #[automatically_derived]
-                #vis_all [#ty_all; N],
-                )*
-            );
-        },
-    };
-
-    let uninit_def = match kind {
-        FieldKind::Named => quote! {
-            {
-                #(
-                #[automatically_derived]
-                #vis_all #ident_all: [::std::mem::MaybeUninit<#ty_all>; K],
-                )*
-            }
-        },
-
-        FieldKind::Unnamed => quote! {
-            (
-                #(
-                #[automatically_derived]
-                #vis_all [::std::mem::MaybeUninit<#ty_all>; K],
-                )*
-            );
-        },
-    };
-
-    out.append_all(quote! {
-        #[automatically_derived]
-        #vis struct #array<const N: usize> #array_def
-
-        impl<const N: usize> #array<N> {
-            #vis const fn from_array(array: [#ident; N]) -> Self {
-                struct #uninit<const K: usize> #uninit_def;
-
-                let mut uninit: #uninit<N> = #uninit {
-                    #(
-                    // https://doc.rust-lang.org/std/mem/union.MaybeUninit.html#initializing-an-array-element-by-element
-                    //
-                    // TODO: Prefer when stablized:
-                    // https://doc.rust-lang.org/std/mem/union.MaybeUninit.html#method.uninit_array
-                    #ident_all: unsafe { ::std::mem::MaybeUninit::uninit().assume_init() },
-                    )*
-                };
-
-                let mut i = 0;
-                while i < N {
-                    #(
-                    let src = &array[i].#ident_all as *const #ty_all;
-                    unsafe {
-                        uninit.#ident_all[i] = ::std::mem::MaybeUninit::new(src.read());
-                    }
-                    )*
-
-                    i += 1;
-                }
-
-                ::std::mem::forget(array);
-                Self {
-                    #(
-                    // TODO: Prefer when stabilized:
-                    // https://doc.rust-lang.org/std/primitive.array.html#method.transpose
-                    #ident_all: unsafe {
-                        ::std::mem::transmute_copy(&::std::mem::ManuallyDrop::new(uninit.#ident_all))
-                    },
-                    )*
-                }
-            }
-
-            const fn as_raw(&self) -> #raw {
-                #raw {
-                    #(
-                        #ident_all: unsafe {
-                            ::std::ptr::NonNull::new_unchecked(
-                                self.#ident_all.as_slice().as_ptr() as *mut #ty_all
-                            )
-                        }
-                    ),*
-                }
-            }
-
-            #vis const fn as_slice(&self) -> ::soapy::SliceRef<'_, #ident> {
-                unsafe {
-                    let slice = ::soapy::Slice::<#ident>::from_raw_parts(self.as_raw(), N);
-                    ::std::mem::transmute(slice)
-                }
-            }
-
-            #vis fn as_mut_slice(&mut self) -> ::soapy::SliceMut<'_, #ident> {
-                unsafe {
-                    let slice = ::soapy::Slice::<#ident>::from_raw_parts(self.as_raw(), N);
-                    ::std::mem::transmute(slice)
-                }
-            }
         }
     });
 
@@ -282,10 +170,10 @@ pub fn fields_struct(
                 Ok((layout, offsets))
             }
 
+            #[inline]
             unsafe fn layout_and_offsets_unchecked(cap: usize) 
                 -> (::std::alloc::Layout, [usize; #fields_len]) 
             {
-                // TODO: Replace unwraps with unwrap_unchecked
                 let layout = ::std::alloc::Layout::array::<#ty_head>(cap).unwrap_unchecked();
                 let mut offsets = [0usize; #fields_len];
                 #(
