@@ -7,6 +7,7 @@ use std::{
     ops::{Deref, DerefMut},
 };
 
+#[repr(transparent)]
 pub struct SliceMut<'a, T>(pub(crate) Slice<T>, pub(crate) PhantomData<&'a mut T>)
 where
     T: 'a + Soapy;

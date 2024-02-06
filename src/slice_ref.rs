@@ -7,6 +7,7 @@ use std::{
     ops::Deref,
 };
 
+#[repr(transparent)]
 pub struct SliceRef<'a, T>(pub(crate) Slice<T>, pub(crate) PhantomData<&'a T>)
 where
     T: 'a + Soapy;
