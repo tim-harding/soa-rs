@@ -336,8 +336,12 @@ pub fn fields_struct(
             #[inline]
             unsafe fn alloc(capacity: usize) -> Self {
                 let (new_layout, new_offsets) = Self::layout_and_offsets(capacity);
+
                 let ptr = ::std::alloc::alloc(new_layout);
-                assert_ne!(ptr as *const u8, ::std::ptr::null());
+                if ptr.is_null() {
+                    ::std::alloc::handle_alloc_error(new_layout);
+                }
+
                 Self::with_offsets(ptr, new_offsets)
             }
 
@@ -350,13 +354,20 @@ pub fn fields_struct(
                 // Grow allocation first
                 let ptr = self.#ident_head.as_ptr() as *mut u8;
                 let ptr = ::std::alloc::realloc(ptr, old_layout, new_layout.size());
-                assert_ne!(ptr as *const u8, ::std::ptr::null());
+                if ptr.is_null() {
+                    ::std::alloc::handle_alloc_error(new_layout);
+                }
+
                 // Pointer may have moved, can't reuse self
                 let old = Self::with_offsets(ptr, old_offsets);
                 let new = Self::with_offsets(ptr, new_offsets);
+
                 // Copy do destination in reverse order to avoid
                 // overwriting data
-                #(::std::ptr::copy(old.#ident_rev.as_ptr(), new.#ident_rev.as_ptr(), length);)*
+                #(
+                    ::std::ptr::copy(old.#ident_rev.as_ptr(), new.#ident_rev.as_ptr(), length);
+                )*
+
                 *self = new;
             }
 
@@ -365,14 +376,21 @@ pub fn fields_struct(
                 // SAFETY: We already constructed this layout for a previous allocation
                 let (old_layout, _) = Self::layout_and_offsets_unchecked(old_capacity);
                 let (new_layout, new_offsets) = Self::layout_and_offsets(new_capacity);
+
                 // Move data before reallocating as some data
                 // may be past the end of the new allocation.
                 // Copy from front to back to avoid overwriting data.
                 let ptr = self.#ident_head.as_ptr() as *mut u8;
                 let dst = Self::with_offsets(ptr, new_offsets);
-                #(::std::ptr::copy(self.#ident_all.as_ptr(), dst.#ident_all.as_ptr(), length);)*
+                #(
+                    ::std::ptr::copy(self.#ident_all.as_ptr(), dst.#ident_all.as_ptr(), length);
+                )*
+
                 let ptr = ::std::alloc::realloc(ptr, old_layout, new_layout.size());
-                assert_ne!(ptr as *const u8, ::std::ptr::null());
+                if ptr.is_null() {
+                    ::std::alloc::handle_alloc_error(new_layout);
+                }
+
                 // Pointer may have moved, can't reuse dst
                 *self = Self::with_offsets(ptr, new_offsets);
             }
