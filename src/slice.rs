@@ -110,7 +110,6 @@ where
     /// # use soapy::{Soa, Soapy, soa, WithRef};
     /// # use std::fmt;
     /// # #[derive(Soapy, Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
-    /// # #[extra_impl(Debug, PartialEq)]
     /// # struct Foo(usize);
     /// let soa = soa![Foo(1), Foo(2), Foo(4)];
     /// let mut iter = soa.iter();
@@ -355,7 +354,6 @@ where
     /// # use std::fmt;
     /// # use soapy::{Soa, Soapy, soa, WithRef, Slice};
     /// # #[derive(Soapy, Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
-    /// # #[extra_impl(PartialEq, Debug)]
     /// # struct Foo(usize);
     /// let soa = soa![Foo(10), Foo(40), Foo(30), Foo(20)];
     /// assert_eq!(soa.get(1).unwrap(), Foo(40));
@@ -415,7 +413,6 @@ where
     /// # use std::fmt;
     /// # use soapy::{Soa, Soapy, soa, WithRef};
     /// # #[derive(Soapy, Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
-    /// # #[extra_impl(Debug, PartialEq)]
     /// # struct Foo(usize);
     /// let soa = soa![Foo(10), Foo(40), Foo(30), Foo(90)];
     /// assert_eq!(soa.idx(3), Foo(90));
@@ -447,7 +444,6 @@ where
     /// # use std::fmt;
     /// # use soapy::{Soa, Soapy, soa, WithRef};
     /// # #[derive(Soapy, Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
-    /// # #[extra_impl(Debug, PartialEq)]
     /// # struct Foo(usize);
     /// let mut soa = soa![Foo(10), Foo(20), Foo(30)];
     /// *soa.idx_mut(1).0 = 42;
@@ -503,7 +499,6 @@ where
     /// ```
     /// # use soapy::{Soa, Soapy, soa};
     /// # #[derive(Soapy, Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
-    /// # #[extra_impl(Debug, PartialEq)]
     /// # struct Foo(usize);
     /// let soa = soa![Foo(10), Foo(40), Foo(30)];
     /// assert_eq!(soa.first().unwrap(), Foo(10));
@@ -540,7 +535,6 @@ where
     /// ```
     /// # use soapy::{Soa, Soapy, soa};
     /// # #[derive(Soapy, Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
-    /// # #[extra_impl(Debug, PartialEq)]
     /// # struct Foo(usize);
     /// let soa = soa![Foo(10), Foo(40), Foo(30)];
     /// assert_eq!(soa.last().unwrap(), Foo(30));

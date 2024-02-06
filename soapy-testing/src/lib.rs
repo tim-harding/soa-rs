@@ -3,7 +3,6 @@
 use soapy::{soa, Soa, Soapy};
 
 #[derive(Soapy, Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-#[extra_impl(Debug, PartialEq, Eq, PartialOrd, Ord)]
 struct ExtraImplTester {
     things: u8,
     stuff: u8,

@@ -52,7 +52,6 @@ pub use soapy_derive::Soapy;
 /// ```
 /// # use soapy::{Soapy, soa};
 /// # #[derive(Soapy, Debug, PartialEq, Copy, Clone)]
-/// # #[extra_impl(Debug)]
 /// # struct Foo(u8, u16);
 /// let soa = soa![Foo(1, 2), Foo(3, 4)];
 /// assert_eq!(soa, [Foo(1, 2), Foo(3, 4)]);
@@ -63,7 +62,6 @@ pub use soapy_derive::Soapy;
 /// ```
 /// # use soapy::{Soapy, soa};
 /// # #[derive(Soapy, Debug, PartialEq, Copy, Clone)]
-/// # #[extra_impl(Debug, PartialEq)]
 /// # struct Foo(u8, u16);
 /// let soa = soa![Foo(1, 2); 2];
 /// assert_eq!(soa, [Foo(1, 2); 2]);

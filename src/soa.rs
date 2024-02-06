@@ -172,7 +172,6 @@ where
     /// ```
     /// # use soapy::{Soa, Soapy, soa};
     /// # #[derive(Soapy, Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
-    /// # #[extra_impl(Debug, PartialEq)]
     /// # struct Foo(usize);
     /// let soa = Soa::with(Foo(10));
     /// assert_eq!(soa, [Foo(10)]);
@@ -553,7 +552,6 @@ where
     /// # use soapy::{Soa, Soapy, soa, WithRef};
     /// # use std::fmt;
     /// # #[derive(Soapy, Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
-    /// # #[extra_impl(Debug, PartialEq)]
     /// # struct Foo(usize);
     /// let soa = soa![Foo(1), Foo(2), Foo(4)];
     /// let mut iter = soa.iter();
