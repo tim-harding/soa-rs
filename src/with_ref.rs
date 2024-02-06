@@ -25,4 +25,18 @@ pub trait WithRef {
     fn with_ref<F, R>(&self, f: F) -> R
     where
         F: FnOnce(&Self::Item) -> R;
+
+    fn cloned(&self) -> Self::Item
+    where
+        Self::Item: Clone,
+    {
+        self.with_ref(|me| me.clone())
+    }
+
+    fn copied(&self) -> Self::Item
+    where
+        Self::Item: Copy,
+    {
+        self.with_ref(|me| *me)
+    }
 }
