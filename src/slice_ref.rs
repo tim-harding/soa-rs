@@ -1,4 +1,4 @@
-use crate::{eq_impl, Iter, Slice, Soapy};
+use crate::{eq_impl, Iter, Ref, Slice, Soapy};
 use std::{
     cmp::Ordering,
     fmt::{self, Debug, Formatter},
@@ -46,7 +46,7 @@ impl<'a, T> IntoIterator for SliceRef<'a, T>
 where
     T: 'a + Soapy,
 {
-    type Item = T::Ref<'a>;
+    type Item = Ref<'a, T>;
     type IntoIter = Iter<'a, T>;
 
     fn into_iter(self) -> Self::IntoIter {

@@ -1,4 +1,4 @@
-use crate::{index::SoaIndex, Iter, IterMut, SoaRaw, Soapy};
+use crate::{index::SoaIndex, soa_ref::RefMut, Iter, IterMut, Ref, SoaRaw, Soapy};
 use std::{
     cmp::Ordering,
     fmt::{self, Formatter},
@@ -114,9 +114,9 @@ where
     /// # struct Foo(usize);
     /// let soa = soa![Foo(1), Foo(2), Foo(4)];
     /// let mut iter = soa.iter();
-    /// assert_eq!(iter.next(), Some(FooSoaRef(&1)));
-    /// assert_eq!(iter.next(), Some(FooSoaRef(&2)));
-    /// assert_eq!(iter.next(), Some(FooSoaRef(&4)));
+    /// assert_eq!(iter.next().unwrap(), Foo(1));
+    /// assert_eq!(iter.next().unwrap(), Foo(2));
+    /// assert_eq!(iter.next().unwrap(), Foo(4));
     /// assert_eq!(iter.next(), None);
     /// ```
     pub const fn iter(&self) -> Iter<T> {
@@ -140,7 +140,7 @@ where
     /// # #[derive(Soapy, Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
     /// # struct Foo(usize);
     /// let mut soa = soa![Foo(1), Foo(2), Foo(4)];
-    /// for elem in soa.iter_mut() {
+    /// for mut elem in soa.iter_mut() {
     ///     *elem.0 *= 2;
     /// }
     /// assert_eq!(soa, [Foo(2), Foo(4), Foo(8)]);
@@ -385,7 +385,7 @@ where
     /// # #[derive(Soapy, Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
     /// # struct Foo(usize);
     /// let mut soa = soa![Foo(1), Foo(2), Foo(3)];
-    /// if let Some(elem) = soa.get_mut(1) {
+    /// if let Some(mut elem) = soa.get_mut(1) {
     ///     *elem.0 = 42;
     /// }
     /// assert_eq!(soa, [Foo(1), Foo(42), Foo(3)]);
@@ -506,12 +506,12 @@ where
     /// # #[extra_impl(Debug, PartialEq)]
     /// # struct Foo(usize);
     /// let soa = soa![Foo(10), Foo(40), Foo(30)];
-    /// assert_eq!(soa.first(), Some(FooSoaRef(&10)));
+    /// assert_eq!(soa.first().unwrap(), Foo(10));
     ///
     /// let soa = Soa::<Foo>::new();
     /// assert_eq!(soa.first(), None);
     /// ```
-    pub fn first(&self) -> Option<T::Ref<'_>> {
+    pub fn first(&self) -> Option<Ref<'_, T>> {
         self.get(0)
     }
 
@@ -524,12 +524,12 @@ where
     /// # #[derive(Soapy, Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
     /// # struct Foo(usize);
     /// let mut soa = soa![Foo(0), Foo(1), Foo(2)];
-    /// if let Some(first) = soa.first_mut() {
+    /// if let Some(mut first) = soa.first_mut() {
     ///     *first.0 = 5;
     /// }
     /// assert_eq!(soa, [Foo(5), Foo(1), Foo(2)]);
     /// ```
-    pub fn first_mut(&mut self) -> Option<T::RefMut<'_>> {
+    pub fn first_mut(&mut self) -> Option<RefMut<'_, T>> {
         self.get_mut(0)
     }
 
@@ -543,12 +543,12 @@ where
     /// # #[extra_impl(Debug, PartialEq)]
     /// # struct Foo(usize);
     /// let soa = soa![Foo(10), Foo(40), Foo(30)];
-    /// assert_eq!(soa.last(), Some(FooSoaRef(&30)));
+    /// assert_eq!(soa.last().unwrap(), Foo(30));
     ///
     /// let soa = Soa::<Foo>::new();
     /// assert_eq!(soa.last(), None);
     /// ```
-    pub fn last(&self) -> Option<T::Ref<'_>> {
+    pub fn last(&self) -> Option<Ref<'_, T>> {
         self.get(self.len().saturating_sub(1))
     }
 
@@ -561,12 +561,12 @@ where
     /// # #[derive(Soapy, Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
     /// # struct Foo(usize);
     /// let mut soa = soa![Foo(0), Foo(1), Foo(2)];
-    /// if let Some(last) = soa.last_mut() {
+    /// if let Some(mut last) = soa.last_mut() {
     ///     *last.0 = 5;
     /// }
     /// assert_eq!(soa, [Foo(0), Foo(1), Foo(5)]);
     /// ```
-    pub fn last_mut(&mut self) -> Option<T::RefMut<'_>> {
+    pub fn last_mut(&mut self) -> Option<RefMut<'_, T>> {
         self.get_mut(self.len().saturating_sub(1))
     }
 }
@@ -575,7 +575,7 @@ impl<'a, T> IntoIterator for &'a Slice<T>
 where
     T: Soapy,
 {
-    type Item = T::Ref<'a>;
+    type Item = Ref<'a, T>;
     type IntoIter = Iter<'a, T>;
 
     fn into_iter(self) -> Self::IntoIter {
@@ -592,7 +592,7 @@ impl<'a, T> IntoIterator for &'a mut Slice<T>
 where
     T: Soapy,
 {
-    type Item = T::RefMut<'a>;
+    type Item = RefMut<'a, T>;
     type IntoIter = IterMut<'a, T>;
 
     fn into_iter(self) -> Self::IntoIter {
@@ -731,6 +731,7 @@ macro_rules! partial_eq_reflect_array {
     };
 }
 
+// TODO: Add array types
 partial_eq_reflect!(Vec<T>);
 partial_eq_reflect!([T]);
 partial_eq_reflect!(&[T]);

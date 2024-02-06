@@ -33,6 +33,9 @@ pub use with_ref::WithRef;
 mod soa_raw;
 pub use soa_raw::SoaRaw;
 
+mod soa_ref;
+pub use soa_ref::Ref;
+
 mod eq_impl;
 
 /// Derive macro for the [`Soapy`] trait.

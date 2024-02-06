@@ -1,4 +1,4 @@
-use crate::{eq_impl, IterMut, Slice, Soapy};
+use crate::{eq_impl, soa_ref::RefMut, IterMut, Slice, Soapy};
 use std::{
     cmp::Ordering,
     fmt::{self, Debug, Formatter},
@@ -53,7 +53,7 @@ impl<'a, T> IntoIterator for SliceMut<'a, T>
 where
     T: 'a + Soapy,
 {
-    type Item = T::RefMut<'a>;
+    type Item = RefMut<'a, T>;
     type IntoIter = IterMut<'a, T>;
 
     fn into_iter(self) -> Self::IntoIter {

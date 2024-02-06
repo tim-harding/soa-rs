@@ -215,7 +215,7 @@ pub fn iter() {
 #[test]
 pub fn iter_mut() {
     let mut soa: Soa<_> = ABCDE.into();
-    for el in soa.iter_mut() {
+    for mut el in soa.iter_mut() {
         *el.foo += 1;
         *el.bar += 2;
     }

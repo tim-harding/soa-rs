@@ -8,7 +8,7 @@ pub fn fields_struct(
     vis: Visibility,
     fields: Punctuated<Field, Comma>,
     kind: FieldKind,
-    extra_impl: ExtraImpl,
+    _extra_impl: ExtraImpl,
 ) -> Result<TokenStream, syn::Error> {
     let fields_len = fields.len();
     let (vis_all, (ty_all, ident_all)): (Vec<_>, (Vec<_>, Vec<FieldIdent>)) = fields
@@ -240,114 +240,6 @@ pub fn fields_struct(
 
     out.append_all(with_ref_impl(item_ref.clone()));
     out.append_all(with_ref_impl(item_ref_mut.clone()));
-
-    if extra_impl.partial_eq {
-        let ref_impl = |item| {
-            quote! {
-                impl<'a> ::std::cmp::PartialEq for #item<'a> {
-                    fn eq(&self, other: &Self) -> bool {
-                        use ::soapy::WithRef;
-                        self.partial_eq(other)
-                    }
-                }
-
-                impl<'a> ::std::cmp::PartialEq<#ident> for #item<'a> {
-                    fn eq(&self, other: &#ident) -> bool {
-                        use ::soapy::WithRef;
-                        self.partial_eq(other)
-                    }
-                }
-            }
-        };
-
-        out.append_all(ref_impl(item_ref.clone()));
-        out.append_all(ref_impl(item_ref_mut.clone()));
-    }
-
-    if extra_impl.eq {
-        let ref_impl = |item| {
-            quote! {
-                impl<'a> ::std::cmp::Eq for #item<'a> {}
-            }
-        };
-
-        out.append_all(ref_impl(item_ref.clone()));
-        out.append_all(ref_impl(item_ref_mut.clone()));
-    }
-
-    if extra_impl.partial_ord {
-        let ref_impl = |item| {
-            quote! {
-                impl<'a> ::std::cmp::PartialOrd for #item<'a> {
-                    fn partial_cmp(&self, other: &Self) -> Option<::std::cmp::Ordering> {
-                        use ::soapy::WithRef;
-                        self.partial_ord(other)
-                    }
-                }
-
-                impl<'a> ::std::cmp::PartialOrd<#ident> for #item<'a> {
-                    fn partial_cmp(&self, other: &#ident) -> Option<::std::cmp::Ordering> {
-                        use ::soapy::WithRef;
-                        self.partial_ord(other)
-                    }
-                }
-            }
-        };
-
-        out.append_all(ref_impl(item_ref.clone()));
-        out.append_all(ref_impl(item_ref_mut.clone()));
-    }
-
-    if extra_impl.ord {
-        let ref_impl = |item| {
-            quote! {
-                impl<'a> ::std::cmp::Ord for #item<'a> {
-                    fn cmp(&self, other: &Self) -> ::std::cmp::Ordering {
-                        use ::soapy::WithRef;
-                        self.ord(other)
-                    }
-                }
-            }
-        };
-
-        out.append_all(ref_impl(item_ref.clone()));
-        out.append_all(ref_impl(item_ref_mut.clone()));
-    }
-
-    if extra_impl.debug {
-        let ref_impl = |item| {
-            quote! {
-                impl<'a> ::std::fmt::Debug for #item<'a> {
-                    fn fmt(&self, f: &mut ::std::fmt::Formatter<'_>) -> ::std::fmt::Result {
-                        use ::soapy::WithRef;
-                        self.debug(f)
-                    }
-                }
-            }
-        };
-
-        out.append_all(ref_impl(item_ref.clone()));
-        out.append_all(ref_impl(item_ref_mut.clone()));
-    }
-
-    if extra_impl.hash {
-        let ref_impl = |item| {
-            quote! {
-                impl<'a> ::std::hash::Hash for #item {
-                    fn hash<H>(&self, state: &mut H)
-                    where
-                        H: ::std::hash::Hasher
-                    {
-                        use ::soapy::WithRef;
-                        self.with_ref(|me| me.hash(state));
-                    }
-                }
-            }
-        };
-
-        out.append_all(ref_impl(item_ref.clone()));
-        out.append_all(ref_impl(item_ref_mut.clone()));
-    }
 
     let indices = std::iter::repeat(()).enumerate().map(|(i, ())| i);
 

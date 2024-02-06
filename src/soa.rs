@@ -553,22 +553,13 @@ where
     /// # use soapy::{Soa, Soapy, soa, WithRef};
     /// # use std::fmt;
     /// # #[derive(Soapy, Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
+    /// # #[extra_impl(Debug, PartialEq)]
     /// # struct Foo(usize);
-    /// # impl<'a> fmt::Debug for FooSoaRef<'a> {
-    /// #     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-    /// #         self.with_ref(|me| me.fmt(f))
-    /// #     }
-    /// # }
-    /// # impl<'a> PartialEq<FooSoaRef<'a>> for FooSoaRef<'a> {
-    /// #     fn eq(&self, other: &FooSoaRef) -> bool {
-    /// #         self.with_ref(|me| other.with_ref(|other| me == other))
-    /// #     }
-    /// # }
     /// let soa = soa![Foo(1), Foo(2), Foo(4)];
     /// let mut iter = soa.iter();
-    /// assert_eq!(iter.next(), Some(FooSoaRef(&1)));
-    /// assert_eq!(iter.next(), Some(FooSoaRef(&2)));
-    /// assert_eq!(iter.next(), Some(FooSoaRef(&4)));
+    /// assert_eq!(iter.next().unwrap(), Foo(1));
+    /// assert_eq!(iter.next().unwrap(), Foo(2));
+    /// assert_eq!(iter.next().unwrap(), Foo(4));
     /// assert_eq!(iter.next(), None);
     /// ```
     pub fn iter(&self) -> Iter<T> {
@@ -592,7 +583,7 @@ where
     /// # #[derive(Soapy, Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
     /// # struct Foo(usize);
     /// let mut soa = soa![Foo(1), Foo(2), Foo(4)];
-    /// for elem in soa.iter_mut() {
+    /// for mut elem in soa.iter_mut() {
     ///     *elem.0 *= 2;
     /// }
     /// assert_eq!(soa, [Foo(2), Foo(4), Foo(8)]);

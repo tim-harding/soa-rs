@@ -1,4 +1,4 @@
-use crate::{SoaRaw, Soapy};
+use crate::{Ref, SoaRaw, Soapy};
 use std::marker::PhantomData;
 
 /// Immutable [`Soa`] iterator.
@@ -21,7 +21,7 @@ impl<'a, T> Iterator for Iter<'a, T>
 where
     T: 'a + Soapy,
 {
-    type Item = T::Ref<'a>;
+    type Item = Ref<'a, T>;
 
     fn next(&mut self) -> Option<Self::Item> {
         if self.start >= self.end {
@@ -29,7 +29,7 @@ where
         } else {
             let out = unsafe { self.raw.get_ref(self.start) };
             self.start += 1;
-            Some(out)
+            Some(Ref(out))
         }
     }
 
@@ -50,7 +50,7 @@ where
             None
         } else {
             self.end -= 1;
-            Some(unsafe { self.raw.get_ref(self.end) })
+            Some(Ref(unsafe { self.raw.get_ref(self.end) }))
         }
     }
 }

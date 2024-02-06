@@ -1,6 +1,6 @@
 use std::marker::PhantomData;
 
-use crate::{SoaRaw, Soapy};
+use crate::{soa_ref::RefMut, SoaRaw, Soapy};
 
 /// Mutable [`Soa`] iterator.
 ///
@@ -22,7 +22,7 @@ impl<'a, T> Iterator for IterMut<'a, T>
 where
     T: Soapy,
 {
-    type Item = T::RefMut<'a>;
+    type Item = RefMut<'a, T>;
 
     fn next(&mut self) -> Option<Self::Item> {
         if self.start >= self.end {
@@ -30,7 +30,7 @@ where
         } else {
             let out = unsafe { self.raw.get_mut(self.start) };
             self.start += 1;
-            Some(out)
+            Some(RefMut(out))
         }
     }
 
@@ -49,7 +49,7 @@ where
             None
         } else {
             self.end -= 1;
-            Some(unsafe { self.raw.get_mut(self.end) })
+            Some(RefMut(unsafe { self.raw.get_mut(self.end) }))
         }
     }
 }

@@ -3,7 +3,7 @@ use std::{
     ops::{Range, RangeFrom, RangeFull, RangeInclusive, RangeTo, RangeToInclusive},
 };
 
-use crate::{slice_mut::SliceMut, Slice, SliceRef, SoaRaw, Soapy};
+use crate::{slice_mut::SliceMut, soa_ref::RefMut, Ref, Slice, SliceRef, SoaRaw, Soapy};
 
 /// A helper trait for indexing operations.
 pub trait SoaIndex<T>
@@ -31,15 +31,15 @@ impl<T> SoaIndex<T> for usize
 where
     T: Soapy,
 {
-    type Output<'a> = T::Ref<'a> where T: 'a;
+    type Output<'a> = Ref<'a, T> where T: 'a;
 
-    type OutputMut<'a> = T::RefMut<'a>
+    type OutputMut<'a> = RefMut<'a, T>
     where
         T: 'a;
 
     fn get<'a>(self, slice: &'a Slice<T>) -> Option<Self::Output<'a>> {
         if self < slice.len() {
-            Some(unsafe { slice.raw.get_ref(self) })
+            Some(Ref(unsafe { slice.raw.get_ref(self) }))
         } else {
             None
         }
@@ -47,7 +47,7 @@ where
 
     fn get_mut<'a>(self, slice: &'a mut Slice<T>) -> Option<Self::OutputMut<'a>> {
         if self < slice.len() {
-            Some(unsafe { slice.raw.get_mut(self) })
+            Some(RefMut(unsafe { slice.raw.get_mut(self) }))
         } else {
             None
         }
