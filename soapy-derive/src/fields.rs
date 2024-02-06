@@ -126,22 +126,6 @@ pub fn fields_struct(
         #[automatically_derived]
         #vis struct #array<const N: usize> #array_def
 
-        impl<const N: usize> ::soapy::Array for #array<N> {
-            type Raw = #raw;
-
-            unsafe fn as_raw(&self) -> Self::Raw {
-                #raw {
-                    #(
-                    #ident_all: unsafe {
-                        ::std::ptr::NonNull::new_unchecked(
-                            self.#ident_all.as_slice().as_ptr() as *mut _
-                        )
-                    },
-                    )*
-                }
-            }
-        }
-
         impl<const N: usize> #array<N> {
             #vis const fn from_array(array: [#ident; N]) -> Self {
                 struct #uninit<const K: usize> #uninit_def;
@@ -177,6 +161,32 @@ pub fn fields_struct(
                         ::std::mem::transmute_copy(&::std::mem::ManuallyDrop::new(uninit.#ident_all))
                     },
                     )*
+                }
+            }
+
+            const fn as_raw(&self) -> #raw {
+                #raw {
+                    #(
+                        #ident_all: unsafe {
+                            ::std::ptr::NonNull::new_unchecked(
+                                self.#ident_all.as_slice().as_ptr() as *mut #ty_all
+                            )
+                        }
+                    ),*
+                }
+            }
+
+            #vis const fn as_slice(&self) -> ::soapy::SliceRef<'_, #ident> {
+                unsafe {
+                    let slice = ::soapy::Slice::<#ident>::from_raw_parts(self.as_raw(), N);
+                    ::std::mem::transmute(slice)
+                }
+            }
+
+            #vis fn as_mut_slice(&mut self) -> ::soapy::SliceMut<'_, #ident> {
+                unsafe {
+                    let slice = ::soapy::Slice::<#ident>::from_raw_parts(self.as_raw(), N);
+                    ::std::mem::transmute(slice)
                 }
             }
         }
@@ -293,7 +303,6 @@ pub fn fields_struct(
         unsafe impl ::soapy::Soapy for #ident {
             type Raw = #raw;
             type Deref = #deref;
-            type Array<const N: usize> = #array<N>;
             type Ref<'a> = #item_ref<'a> where Self: 'a;
             type RefMut<'a> = #item_ref_mut<'a> where Self: 'a;
         }

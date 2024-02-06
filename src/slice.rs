@@ -55,7 +55,7 @@ where
     /// let soa = soa![Foo(1), Foo(2), Foo(3)];
     /// assert_eq!(soa.len(), 3);
     /// ```
-    pub fn len(&self) -> usize {
+    pub const fn len(&self) -> usize {
         self.len
     }
 
@@ -72,7 +72,7 @@ where
     /// soa.push(Foo(1));
     /// assert!(!soa.is_empty());
     /// ```
-    pub fn is_empty(&self) -> bool {
+    pub const fn is_empty(&self) -> bool {
         self.len() == 0
     }
 
@@ -86,7 +86,8 @@ where
     /// methods of, for example, a [`Soa`] to get a handle to a slice.
     ///
     /// [`Soa`]: crate::Soa
-    pub(crate) unsafe fn from_raw_parts(raw: T::Raw, length: usize) -> Self {
+    #[doc(hidden)]
+    pub const unsafe fn from_raw_parts(raw: T::Raw, length: usize) -> Self {
         Self { len: length, raw }
     }
 
@@ -95,7 +96,7 @@ where
     /// Used by the [`Soapy`] derive macro, but generally not intended for use
     /// by end users.
     #[doc(hidden)]
-    pub fn raw(&self) -> T::Raw {
+    pub const fn raw(&self) -> T::Raw {
         self.raw
     }
 
@@ -118,7 +119,7 @@ where
     /// assert_eq!(iter.next(), Some(FooSoaRef(&4)));
     /// assert_eq!(iter.next(), None);
     /// ```
-    pub fn iter(&self) -> Iter<T> {
+    pub const fn iter(&self) -> Iter<T> {
         Iter {
             start: 0,
             end: self.len,

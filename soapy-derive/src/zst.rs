@@ -4,7 +4,6 @@ use syn::Visibility;
 
 pub fn zst_struct(ident: Ident, vis: Visibility, kind: ZstKind) -> TokenStream {
     let raw = format_ident!("{ident}SoaRaw");
-    let array = format_ident!("{ident}SoaArray");
     let unit_construct = match kind {
         ZstKind::Unit => quote! {},
         ZstKind::Empty => quote! { {} },
@@ -15,7 +14,6 @@ pub fn zst_struct(ident: Ident, vis: Visibility, kind: ZstKind) -> TokenStream {
         #[automatically_derived]
         unsafe impl ::soapy::Soapy for #ident {
             type Raw = #raw;
-            type Array<const N: usize> = #array<N>;
             type Deref = ();
             type Ref<'a> = #ident;
             type RefMut<'a> = #ident;
@@ -30,17 +28,6 @@ pub fn zst_struct(ident: Ident, vis: Visibility, kind: ZstKind) -> TokenStream {
                 F: ::std::ops::FnOnce(&Self::Item) -> R
             {
                 f(self)
-            }
-        }
-
-        #[automatically_derived]
-        #vis struct #array<const N: usize>(pub [#ident; N]);
-
-        impl<const N: usize> ::soapy::Array for #array<N> {
-            type Raw = #raw;
-
-            unsafe fn as_raw(&self) -> Self::Raw {
-                #raw
             }
         }
 

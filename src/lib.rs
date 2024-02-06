@@ -30,9 +30,6 @@ pub use soapy::Soapy;
 mod with_ref;
 pub use with_ref::WithRef;
 
-mod array;
-pub use array::Array;
-
 mod soa_raw;
 pub use soa_raw::SoaRaw;
 
