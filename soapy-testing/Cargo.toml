@@ -5,3 +5,9 @@ edition = "2021"
 
 [dependencies]
 soapy = { version = "0.2.2", path = ".." }
+criterion = "0.5.1"
+rand = "0.8.5"
+
+[[bench]]
+name = "benchmark"
+harness = false
