@@ -330,6 +330,25 @@ pub fn fields_struct(
         out.append_all(ref_impl(item_ref_mut.clone()));
     }
 
+    if extra_impl.hash {
+        let ref_impl = |item| {
+            quote! {
+                impl<'a> ::std::hash::Hash for #item {
+                    fn hash<H>(&self, state: &mut H)
+                    where
+                        H: ::std::hash::Hasher
+                    {
+                        use ::soapy::WithRef;
+                        self.with_ref(|me| me.hash(state));
+                    }
+                }
+            }
+        };
+
+        out.append_all(ref_impl(item_ref.clone()));
+        out.append_all(ref_impl(item_ref_mut.clone()));
+    }
+
     let indices = std::iter::repeat(()).enumerate().map(|(i, ())| i);
 
     let raw_body = match kind {
@@ -560,6 +579,10 @@ pub struct ExtraImpl {
     pub eq: bool,
     pub partial_ord: bool,
     pub ord: bool,
+    pub hash: bool,
+    pub default: bool,
+    pub clone: bool,
+    pub copy: bool,
 }
 
 impl TryFrom<Vec<Attribute>> for ExtraImpl {
@@ -570,24 +593,24 @@ impl TryFrom<Vec<Attribute>> for ExtraImpl {
         for attr in value {
             if attr.path().is_ident("extra_impl") {
                 attr.parse_nested_meta(|meta| {
-                    if meta.path.is_ident("Debug") {
-                        out.debug = true;
-                        Ok(())
-                    } else if meta.path.is_ident("PartialEq") {
-                        out.partial_eq = true;
-                        Ok(())
-                    } else if meta.path.is_ident("Eq") {
-                        out.eq = true;
-                        Ok(())
-                    } else if meta.path.is_ident("PartialOrd") {
-                        out.partial_ord = true;
-                        Ok(())
-                    } else if meta.path.is_ident("Ord") {
-                        out.ord = true;
-                        Ok(())
-                    } else {
-                        Err(meta.error("unrecognized extra impl"))
+                    macro_rules! ident {
+                        ($i:ident, $s:expr) => {
+                            if meta.path.is_ident($s) {
+                                out.$i = true;
+                                return Ok(());
+                            }
+                        };
                     }
+                    ident!(debug, "Debug");
+                    ident!(partial_eq, "PartialEq");
+                    ident!(eq, "Eq");
+                    ident!(partial_ord, "PartialOrd");
+                    ident!(ord, "Ord");
+                    ident!(hash, "Hash");
+                    ident!(default, "Default");
+                    ident!(clone, "Clone");
+                    ident!(copy, "Copy");
+                    Err(meta.error("unrecognized extra impl"))
                 })?;
             }
         }
