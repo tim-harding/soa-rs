@@ -268,18 +268,20 @@ pub fn fields_struct(
         #[automatically_derived]
         impl #raw {
             #[inline]
-            fn layout_and_offsets(cap: usize) -> (::std::alloc::Layout, [usize; #fields_len]) {
+            fn layout_and_offsets(cap: usize) 
+                -> Result<(::std::alloc::Layout, [usize; #fields_len]), ::std::alloc::LayoutError>
+            {
                 // TODO: Replace unwraps with unwrap_unchecked
-                let layout = ::std::alloc::Layout::array::<#ty_head>(cap).unwrap();
+                let layout = ::std::alloc::Layout::array::<#ty_head>(cap)?;
                 let mut offsets = [0usize; #fields_len];
                 let i = 0;
                 #(
-                    let array = ::std::alloc::Layout::array::<#ty_tail>(cap).unwrap();
-                    let (layout, offset) = layout.extend(array).unwrap();
+                    let array = ::std::alloc::Layout::array::<#ty_tail>(cap)?;
+                    let (layout, offset) = layout.extend(array)?;
                     offsets[i] = offset;
                     let i = i + 1;
                 )*
-                (layout, offsets)
+                Ok((layout, offsets))
             }
 
             unsafe fn layout_and_offsets_unchecked(cap: usize) 
@@ -324,7 +326,8 @@ pub fn fields_struct(
 
             #[inline]
             unsafe fn from_parts(ptr: *mut u8, capacity: usize) -> Self {
-                let (_, offsets) = Self::layout_and_offsets(capacity);
+                // SAFETY: This should have come from a previous allocation
+                let (_, offsets) = Self::layout_and_offsets_unchecked(capacity);
                 Self::with_offsets(ptr, offsets)
             }
 
@@ -335,7 +338,8 @@ pub fn fields_struct(
 
             #[inline]
             unsafe fn alloc(capacity: usize) -> Self {
-                let (new_layout, new_offsets) = Self::layout_and_offsets(capacity);
+                let (new_layout, new_offsets) = Self::layout_and_offsets(capacity)
+                    .expect("capacity overflow");
 
                 let ptr = ::std::alloc::alloc(new_layout);
                 if ptr.is_null() {
@@ -349,7 +353,8 @@ pub fn fields_struct(
             unsafe fn realloc_grow(&mut self, old_capacity: usize, new_capacity: usize, length: usize) {
                 // SAFETY: We already constructed this layout for a previous allocation
                 let (old_layout, old_offsets) = Self::layout_and_offsets_unchecked(old_capacity);
-                let (new_layout, new_offsets) = Self::layout_and_offsets(new_capacity);
+                let (new_layout, new_offsets) = Self::layout_and_offsets(new_capacity)
+                    .expect("capacity overflow");
 
                 // Grow allocation first
                 let ptr = self.#ident_head.as_ptr() as *mut u8;
@@ -375,7 +380,8 @@ pub fn fields_struct(
             unsafe fn realloc_shrink(&mut self, old_capacity: usize, new_capacity: usize, length: usize) {
                 // SAFETY: We already constructed this layout for a previous allocation
                 let (old_layout, _) = Self::layout_and_offsets_unchecked(old_capacity);
-                let (new_layout, new_offsets) = Self::layout_and_offsets(new_capacity);
+                let (new_layout, new_offsets) = Self::layout_and_offsets(new_capacity)
+                    .expect("capacity overflow");
 
                 // Move data before reallocating as some data
                 // may be past the end of the new allocation.
