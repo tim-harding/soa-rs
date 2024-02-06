@@ -625,12 +625,11 @@ where
     T: Soapy + PartialEq,
 {
     fn eq(&self, other: &[T]) -> bool {
-        let other = other.as_ref();
         if self.len() != other.len() {
             return false;
         }
 
-        let mut iter = other.into_iter();
+        let mut iter = other.iter();
         self.try_fold(true, |_, a| {
             let b = iter.next();
             // SAFETY:

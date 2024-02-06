@@ -74,7 +74,7 @@ where
     T: 'a + Soapy + Debug,
 {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        (&self.0).fmt(f)
+        self.0.fmt(f)
     }
 }
 
@@ -83,7 +83,7 @@ where
     T: 'a + Soapy + PartialOrd,
 {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        (&self.0).partial_cmp(&other.0)
+        self.0.partial_cmp(&other.0)
     }
 }
 
@@ -92,7 +92,7 @@ where
     T: 'a + Soapy + Ord,
 {
     fn cmp(&self, other: &Self) -> Ordering {
-        (&self.0).cmp(&other.0)
+        self.0.cmp(&other.0)
     }
 }
 
@@ -101,6 +101,6 @@ where
     T: 'a + Soapy + Hash,
 {
     fn hash<H: Hasher>(&self, state: &mut H) {
-        (&self.0).hash(state)
+        self.0.hash(state)
     }
 }
