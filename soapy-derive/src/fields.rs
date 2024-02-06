@@ -241,7 +241,9 @@ pub fn fields_struct(
     out.append_all(with_ref_impl(item_ref.clone()));
     out.append_all(with_ref_impl(item_ref_mut.clone()));
 
-    let indices = std::iter::repeat(()).enumerate().map(|(i, ())| i);
+    let indices_1 = std::iter::repeat(()).enumerate().map(|(i, ())| i);
+    let indices_2 = indices_1.clone();
+    let indices_3 = indices_1.clone();
 
     let raw_body = match kind {
         FieldKind::Named => quote! {
@@ -271,15 +273,12 @@ pub fn fields_struct(
             fn layout_and_offsets(cap: usize) 
                 -> Result<(::std::alloc::Layout, [usize; #fields_len]), ::std::alloc::LayoutError>
             {
-                // TODO: Replace unwraps with unwrap_unchecked
                 let layout = ::std::alloc::Layout::array::<#ty_head>(cap)?;
                 let mut offsets = [0usize; #fields_len];
-                let i = 0;
                 #(
                     let array = ::std::alloc::Layout::array::<#ty_tail>(cap)?;
                     let (layout, offset) = layout.extend(array)?;
-                    offsets[i] = offset;
-                    let i = i + 1;
+                    offsets[#indices_1] = offset;
                 )*
                 Ok((layout, offsets))
             }
@@ -290,12 +289,10 @@ pub fn fields_struct(
                 // TODO: Replace unwraps with unwrap_unchecked
                 let layout = ::std::alloc::Layout::array::<#ty_head>(cap).unwrap_unchecked();
                 let mut offsets = [0usize; #fields_len];
-                let i = 0;
                 #(
                     let array = ::std::alloc::Layout::array::<#ty_tail>(cap).unwrap_unchecked();
                     let (layout, offset) = layout.extend(array).unwrap_unchecked();
-                    offsets[i] = offset;
-                    let i = i + 1;
+                    offsets[#indices_2] = offset;
                 )*
                 (layout, offsets)
             }
@@ -306,7 +303,7 @@ pub fn fields_struct(
                     #ident_head: ::std::ptr::NonNull::new_unchecked(ptr as *mut #ty_head),
                     #(
                     #ident_tail: ::std::ptr::NonNull::new_unchecked(
-                        ptr.add(offsets[#indices]) as *mut #ty_tail,
+                        ptr.add(offsets[#indices_3]) as *mut #ty_tail,
                     )
                     ),*
                 }
