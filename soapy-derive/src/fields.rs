@@ -128,6 +128,7 @@ pub fn fields_struct(
         impl<const N: usize> #array<N> {
             #vis const fn from_array(array: [#ident; N]) -> Self {
                 struct #uninit<const K: usize> #uninit_def;
+
                 let mut uninit: #uninit<N> = #uninit {
                     #(
                     // https://doc.rust-lang.org/std/mem/union.MaybeUninit.html#initializing-an-array-element-by-element
@@ -142,9 +143,8 @@ pub fn fields_struct(
                 while i < N {
                     #(
                     let src = &array[i].#ident_all as *const #ty_all;
-                    let dst = uninit.#ident_all[i].as_ptr() as *mut #ty_all;
                     unsafe {
-                        src.copy_to(dst, 1);
+                        uninit.#ident_all[i] = ::std::mem::MaybeUninit::new(src.read());
                     }
                     )*
 
