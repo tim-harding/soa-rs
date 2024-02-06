@@ -3,10 +3,18 @@ name = "soapy-testing"
 version = "0.1.0"
 edition = "2021"
 
+[profile.release]
+codegen-units = 1
+lto = "fat"
+opt-level = 3
+panic = "abort"
+strip = "symbols"
+
 [dependencies]
 soapy = { version = "0.2.2", path = ".." }
 criterion = "0.5.1"
 rand = "0.8.5"
+tikv-jemallocator = "0.5.4"
 
 [[bench]]
 name = "benchmark"

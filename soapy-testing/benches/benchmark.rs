@@ -1,3 +1,6 @@
+#[global_allocator]
+static GLOBAL: tikv_jemallocator::Jemalloc = tikv_jemallocator::Jemalloc;
+
 use criterion::{criterion_group, criterion_main, Criterion};
 use rand::{RngCore, SeedableRng};
 use soapy::{Soa, Soapy};
