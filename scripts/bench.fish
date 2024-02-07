@@ -5,4 +5,3 @@ cargo +nightly bench \
     --profile bench \
     --package soapy-testing \
     --bench benchmark \
-    dots-soa
