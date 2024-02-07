@@ -1,6 +1,3 @@
-#[global_allocator]
-static GLOBAL: tikv_jemallocator::Jemalloc = tikv_jemallocator::Jemalloc;
-
 use criterion::{criterion_group, criterion_main, Criterion};
 use rand::{RngCore, SeedableRng};
 use soapy::{Soa, Soapy};
@@ -20,14 +17,14 @@ fn random_vec4s(count: usize, seed: u64) -> impl Iterator<Item = Vec4> {
     (0..count).map(move |_| Vec4(next_f32(), next_f32(), next_f32(), next_f32()))
 }
 
-fn dots<T>(a: T, b: T) -> Vec<f32>
+fn sum_dots<T>(a: T, b: T) -> f32
 where
     T: IntoIterator<Item = Vec4>,
 {
     a.into_iter()
         .zip(b.into_iter())
         .map(|(l, r)| l.dot(r))
-        .collect()
+        .sum()
 }
 
 fn make_lists<T>(count: usize) -> (T, T)
@@ -41,13 +38,13 @@ where
 }
 
 fn criterion_benchmark(c: &mut Criterion) {
-    c.bench_function("Vec dots", |b| {
-        let (vec1, vec2) = make_lists::<Vec<_>>(4096);
-        b.iter(|| dots(vec1.clone(), vec2.clone()))
-    });
-    c.bench_function("Soa dots", |b| {
-        let (soa1, soa2) = make_lists::<Soa<_>>(4096);
-        b.iter(|| dots(soa1.clone(), soa2.clone()))
+    c.bench_function("dots-soa", |b| {
+        let lists = make_lists::<Soa<_>>(4096);
+        b.iter_batched(
+            || lists.clone(),
+            |(soa1, soa2)| sum_dots(soa1.clone(), soa2.clone()),
+            criterion::BatchSize::SmallInput,
+        )
     });
 }
 

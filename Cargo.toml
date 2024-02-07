@@ -8,6 +8,10 @@ homepage = "https://github.com/tim-harding/soapy"
 repository = "https://github.com/tim-harding/soapy"
 readme = "README.md"
 
+[profile.bench]
+# For profiling
+debug = true 
+
 [workspace]
 members = ["soapy-derive", "soapy-testing"]
 

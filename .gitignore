@@ -1,2 +1,7 @@
 /target
 /Cargo.lock
+*.svg
+perf.data
+perf.data.old
+profile.perf
+.cargo

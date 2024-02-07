@@ -756,7 +756,7 @@ where
     fn clone_from(&mut self, source: &Self) {
         self.clear();
         if self.cap < source.slice.len {
-            self.reserve(source.slice.len);
+            self.reserve_exact(source.slice.len);
         }
         source.for_each(|el| {
             self.push(el.clone());
