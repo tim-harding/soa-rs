@@ -74,19 +74,19 @@ impl<const N: usize> Vec4Arrays<N> {
         out
     }
 
-    pub fn become_iter(self) -> impl Iterator<Item = (f32, f32, f32, f32)> {
+    pub fn iter(&self) -> impl Iterator<Item = (&f32, &f32, &f32, &f32)> {
         self.0
-            .into_iter()
-            .zip(self.1)
-            .zip(self.2)
-            .zip(self.3)
+            .iter()
+            .zip(self.1.iter())
+            .zip(self.2.iter())
+            .zip(self.3.iter())
             .map(|(((a0, a1), a2), a3)| (a0, a1, a2, a3))
     }
 }
 
-pub fn sum_dots_arrays<const N: usize>(a: Vec4Arrays<N>, b: Vec4Arrays<N>) -> f32 {
-    a.become_iter()
-        .zip(b.become_iter())
+pub fn sum_dots_arrays<const N: usize>(a: &Vec4Arrays<N>, b: &Vec4Arrays<N>) -> f32 {
+    a.iter()
+        .zip(b.iter())
         .map(|(a, b)| a.0 * b.0 + a.1 * b.1 + a.2 * b.2 + a.3 * b.3)
         .sum()
 }
@@ -96,7 +96,9 @@ fn criterion_benchmark(c: &mut Criterion) {
 
     let array1 = <Vec4Arrays<{ 1 << 16 }>>::new_rng(&mut rng);
     let array2 = <Vec4Arrays<{ 1 << 16 }>>::new_rng(&mut rng);
-    c.bench_function("dots-array", |b| b.iter(|| sum_dots_arrays(array1, array2)));
+    c.bench_function("dots-array", |b| {
+        b.iter(|| sum_dots_arrays(&array1, &array2))
+    });
 
     c.bench_function("dots-soa", |b| {
         let soa1: Soa<_> = make_vec4_list(&mut rng, 1 << 16);
