@@ -4,4 +4,4 @@ cargo bench \
     --profile bench \
     --package soapy-testing \
     --bench benchmark \
-    dots-soa
+    dots-aligned-array
