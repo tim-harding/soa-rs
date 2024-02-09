@@ -1,6 +1,6 @@
 use std::{
     array::IntoIter,
-    ops::{Add, Mul},
+    ops::{Add, Deref, DerefMut, Mul},
     slice::Iter,
 };
 
@@ -197,43 +197,58 @@ impl F32Group {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, PartialOrd)]
+#[repr(align(64))]
+pub struct AlignedArray<const N: usize>([f32; N]);
+
+impl<const N: usize> AlignedArray<N> {
+    pub fn new_rng(rng: &mut Rng) -> Self {
+        let mut out = [0.0; N];
+        for el in out.iter_mut() {
+            *el = rng.next_f32();
+        }
+        Self(out)
+    }
+}
+
+impl<const N: usize> Deref for AlignedArray<N> {
+    type Target = [f32; N];
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl<const N: usize> DerefMut for AlignedArray<N> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.0
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, PartialOrd)]
 pub struct Vec4ArraysAligned<const N: usize>(
-    [F32Group; N],
-    [F32Group; N],
-    [F32Group; N],
-    [F32Group; N],
+    AlignedArray<N>,
+    AlignedArray<N>,
+    AlignedArray<N>,
+    AlignedArray<N>,
 );
 
 impl<const N: usize> Vec4ArraysAligned<N> {
     pub fn new_rng(rng: &mut Rng) -> Self {
-        let mut out = Self(
-            [F32Group::ZERO; N],
-            [F32Group::ZERO; N],
-            [F32Group::ZERO; N],
-            [F32Group::ZERO; N],
-        );
-        for i in 0..N {
-            out.0[i] = F32Group::new_rng(rng);
-            out.1[i] = F32Group::new_rng(rng);
-            out.2[i] = F32Group::new_rng(rng);
-            out.3[i] = F32Group::new_rng(rng);
-        }
-        out
+        Self(
+            AlignedArray::new_rng(rng),
+            AlignedArray::new_rng(rng),
+            AlignedArray::new_rng(rng),
+            AlignedArray::new_rng(rng),
+        )
     }
 
     pub fn iter(&self) -> impl Iterator<Item = (&f32, &f32, &f32, &f32)> {
         self.0
             .iter()
-            .zip(&self.1)
-            .zip(&self.2)
-            .zip(&self.3)
-            .flat_map(|(((a, b), c), d)| {
-                a.iter()
-                    .zip(b)
-                    .zip(c)
-                    .zip(d)
-                    .map(|(((a, b), c), d)| (a, b, c, d))
-            })
+            .zip(self.1.iter())
+            .zip(self.2.iter())
+            .zip(self.3.iter())
+            .map(|(((a, b), c), d)| (a, b, c, d))
     }
 }
 
@@ -256,8 +271,8 @@ fn criterion_benchmark(c: &mut Criterion) {
         b.iter(|| sum_dots_arrays(&array1, &array2))
     });
 
-    let array1 = <Vec4ArraysAligned<{ 1 << 13 }>>::new_rng(&mut rng);
-    let array2 = <Vec4ArraysAligned<{ 1 << 13 }>>::new_rng(&mut rng);
+    let array1 = <Vec4ArraysAligned<{ 1 << 16 }>>::new_rng(&mut rng);
+    let array2 = <Vec4ArraysAligned<{ 1 << 16 }>>::new_rng(&mut rng);
     c.bench_function("dots-aligned-array", |b| {
         b.iter(|| sum_dots_arrays_aligned(&array1, &array2))
     });
