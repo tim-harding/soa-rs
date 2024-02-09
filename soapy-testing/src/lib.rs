@@ -381,7 +381,7 @@ pub fn field_getters() {
     assert_eq!(soa.bar(), &[2, 6, 10, 14, 18]);
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, PartialOrd, Soapy, Default)]
+#[derive(Debug, Clone, Copy, PartialEq, Soapy)]
 struct Alignment {
     #[align(64)]
     a: f32,

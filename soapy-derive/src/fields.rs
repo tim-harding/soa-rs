@@ -164,6 +164,8 @@ pub fn fields_struct(
 
     let indices = std::iter::repeat(()).enumerate().map(|(i, ())| i);
 
+    let offsets_len = fields_len - 1;
+
     let raw_body = match kind {
         FieldKind::Named => quote! {
             { #(#vis_all #ident_all: ::std::ptr::NonNull<#ty_all>,)* }
@@ -200,7 +202,7 @@ pub fn fields_struct(
             let array = ::std::alloc::Layout::array::<#ty_head>(cap)#check;
             #raise_align_head
             let layout = array;
-            let mut offsets = [0usize; #fields_len];
+            let mut offsets = [0usize; #offsets_len];
             #(
                 let array = ::std::alloc::Layout::array::<#ty_tail>(cap)#check;
                 #raise_align_tail
@@ -230,7 +232,7 @@ pub fn fields_struct(
         impl #raw {
             #[inline]
             fn layout_and_offsets(cap: usize)
-                -> Result<(::std::alloc::Layout, [usize; #fields_len]), ::std::alloc::LayoutError>
+                -> Result<(::std::alloc::Layout, [usize; #offsets_len]), ::std::alloc::LayoutError>
             {
                 #layout_and_offsets_checked_body
                 Ok((layout, offsets))
@@ -238,14 +240,14 @@ pub fn fields_struct(
 
             #[inline]
             unsafe fn layout_and_offsets_unchecked(cap: usize)
-                -> (::std::alloc::Layout, [usize; #fields_len])
+                -> (::std::alloc::Layout, [usize; #offsets_len])
             {
                 #layout_and_offsets_unchecked_body
                 (layout, offsets)
             }
 
             #[inline]
-            unsafe fn with_offsets(ptr: *mut u8, offsets: [usize; #fields_len]) -> Self {
+            unsafe fn with_offsets(ptr: *mut u8, offsets: [usize; #offsets_len]) -> Self {
                 Self {
                     #ident_head: ::std::ptr::NonNull::new_unchecked(ptr as *mut #ty_head),
                     #(

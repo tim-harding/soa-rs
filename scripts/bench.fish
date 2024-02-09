@@ -1,7 +1,7 @@
 #!/usr/bin/fish
 
-cargo +nightly bench \
-    --target x86_64-unknown-linux-gnu \
+cargo bench \
     --profile bench \
     --package soapy-testing \
     --bench benchmark \
+    dots-soa

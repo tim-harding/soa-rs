@@ -15,7 +15,12 @@ impl Rng {
 }
 
 #[derive(Soapy, Debug, Clone, Copy, PartialEq, PartialOrd)]
-pub struct Vec4(f32, f32, f32, f32);
+pub struct Vec4(
+    #[align(64)] f32,
+    #[align(64)] f32,
+    #[align(64)] f32,
+    #[align(64)] f32,
+);
 
 impl Vec4 {
     fn new_rng(rng: &mut Rng) -> Self {
