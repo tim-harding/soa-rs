@@ -380,3 +380,42 @@ pub fn field_getters() {
     assert_eq!(soa.foo(), &[1, 5, 9, 13, 17]);
     assert_eq!(soa.bar(), &[2, 6, 10, 14, 18]);
 }
+
+#[derive(Debug, Clone, Copy, PartialEq, PartialOrd, Soapy, Default)]
+struct Alignment {
+    #[align(64)]
+    a: f32,
+    #[align(64)]
+    b: f32,
+    #[align(64)]
+    c: f32,
+    #[align(64)]
+    d: f32,
+}
+
+#[test]
+pub fn align_attribute() {
+    let aligns = [
+        Alignment {
+            a: 0.0,
+            b: 1.0,
+            c: 2.0,
+            d: 3.0,
+        },
+        Alignment {
+            a: 4.0,
+            b: 5.0,
+            c: 6.0,
+            d: 7.0,
+        },
+        Alignment {
+            a: 8.0,
+            b: 9.0,
+            c: 10.0,
+            d: 11.0,
+        },
+    ];
+
+    let soa: Soa<_> = aligns.into_iter().collect();
+    assert_eq!(soa, aligns);
+}

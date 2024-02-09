@@ -1,7 +1,7 @@
 use crate::zst::{zst_struct, ZstKind};
 use proc_macro2::TokenStream;
 use quote::{format_ident, quote, ToTokens, TokenStreamExt};
-use syn::{punctuated::Punctuated, token::Comma, Expr, Field, Ident, Index, Visibility};
+use syn::{punctuated::Punctuated, token::Comma, Field, Ident, Index, LitInt, Visibility};
 
 pub fn fields_struct(
     ident: Ident,
@@ -32,7 +32,14 @@ pub fn fields_struct(
         .map(|attrs| {
             for attr in attrs {
                 if attr.path().is_ident("align") {
-                    let align: Expr = attr.parse_args()?;
+                    let align_literal: LitInt = attr.parse_args()?;
+                    let align: usize = align_literal.base10_parse()?;
+                    if !align.is_power_of_two() {
+                        return Err(syn::Error::new_spanned(
+                            align_literal,
+                            "align should be a power of two",
+                        ));
+                    }
                     return Ok(Some(align));
                 }
             }
@@ -177,23 +184,10 @@ pub fn fields_struct(
             }
         };
 
-        let mut raise_align = align_all.iter().zip(ty_all.iter()).map(|(align, ty)| {
+        let mut raise_align = align_all.iter().map(|align| {
             align.as_ref().map(|align| {
-                // TODO:
-                // Try to move these assertions to types, e.g.
-                // core::clone::AssertParamIsClone<T>
-                // or parse attributes to ints and validate them in
-                // procedural code
                 quote! {
-                    debug_assert!(
-                        #align.is_power_of_two(),
-                        "align must be a power of two"
-                    );
-                    debug_assert!(
-                        #align >= ::std::mem::align_of::<#ty>(),
-                        "align must be greater than or equal to the alignment of the field's type"
-                    );
-                    let array = array.align_to()#check;
+                    let array = array.align_to(#align)#check;
                 }
             })
         });
