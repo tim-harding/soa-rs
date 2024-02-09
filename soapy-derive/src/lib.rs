@@ -10,7 +10,7 @@ use quote::quote_spanned;
 use syn::{parse_macro_input, Data, DeriveInput, Fields};
 use zst::{zst_struct, ZstKind};
 
-#[proc_macro_derive(Soapy)]
+#[proc_macro_derive(Soapy, attributes(align))]
 pub fn soa(input: TokenStream) -> TokenStream {
     let input: DeriveInput = parse_macro_input!(input);
     let span = input.ident.span();

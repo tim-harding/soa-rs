@@ -1,7 +1,7 @@
 use crate::zst::{zst_struct, ZstKind};
 use proc_macro2::TokenStream;
 use quote::{format_ident, quote, ToTokens, TokenStreamExt};
-use syn::{punctuated::Punctuated, token::Comma, Field, Ident, Index, Visibility};
+use syn::{punctuated::Punctuated, token::Comma, Expr, Field, Ident, Index, Visibility};
 
 pub fn fields_struct(
     ident: Ident,
@@ -10,11 +10,38 @@ pub fn fields_struct(
     kind: FieldKind,
 ) -> Result<TokenStream, syn::Error> {
     let fields_len = fields.len();
-    let (vis_all, (ty_all, ident_all)): (Vec<_>, (Vec<_>, Vec<FieldIdent>)) = fields
+    let (vis_all, (ty_all, (ident_all, attrs_all))): (Vec<_>, (Vec<_>, (Vec<_>, Vec<_>))) = fields
         .into_iter()
         .enumerate()
-        .map(|(i, field)| (field.vis, (field.ty, (i, field.ident).into())))
+        .map(|(i, field)| {
+            let Field {
+                attrs,
+                vis,
+                mutability: _,
+                ident,
+                colon_token: _,
+                ty,
+            } = field;
+            let ident: FieldIdent = (i, ident).into();
+            (vis, (ty, (ident, attrs)))
+        })
         .unzip();
+
+    let align_all: Result<Vec<_>, syn::Error> = attrs_all
+        .into_iter()
+        .map(|attrs| {
+            for attr in attrs {
+                if attr.path().is_ident("align") {
+                    let align: Expr = attr.parse_args()?;
+                    return Ok(Some(align));
+                }
+            }
+            Ok(None)
+        })
+        .collect();
+
+    let align_all = align_all?;
+
     let ident_rev: Vec<_> = ident_all.iter().cloned().rev().collect();
 
     let (_vis_head, ident_head, ty_head) = match (
@@ -128,9 +155,7 @@ pub fn fields_struct(
     out.append_all(with_ref_impl(item_ref.clone()));
     out.append_all(with_ref_impl(item_ref_mut.clone()));
 
-    let indices_1 = std::iter::repeat(()).enumerate().map(|(i, ())| i);
-    let indices_2 = indices_1.clone();
-    let indices_3 = indices_1.clone();
+    let indices = std::iter::repeat(()).enumerate().map(|(i, ())| i);
 
     let raw_body = match kind {
         FieldKind::Named => quote! {
@@ -140,6 +165,59 @@ pub fn fields_struct(
             ( #(#vis_all ::std::ptr::NonNull<#ty_all>),* );
         },
     };
+
+    let layout_and_offsets_body = |checked: bool| {
+        let check = if checked {
+            quote! {
+                ?
+            }
+        } else {
+            quote! {
+                .unwrap_unchecked()
+            }
+        };
+
+        let mut raise_align = align_all.iter().zip(ty_all.iter()).map(|(align, ty)| {
+            align.as_ref().map(|align| {
+                // TODO:
+                // Try to move these assertions to types, e.g.
+                // core::clone::AssertParamIsClone<T>
+                // or parse attributes to ints and validate them in
+                // procedural code
+                quote! {
+                    debug_assert!(
+                        #align.is_power_of_two(),
+                        "align must be a power of two"
+                    );
+                    debug_assert!(
+                        #align >= ::std::mem::align_of::<#ty>(),
+                        "align must be greater than or equal to the alignment of the field's type"
+                    );
+                    let array = array.align_to()#check;
+                }
+            })
+        });
+
+        let raise_align_head = raise_align.next().flatten();
+        let raise_align_tail: Vec<_> = raise_align.collect();
+
+        let indices = indices.clone();
+        quote! {
+            let array = ::std::alloc::Layout::array::<#ty_head>(cap)#check;
+            #raise_align_head
+            let layout = array;
+            let mut offsets = [0usize; #fields_len];
+            #(
+                let array = ::std::alloc::Layout::array::<#ty_tail>(cap)#check;
+                #raise_align_tail
+                let (layout, offset) = layout.extend(array)#check;
+                offsets[#indices] = offset;
+            )*
+        }
+    };
+
+    let layout_and_offsets_checked_body = layout_and_offsets_body(true);
+    let layout_and_offsets_unchecked_body = layout_and_offsets_body(false);
 
     out.append_all(quote! {
         #[automatically_derived]
@@ -157,30 +235,18 @@ pub fn fields_struct(
         #[automatically_derived]
         impl #raw {
             #[inline]
-            fn layout_and_offsets(cap: usize) 
+            fn layout_and_offsets(cap: usize)
                 -> Result<(::std::alloc::Layout, [usize; #fields_len]), ::std::alloc::LayoutError>
             {
-                let layout = ::std::alloc::Layout::array::<#ty_head>(cap)?;
-                let mut offsets = [0usize; #fields_len];
-                #(
-                    let array = ::std::alloc::Layout::array::<#ty_tail>(cap)?;
-                    let (layout, offset) = layout.extend(array)?;
-                    offsets[#indices_1] = offset;
-                )*
+                #layout_and_offsets_checked_body
                 Ok((layout, offsets))
             }
 
             #[inline]
-            unsafe fn layout_and_offsets_unchecked(cap: usize) 
-                -> (::std::alloc::Layout, [usize; #fields_len]) 
+            unsafe fn layout_and_offsets_unchecked(cap: usize)
+                -> (::std::alloc::Layout, [usize; #fields_len])
             {
-                let layout = ::std::alloc::Layout::array::<#ty_head>(cap).unwrap_unchecked();
-                let mut offsets = [0usize; #fields_len];
-                #(
-                    let array = ::std::alloc::Layout::array::<#ty_tail>(cap).unwrap_unchecked();
-                    let (layout, offset) = layout.extend(array).unwrap_unchecked();
-                    offsets[#indices_2] = offset;
-                )*
+                #layout_and_offsets_unchecked_body
                 (layout, offsets)
             }
 
@@ -190,7 +256,7 @@ pub fn fields_struct(
                     #ident_head: ::std::ptr::NonNull::new_unchecked(ptr as *mut #ty_head),
                     #(
                     #ident_tail: ::std::ptr::NonNull::new_unchecked(
-                        ptr.add(offsets[#indices_3]) as *mut #ty_tail,
+                        ptr.add(offsets[#indices]) as *mut #ty_tail,
                     )
                     ),*
                 }
