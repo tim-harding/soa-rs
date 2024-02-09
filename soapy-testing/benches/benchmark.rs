@@ -222,14 +222,18 @@ impl<const N: usize> Vec4ArraysAligned<N> {
     }
 
     pub fn iter(&self) -> impl Iterator<Item = (&f32, &f32, &f32, &f32)> {
-        let a = self.0.iter().flat_map(|x| x.iter());
-        let b = self.1.iter().flat_map(|x| x.iter());
-        let c = self.2.iter().flat_map(|x| x.iter());
-        let d = self.3.iter().flat_map(|x| x.iter());
-        a.zip(b)
-            .zip(c)
-            .zip(d)
-            .map(|(((a0, a1), a2), a3)| (a0, a1, a2, a3))
+        self.0
+            .iter()
+            .zip(&self.1)
+            .zip(&self.2)
+            .zip(&self.3)
+            .flat_map(|(((a, b), c), d)| {
+                a.iter()
+                    .zip(b)
+                    .zip(c)
+                    .zip(d)
+                    .map(|(((a, b), c), d)| (a, b, c, d))
+            })
     }
 }
 
