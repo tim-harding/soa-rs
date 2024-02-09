@@ -1,4 +1,8 @@
-use std::ops::{Add, Mul};
+use std::{
+    array::IntoIter,
+    ops::{Add, Mul},
+    slice::Iter,
+};
 
 use criterion::{criterion_group, criterion_main, Criterion};
 use rand::{rngs::StdRng, RngCore, SeedableRng};
@@ -95,22 +99,22 @@ pub fn sum_dots_arrays<const N: usize>(a: &Vec4Arrays<N>, b: &Vec4Arrays<N>) -> 
 
 #[repr(align(32))]
 #[derive(Debug, Clone, Copy, PartialEq, PartialOrd)]
-pub struct F32Group(f32, f32, f32, f32, f32, f32, f32, f32);
+pub struct F32Group([f32; 8]);
 
 impl Mul for F32Group {
     type Output = Self;
 
     fn mul(self, rhs: Self) -> Self::Output {
-        Self(
-            self.0 * rhs.0,
-            self.1 * rhs.1,
-            self.2 * rhs.2,
-            self.3 * rhs.3,
-            self.4 * rhs.4,
-            self.5 * rhs.5,
-            self.6 * rhs.6,
-            self.7 * rhs.7,
-        )
+        Self([
+            self.0[0] * rhs.0[0],
+            self.0[1] * rhs.0[1],
+            self.0[2] * rhs.0[2],
+            self.0[3] * rhs.0[3],
+            self.0[4] * rhs.0[4],
+            self.0[5] * rhs.0[5],
+            self.0[6] * rhs.0[6],
+            self.0[7] * rhs.0[7],
+        ])
     }
 }
 
@@ -126,16 +130,16 @@ impl Add for F32Group {
     type Output = Self;
 
     fn add(self, rhs: Self) -> Self::Output {
-        Self(
-            self.0 + rhs.0,
-            self.1 + rhs.1,
-            self.2 + rhs.2,
-            self.3 + rhs.3,
-            self.4 + rhs.4,
-            self.5 + rhs.5,
-            self.6 + rhs.6,
-            self.7 + rhs.7,
-        )
+        Self([
+            self.0[0] + rhs.0[0],
+            self.0[1] + rhs.0[1],
+            self.0[2] + rhs.0[2],
+            self.0[3] + rhs.0[3],
+            self.0[4] + rhs.0[4],
+            self.0[5] + rhs.0[5],
+            self.0[6] + rhs.0[6],
+            self.0[7] + rhs.0[7],
+        ])
     }
 }
 
@@ -147,17 +151,39 @@ impl Add for &F32Group {
     }
 }
 
-impl F32Group {
-    pub fn sum(self) -> f32 {
-        self.0 + self.1 + self.2 + self.3 + self.4 + self.5 + self.6 + self.7
+impl IntoIterator for F32Group {
+    type Item = f32;
+
+    type IntoIter = IntoIter<f32, 8>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.0.into_iter()
+    }
+}
+
+impl<'a> IntoIterator for &'a F32Group {
+    type Item = &'a f32;
+
+    type IntoIter = Iter<'a, f32>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.iter()
     }
 }
 
 impl F32Group {
-    pub const ZERO: Self = Self(0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
+    pub const ZERO: Self = Self([0.0; 8]);
+
+    pub fn sum(self) -> f32 {
+        self.0.into_iter().sum()
+    }
+
+    pub fn iter(&self) -> Iter<'_, f32> {
+        self.0.iter()
+    }
 
     pub fn new_rng(rng: &mut Rng) -> Self {
-        Self(
+        Self([
             rng.next_f32(),
             rng.next_f32(),
             rng.next_f32(),
@@ -166,7 +192,7 @@ impl F32Group {
             rng.next_f32(),
             rng.next_f32(),
             rng.next_f32(),
-        )
+        ])
     }
 }
 
@@ -195,12 +221,14 @@ impl<const N: usize> Vec4ArraysAligned<N> {
         out
     }
 
-    pub fn iter(&self) -> impl Iterator<Item = (&F32Group, &F32Group, &F32Group, &F32Group)> {
-        self.0
-            .iter()
-            .zip(self.1.iter())
-            .zip(self.2.iter())
-            .zip(self.3.iter())
+    pub fn iter(&self) -> impl Iterator<Item = (&f32, &f32, &f32, &f32)> {
+        let a = self.0.iter().flat_map(|x| x.iter());
+        let b = self.1.iter().flat_map(|x| x.iter());
+        let c = self.2.iter().flat_map(|x| x.iter());
+        let d = self.3.iter().flat_map(|x| x.iter());
+        a.zip(b)
+            .zip(c)
+            .zip(d)
             .map(|(((a0, a1), a2), a3)| (a0, a1, a2, a3))
     }
 }
@@ -211,7 +239,7 @@ pub fn sum_dots_arrays_aligned<const N: usize>(
 ) -> f32 {
     a.iter()
         .zip(b.iter())
-        .map(|(a, b)| (a.0 * b.0 + a.1 * b.1 + a.2 * b.2 + a.3 * b.3).sum())
+        .map(|(a, b)| a.0 * b.0 + a.1 * b.1 + a.2 * b.2 + a.3 * b.3)
         .sum()
 }
 
