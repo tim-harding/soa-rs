@@ -1,6 +1,6 @@
 use std::{
     array::IntoIter,
-    ops::{Add, Deref, DerefMut, Mul},
+    ops::{Add, ControlFlow, Deref, DerefMut, Mul},
     slice::Iter,
 };
 
@@ -48,21 +48,18 @@ where
         .collect()
 }
 
-macro_rules! sum_dots {
-    ($a:ident, $b:ident) => {
-        $a.into_iter()
-            .zip($b.into_iter())
-            .map(|(a, b)| a.0 * b.0 + a.1 * b.1 + a.2 * b.2 + a.3 * b.3)
-            .sum()
-    };
-}
-
 fn sum_dots_vec(a: &[Vec4], b: &[Vec4]) -> f32 {
-    sum_dots!(a, b)
+    a.iter()
+        .zip(b.iter())
+        .map(|(a, b)| a.0 * b.0 + a.1 * b.1 + a.2 * b.2 + a.3 * b.3)
+        .sum()
 }
 
 fn sum_dots_soa(a: SliceRef<Vec4>, b: SliceRef<Vec4>) -> f32 {
-    sum_dots!(a, b)
+    a.iter()
+        .zip(b.iter())
+        .map(|(a, b)| a.0 * b.0 + a.1 * b.1 + a.2 * b.2 + a.3 * b.3)
+        .sum()
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, PartialOrd)]
@@ -329,6 +326,14 @@ fn criterion_benchmark(c: &mut Criterion) {
     let soa2: Soa<_> = make_vec4_list(&mut rng, 1 << 16);
     c.bench_function("dots-soa", |b| {
         b.iter(|| sum_dots_soa(soa1.as_slice(), soa2.as_slice()))
+    });
+
+    c.bench_function("dots-fold-soa", |b| {
+        b.iter(|| {
+            soa1.try_fold_zip(&soa2, 0.0, |acc, a, b| {
+                ControlFlow::Continue(acc + a.0 * b.0 + a.1 * b.1 + a.2 * b.2 + a.3 * b.3)
+            })
+        })
     });
 
     let vec1: Vec<_> = make_vec4_list(&mut rng, 1 << 16);
