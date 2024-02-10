@@ -1,6 +1,6 @@
 use std::{
     array::IntoIter,
-    ops::{Add, ControlFlow, Deref, DerefMut, Mul},
+    ops::{Add, Deref, DerefMut, Mul},
     slice::Iter,
 };
 
@@ -330,9 +330,38 @@ fn criterion_benchmark(c: &mut Criterion) {
 
     c.bench_function("dots-fold-soa", |b| {
         b.iter(|| {
-            soa1.try_fold_zip(&soa2, 0.0, |acc, a, b| {
-                ControlFlow::Continue(acc + a.0 * b.0 + a.1 * b.1 + a.2 * b.2 + a.3 * b.3)
+            soa1.fold_zip(&soa2, 0.0, |acc, a, b| {
+                acc + a.0 * b.0 + a.1 * b.1 + a.2 * b.2 + a.3 * b.3
             })
+        })
+    });
+
+    c.bench_function("dots-fold-custom", |b| {
+        b.iter(|| {
+            soa1.f0()
+                .chunks_exact(8)
+                .zip(soa1.f1().chunks_exact(8))
+                .zip(soa1.f2().chunks_exact(8))
+                .zip(soa1.f3().chunks_exact(8))
+                .zip(soa2.f0().chunks_exact(8))
+                .zip(soa2.f1().chunks_exact(8))
+                .zip(soa2.f2().chunks_exact(8))
+                .zip(soa2.f3().chunks_exact(8))
+                .fold(
+                    (0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0),
+                    |acc, (((((((a0, a1), a2), a3), b0), b1), b2), b3)| {
+                        (
+                            acc.0 + a0[0] * b0[0] + a1[0] * b1[0] + a2[0] * b2[0] + a3[0] * b3[0],
+                            acc.1 + a0[1] * b0[1] + a1[1] * b1[1] + a2[1] * b2[1] + a3[1] * b3[1],
+                            acc.2 + a0[2] * b0[2] + a1[2] * b1[2] + a2[2] * b2[2] + a3[2] * b3[2],
+                            acc.3 + a0[3] * b0[3] + a1[3] * b1[3] + a2[3] * b2[3] + a3[3] * b3[3],
+                            acc.4 + a0[4] * b0[4] + a1[4] * b1[4] + a2[4] * b2[4] + a3[4] * b3[4],
+                            acc.5 + a0[5] * b0[5] + a1[5] * b1[5] + a2[5] * b2[5] + a3[5] * b3[5],
+                            acc.6 + a0[6] * b0[6] + a1[6] * b1[6] + a2[6] * b2[6] + a3[6] * b3[6],
+                            acc.7 + a0[7] * b0[7] + a1[7] * b1[7] + a2[7] * b2[7] + a3[7] * b3[7],
+                        )
+                    },
+                )
         })
     });
 
