@@ -1,4 +1,4 @@
-use crate::{soa_ref::RefMut, SoaRaw, Soapy};
+use crate::{soa_ref::RefMut, Slice, SliceMut, SliceRef, SoaRaw, Soapy};
 use std::{iter::FusedIterator, marker::PhantomData};
 
 /// Mutable [`Soa`] iterator.
@@ -14,6 +14,25 @@ where
     pub(crate) raw: T::Raw,
     pub(crate) len: usize,
     pub(crate) _marker: PhantomData<&'a mut T>,
+}
+
+impl<'a, T> IterMut<'a, T>
+where
+    T: 'a + Soapy,
+{
+    pub fn as_slice(&self) -> SliceRef<'a, T> {
+        SliceRef(
+            unsafe { Slice::from_raw_parts(self.raw, self.len) },
+            PhantomData,
+        )
+    }
+
+    pub fn as_mut_slice(&mut self) -> SliceMut<'a, T> {
+        SliceMut(
+            unsafe { Slice::from_raw_parts(self.raw, self.len) },
+            PhantomData,
+        )
+    }
 }
 
 impl<'a, T> Iterator for IterMut<'a, T>

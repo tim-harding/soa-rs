@@ -1,5 +1,5 @@
-use crate::{SoaRaw, Soapy};
-use std::{iter::FusedIterator, mem::size_of};
+use crate::{Slice, SliceMut, SliceRef, SoaRaw, Soapy};
+use std::{iter::FusedIterator, marker::PhantomData, mem::size_of};
 
 // TODO: Nightly-only try_fold implementation
 
@@ -18,6 +18,25 @@ where
     pub(crate) raw: T::Raw,
     pub(crate) cap: usize,
     pub(crate) len: usize,
+}
+
+impl<T> IntoIter<T>
+where
+    T: Soapy,
+{
+    pub fn as_slice(&self) -> SliceRef<'_, T> {
+        SliceRef(
+            unsafe { Slice::from_raw_parts(self.raw, self.len) },
+            PhantomData,
+        )
+    }
+
+    pub fn as_mut_slice(&mut self) -> SliceMut<'_, T> {
+        SliceMut(
+            unsafe { Slice::from_raw_parts(self.raw, self.len) },
+            PhantomData,
+        )
+    }
 }
 
 impl<T> Iterator for IntoIter<T>

@@ -1,4 +1,4 @@
-use crate::{Ref, SoaRaw, Soapy};
+use crate::{Ref, Slice, SliceRef, SoaRaw, Soapy};
 use std::{iter::FusedIterator, marker::PhantomData};
 
 /// Immutable [`Soa`] iterator.
@@ -14,6 +14,18 @@ where
     pub(crate) raw: T::Raw,
     pub(crate) len: usize,
     pub(crate) _marker: PhantomData<&'a T>,
+}
+
+impl<'a, T> Iter<'a, T>
+where
+    T: 'a + Soapy,
+{
+    pub fn as_slice(&self) -> SliceRef<'a, T> {
+        SliceRef(
+            unsafe { Slice::from_raw_parts(self.raw, self.len) },
+            PhantomData,
+        )
+    }
 }
 
 impl<'a, T> Iterator for Iter<'a, T>
