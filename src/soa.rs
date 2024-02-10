@@ -260,7 +260,7 @@ where
     pub fn push(&mut self, element: T) {
         self.maybe_grow();
         unsafe {
-            self.slice.raw.set(self.slice.len, element);
+            self.slice.raw.offset(self.slice.len).set(element);
         }
         self.slice.len += 1;
     }
@@ -283,7 +283,7 @@ where
             None
         } else {
             self.slice.len -= 1;
-            Some(unsafe { self.slice.raw.get(self.slice.len) })
+            Some(unsafe { self.slice.raw.offset(self.slice.len).get() })
         }
     }
 
@@ -310,10 +310,9 @@ where
         assert!(index <= self.slice.len, "index out of bounds");
         self.maybe_grow();
         unsafe {
-            self.slice
-                .raw
-                .copy(index, index + 1, self.slice.len - index);
-            self.slice.raw.set(index, element);
+            let ith = self.raw.offset(index);
+            ith.copy_to(ith.offset(1), self.len - index);
+            ith.set(element);
         }
         self.slice.len += 1;
     }
@@ -334,11 +333,10 @@ where
     pub fn remove(&mut self, index: usize) -> T {
         assert!(index < self.slice.len, "index out of bounds");
         self.slice.len -= 1;
-        let out = unsafe { self.slice.raw.get(index) };
+        let ith = unsafe { self.raw.offset(index) };
+        let out = unsafe { ith.get() };
         unsafe {
-            self.slice
-                .raw
-                .copy(index + 1, index, self.slice.len - index);
+            ith.offset(1).copy_to(ith, self.slice.len - index);
         }
         out
     }
@@ -512,9 +510,11 @@ where
             panic!("index out of bounds")
         }
         self.slice.len -= 1;
-        let out = unsafe { self.slice.raw.get(index) };
+        let to_remove = unsafe { self.slice.raw.offset(index) };
+        let last = unsafe { self.slice.raw.offset(self.len) };
+        let out = unsafe { to_remove.get() };
         unsafe {
-            self.slice.raw.copy(self.len(), index, 1);
+            last.copy_to(to_remove, 1);
         }
         out
     }
@@ -536,7 +536,7 @@ where
     pub fn append(&mut self, other: &mut Self) {
         self.reserve(other.len());
         for i in 0..other.slice.len {
-            let element = unsafe { other.slice.raw.get(i) };
+            let element = unsafe { other.slice.raw.offset(i).get() };
             self.push(element);
         }
         other.clear();
@@ -563,8 +563,7 @@ where
     pub fn iter(&self) -> Iter<T> {
         Iter {
             raw: self.slice.raw,
-            start: 0,
-            end: self.slice.len,
+            len: self.len,
             _marker: PhantomData,
         }
     }
@@ -589,8 +588,7 @@ where
     pub fn iter_mut(&mut self) -> IterMut<T> {
         IterMut {
             raw: self.slice.raw,
-            start: 0,
-            end: self.slice.len,
+            len: self.slice.len,
             _marker: PhantomData,
         }
     }
@@ -733,8 +731,8 @@ where
     fn into_iter(self) -> Self::IntoIter {
         let soa = ManuallyDrop::new(self);
         IntoIter {
-            start: 0,
-            end: soa.slice.len,
+            ptr: soa.raw.into_parts(),
+            len: soa.slice.len,
             raw: soa.slice.raw,
             cap: soa.cap,
         }

@@ -120,9 +120,8 @@ where
     /// ```
     pub const fn iter(&self) -> Iter<T> {
         Iter {
-            start: 0,
-            end: self.len,
             raw: self.raw,
+            len: self.len,
             _marker: PhantomData,
         }
     }
@@ -146,8 +145,7 @@ where
     /// ```
     pub fn iter_mut(&mut self) -> IterMut<T> {
         IterMut {
-            start: 0,
-            end: self.len,
+            len: self.len,
             raw: self.raw,
             _marker: PhantomData,
         }
@@ -217,8 +215,10 @@ where
         F: FnMut(B, &T) -> ControlFlow<B, B>,
     {
         let mut acc = init;
-        for i in 0..self.len {
-            let element = ManuallyDrop::new(unsafe { self.raw.get(i) });
+        let mut raw = self.raw;
+        for _ in 0..self.len {
+            let element = ManuallyDrop::new(unsafe { raw.get() });
+            raw = unsafe { raw.offset(1) };
             let result = f(acc, &element);
             match result {
                 ControlFlow::Continue(b) => acc = b,
@@ -280,10 +280,14 @@ where
         F: FnMut(B, &T, &T) -> ControlFlow<B, B>,
     {
         let mut acc = init;
+        let mut raw_a = self.raw;
+        let mut raw_b = other.raw;
         let len = self.len.min(other.len);
-        for i in 0..len {
-            let a = ManuallyDrop::new(unsafe { self.raw.get(i) });
-            let b = ManuallyDrop::new(unsafe { other.raw.get(i) });
+        for _ in 0..len {
+            let a = ManuallyDrop::new(unsafe { raw_a.get() });
+            let b = ManuallyDrop::new(unsafe { raw_b.get() });
+            raw_a = unsafe { raw_a.offset(1) };
+            raw_b = unsafe { raw_b.offset(1) };
             let result = f(acc, &a, &b);
             match result {
                 ControlFlow::Continue(b) => acc = b,
@@ -486,9 +490,11 @@ where
         }
 
         unsafe {
-            let tmp = self.raw.get(a);
-            self.raw.copy(b, a, 1);
-            self.raw.set(b, tmp);
+            let a = self.raw.offset(a);
+            let b = self.raw.offset(b);
+            let tmp = a.get();
+            b.copy_to(a, 1);
+            b.set(tmp);
         }
     }
 
@@ -574,8 +580,7 @@ where
 
     fn into_iter(self) -> Self::IntoIter {
         Iter {
-            start: 0,
-            end: self.len,
+            len: self.len,
             raw: self.raw,
             _marker: PhantomData,
         }
@@ -591,8 +596,7 @@ where
 
     fn into_iter(self) -> Self::IntoIter {
         IterMut {
-            start: 0,
-            end: self.len,
+            len: self.len,
             raw: self.raw,
             _marker: PhantomData,
         }

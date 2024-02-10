@@ -54,15 +54,15 @@ pub fn zst_struct(ident: Ident, vis: Visibility, kind: ZstKind) -> TokenStream {
             #[inline]
             unsafe fn dealloc(self, old_capacity: usize) { }
             #[inline]
-            unsafe fn copy(&mut self, src: usize, dst: usize, count: usize) { }
+            unsafe fn copy_to(self, dst: Self, count: usize) { }
             #[inline]
-            unsafe fn set(&mut self, index: usize, element: #ident) { }
+            unsafe fn set(self, element: #ident) { }
             #[inline]
-            unsafe fn get(&self, index: usize) -> #ident { #ident #unit_construct }
+            unsafe fn get(self) -> #ident { #ident #unit_construct }
             #[inline]
-            unsafe fn get_ref<'a>(&self, index: usize) -> <#ident as Soapy>::Ref<'a> { #ident #unit_construct }
+            unsafe fn get_ref<'a>(self) -> <#ident as Soapy>::Ref<'a> { #ident #unit_construct }
             #[inline]
-            unsafe fn get_mut<'a>(&self, index: usize) -> <#ident as Soapy>::RefMut<'a> { #ident #unit_construct }
+            unsafe fn get_mut<'a>(self) -> <#ident as Soapy>::RefMut<'a> { #ident #unit_construct }
             #[inline]
             unsafe fn offset(self, count: usize) -> Self { Self }
         }

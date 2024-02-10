@@ -12,8 +12,7 @@ where
     T: 'a + Soapy,
 {
     pub(crate) raw: T::Raw,
-    pub(crate) start: usize,
-    pub(crate) end: usize,
+    pub(crate) len: usize,
     pub(crate) _marker: PhantomData<&'a T>,
 }
 
@@ -24,21 +23,19 @@ where
     type Item = Ref<'a, T>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        if self.start >= self.end {
+        if self.len == 0 {
             None
         } else {
-            let out = unsafe { self.raw.get_ref(self.start) };
-            self.start += 1;
-            Some(Ref(out))
+            self.len -= 1;
+            let out = Some(Ref(unsafe { self.raw.get_ref() }));
+            self.raw = unsafe { self.raw.offset(1) };
+            out
         }
     }
 
     fn size_hint(&self) -> (usize, Option<usize>) {
-        let len = self.end - self.start;
-        (len, Some(len))
+        (self.len, Some(self.len))
     }
-
-    // TODO: Nightly-only try_fold implementation
 }
 
 impl<'a, T> DoubleEndedIterator for Iter<'a, T>
@@ -46,11 +43,11 @@ where
     T: 'a + Soapy,
 {
     fn next_back(&mut self) -> Option<Self::Item> {
-        if self.start >= self.end {
+        if self.len == 0 {
             None
         } else {
-            self.end -= 1;
-            Some(Ref(unsafe { self.raw.get_ref(self.end) }))
+            self.len -= 1;
+            Some(Ref(unsafe { self.raw.offset(self.len).get_ref() }))
         }
     }
 }

@@ -106,7 +106,7 @@ pub unsafe trait SoaRaw: Copy + Clone {
     /// - `dst < PREV_CAP`
     /// - `src + count <= PREV_CAP`
     /// - `dst + count <= PREV_CAP`
-    unsafe fn copy(&mut self, src: usize, dst: usize, count: usize);
+    unsafe fn copy_to(self, dst: Self, count: usize);
 
     /// Sets the element at `index` to `element`.
     ///
@@ -115,7 +115,7 @@ pub unsafe trait SoaRaw: Copy + Clone {
     /// The caller must ensure that
     ///
     /// - `index < PREV_CAP`
-    unsafe fn set(&mut self, index: usize, element: Self::Item);
+    unsafe fn set(self, element: Self::Item);
 
     /// Gets the element at `index`.
     ///
@@ -127,7 +127,7 @@ pub unsafe trait SoaRaw: Copy + Clone {
     /// reference. The caller must ensure that
     ///
     /// - `index < PREV_CAP`
-    unsafe fn get(&self, index: usize) -> Self::Item;
+    unsafe fn get(self) -> Self::Item;
 
     /// Gets a reference to the element at `index`.
     ///
@@ -136,7 +136,7 @@ pub unsafe trait SoaRaw: Copy + Clone {
     /// The caller must ensure that
     ///
     /// - `index < PREV_CAP`
-    unsafe fn get_ref<'a>(&self, index: usize) -> <Self::Item as Soapy>::Ref<'a>;
+    unsafe fn get_ref<'a>(self) -> <Self::Item as Soapy>::Ref<'a>;
 
     /// Gets a mutable reference to the element at `index`.
     ///
@@ -145,7 +145,7 @@ pub unsafe trait SoaRaw: Copy + Clone {
     /// The caller must ensure that
     ///
     /// - `index < PREV_CAP`
-    unsafe fn get_mut<'a>(&self, index: usize) -> <Self::Item as Soapy>::RefMut<'a>;
+    unsafe fn get_mut<'a>(self) -> <Self::Item as Soapy>::RefMut<'a>;
 
     /// Create a new [`SoaRaw`] starting at index `count`.
     ///
@@ -158,5 +158,6 @@ pub unsafe trait SoaRaw: Copy + Clone {
     /// - `count <= length`
     ///
     /// [`RangeFrom`]: std::ops::RangeFrom
+    #[must_use]
     unsafe fn offset(self, count: usize) -> Self;
 }

@@ -1,6 +1,5 @@
-use std::marker::PhantomData;
-
 use crate::{soa_ref::RefMut, SoaRaw, Soapy};
+use std::marker::PhantomData;
 
 /// Mutable [`Soa`] iterator.
 ///
@@ -10,46 +9,45 @@ use crate::{soa_ref::RefMut, SoaRaw, Soapy};
 /// [`iter_mut`]: crate::Soa::iter_mut
 pub struct IterMut<'a, T>
 where
-    T: Soapy,
+    T: 'a + Soapy,
 {
     pub(crate) raw: T::Raw,
-    pub(crate) start: usize,
-    pub(crate) end: usize,
+    pub(crate) len: usize,
     pub(crate) _marker: PhantomData<&'a mut T>,
 }
 
 impl<'a, T> Iterator for IterMut<'a, T>
 where
-    T: Soapy,
+    T: 'a + Soapy,
 {
     type Item = RefMut<'a, T>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        if self.start >= self.end {
+        if self.len == 0 {
             None
         } else {
-            let out = unsafe { self.raw.get_mut(self.start) };
-            self.start += 1;
-            Some(RefMut(out))
+            self.len -= 1;
+            let out = Some(RefMut(unsafe { self.raw.get_mut() }));
+            self.raw = unsafe { self.raw.offset(1) };
+            out
         }
     }
 
     fn size_hint(&self) -> (usize, Option<usize>) {
-        let len = self.end - self.start;
-        (len, Some(len))
+        (self.len, Some(self.len))
     }
 }
 
 impl<'a, T> DoubleEndedIterator for IterMut<'a, T>
 where
-    T: Soapy,
+    T: 'a + Soapy,
 {
     fn next_back(&mut self) -> Option<Self::Item> {
-        if self.start >= self.end {
+        if self.len == 0 {
             None
         } else {
-            self.end -= 1;
-            Some(RefMut(unsafe { self.raw.get_mut(self.end) }))
+            self.len -= 1;
+            Some(RefMut(unsafe { self.raw.offset(self.len).get_mut() }))
         }
     }
 }

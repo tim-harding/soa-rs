@@ -59,8 +59,7 @@ where
 
     fn into_iter(self) -> Self::IntoIter {
         IterMut {
-            start: 0,
-            end: self.len(),
+            len: self.len(),
             raw: self.0.raw,
             _marker: PhantomData,
         }

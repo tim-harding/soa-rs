@@ -39,7 +39,7 @@ where
 
     fn get(self, slice: &Slice<T>) -> Option<Self::Output<'_>> {
         if self < slice.len() {
-            Some(Ref(unsafe { slice.raw.get_ref(self) }))
+            Some(Ref(unsafe { slice.raw.offset(self).get_ref() }))
         } else {
             None
         }
@@ -47,7 +47,7 @@ where
 
     fn get_mut(self, slice: &mut Slice<T>) -> Option<Self::OutputMut<'_>> {
         if self < slice.len() {
-            Some(RefMut(unsafe { slice.raw.get_mut(self) }))
+            Some(RefMut(unsafe { slice.raw.offset(self).get_mut() }))
         } else {
             None
         }

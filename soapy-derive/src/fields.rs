@@ -355,36 +355,35 @@ pub fn fields_struct(
             }
 
             #[inline]
-            unsafe fn copy(&mut self, src: usize, dst: usize, count: usize) {
+            unsafe fn copy_to(self, dst: Self, count: usize) {
                 #(
-                    let ptr = self.#ident_all.as_ptr();
-                    ::std::ptr::copy(ptr.add(src), ptr.add(dst), count);
+                    ::std::ptr::copy(self.#ident_all.as_ptr(), dst.#ident_all.as_ptr(), count);
                 )*
             }
 
             #[inline]
-            unsafe fn set(&mut self, index: usize, element: #ident) {
-                #(self.#ident_all.as_ptr().add(index).write(element.#ident_all);)*
+            unsafe fn set(self, element: #ident) {
+                #(self.#ident_all.as_ptr().write(element.#ident_all);)*
             }
 
             #[inline]
-            unsafe fn get(&self, index: usize) -> #ident {
+            unsafe fn get(self) -> #ident {
                 #ident {
-                    #(#ident_all: self.#ident_all.as_ptr().add(index).read(),)*
+                    #(#ident_all: self.#ident_all.as_ptr().read(),)*
                 }
             }
 
             #[inline]
-            unsafe fn get_ref<'a>(&self, index: usize) -> #item_ref<'a> {
+            unsafe fn get_ref<'a>(self) -> #item_ref<'a> {
                 #item_ref {
-                    #(#ident_all: self.#ident_all.as_ptr().add(index).as_ref().unwrap_unchecked(),)*
+                    #(#ident_all: self.#ident_all.as_ptr().as_ref().unwrap_unchecked(),)*
                 }
             }
 
             #[inline]
-            unsafe fn get_mut<'a>(&self, index: usize) -> #item_ref_mut<'a> {
+            unsafe fn get_mut<'a>(self) -> #item_ref_mut<'a> {
                 #item_ref_mut {
-                    #(#ident_all: self.#ident_all.as_ptr().add(index).as_mut().unwrap_unchecked(),)*
+                    #(#ident_all: self.#ident_all.as_ptr().as_mut().unwrap_unchecked(),)*
                 }
             }
 
