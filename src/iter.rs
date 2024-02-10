@@ -53,3 +53,4 @@ where
 }
 
 impl<'a, T> FusedIterator for Iter<'a, T> where T: 'a + Soapy {}
+impl<'a, T> ExactSizeIterator for Iter<'a, T> where T: 'a + Soapy {}

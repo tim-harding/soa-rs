@@ -53,3 +53,4 @@ where
 }
 
 impl<'a, T> FusedIterator for IterMut<'a, T> where T: 'a + Soapy {}
+impl<'a, T> ExactSizeIterator for IterMut<'a, T> where T: 'a + Soapy {}

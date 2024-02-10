@@ -69,3 +69,4 @@ where
 }
 
 impl<T> FusedIterator for IntoIter<T> where T: Soapy {}
+impl<T> ExactSizeIterator for IntoIter<T> where T: Soapy {}
