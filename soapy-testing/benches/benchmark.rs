@@ -8,20 +8,20 @@ use criterion::{criterion_group, criterion_main, Criterion};
 use rand::{rngs::StdRng, RngCore, SeedableRng};
 use soapy::{SliceRef, Soa, Soapy};
 
-pub struct Rng(StdRng);
+struct Rng(StdRng);
 
 impl Rng {
-    pub fn new(seed: u64) -> Self {
+    fn new(seed: u64) -> Self {
         Self(StdRng::seed_from_u64(seed))
     }
 
-    pub fn next_f32(&mut self) -> f32 {
+    fn next_f32(&mut self) -> f32 {
         f32::from_ne_bytes(self.0.next_u32().to_ne_bytes())
     }
 }
 
 #[derive(Soapy, Debug, Clone, Copy, PartialEq, PartialOrd)]
-pub struct Vec4(
+struct Vec4(
     #[align(64)] f32,
     #[align(64)] f32,
     #[align(64)] f32,
@@ -57,19 +57,19 @@ macro_rules! sum_dots {
     };
 }
 
-pub fn sum_dots_vec(a: &[Vec4], b: &[Vec4]) -> f32 {
+fn sum_dots_vec(a: &[Vec4], b: &[Vec4]) -> f32 {
     sum_dots!(a, b)
 }
 
-pub fn sum_dots_soa(a: SliceRef<Vec4>, b: SliceRef<Vec4>) -> f32 {
+fn sum_dots_soa(a: SliceRef<Vec4>, b: SliceRef<Vec4>) -> f32 {
     sum_dots!(a, b)
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, PartialOrd)]
-pub struct Vec4Arrays<const N: usize>([f32; N], [f32; N], [f32; N], [f32; N]);
+struct Vec4Arrays<const N: usize>([f32; N], [f32; N], [f32; N], [f32; N]);
 
 impl<const N: usize> Vec4Arrays<N> {
-    pub fn new_rng(rng: &mut Rng) -> Self {
+    fn new_rng(rng: &mut Rng) -> Self {
         let mut out = Self([0.0; N], [0.0; N], [0.0; N], [0.0; N]);
         for i in 0..N {
             out.0[i] = rng.next_f32();
@@ -80,7 +80,7 @@ impl<const N: usize> Vec4Arrays<N> {
         out
     }
 
-    pub fn iter(&self) -> impl Iterator<Item = (&f32, &f32, &f32, &f32)> {
+    fn iter(&self) -> impl Iterator<Item = (&f32, &f32, &f32, &f32)> {
         self.0
             .iter()
             .zip(self.1.iter())
@@ -90,7 +90,73 @@ impl<const N: usize> Vec4Arrays<N> {
     }
 }
 
-pub fn sum_dots_arrays<const N: usize>(a: &Vec4Arrays<N>, b: &Vec4Arrays<N>) -> f32 {
+fn sum_dots_arrays<const N: usize>(a: &Vec4Arrays<N>, b: &Vec4Arrays<N>) -> f32 {
+    a.iter()
+        .zip(b.iter())
+        .map(|(a, b)| a.0 * b.0 + a.1 * b.1 + a.2 * b.2 + a.3 * b.3)
+        .sum()
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, PartialOrd)]
+#[repr(align(64))]
+struct AlignedArray<const N: usize>([f32; N]);
+
+impl<const N: usize> AlignedArray<N> {
+    fn new_rng(rng: &mut Rng) -> Self {
+        let mut out = [0.0; N];
+        for el in out.iter_mut() {
+            *el = rng.next_f32();
+        }
+        Self(out)
+    }
+}
+
+impl<const N: usize> Deref for AlignedArray<N> {
+    type Target = [f32; N];
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl<const N: usize> DerefMut for AlignedArray<N> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.0
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, PartialOrd)]
+struct Vec4ArraysAligned<const N: usize>(
+    AlignedArray<N>,
+    AlignedArray<N>,
+    AlignedArray<N>,
+    AlignedArray<N>,
+);
+
+impl<const N: usize> Vec4ArraysAligned<N> {
+    fn new_rng(rng: &mut Rng) -> Self {
+        Self(
+            AlignedArray::new_rng(rng),
+            AlignedArray::new_rng(rng),
+            AlignedArray::new_rng(rng),
+            AlignedArray::new_rng(rng),
+        )
+    }
+
+    fn iter(&self) -> impl Iterator<Item = (&f32, &f32, &f32, &f32)> {
+        self.0
+            .iter()
+            .zip(self.1.iter())
+            .zip(self.2.iter())
+            .zip(self.3.iter())
+            .map(|(((a, b), c), d)| (a, b, c, d))
+    }
+}
+
+fn sum_dots_arrays_aligned<const N: usize>(
+    a: &Vec4ArraysAligned<N>,
+    b: &Vec4ArraysAligned<N>,
+) -> f32 {
     a.iter()
         .zip(b.iter())
         .map(|(a, b)| a.0 * b.0 + a.1 * b.1 + a.2 * b.2 + a.3 * b.3)
@@ -99,7 +165,7 @@ pub fn sum_dots_arrays<const N: usize>(a: &Vec4Arrays<N>, b: &Vec4Arrays<N>) -> 
 
 #[repr(align(32))]
 #[derive(Debug, Clone, Copy, PartialEq, PartialOrd)]
-pub struct F32Group([f32; 8]);
+struct F32Group([f32; 8]);
 
 impl Mul for F32Group {
     type Output = Self;
@@ -172,17 +238,17 @@ impl<'a> IntoIterator for &'a F32Group {
 }
 
 impl F32Group {
-    pub const ZERO: Self = Self([0.0; 8]);
+    const ZERO: Self = Self([0.0; 8]);
 
-    pub fn sum(self) -> f32 {
+    fn sum(self) -> f32 {
         self.0.into_iter().sum()
     }
 
-    pub fn iter(&self) -> Iter<'_, f32> {
+    fn iter(&self) -> Iter<'_, f32> {
         self.0.iter()
     }
 
-    pub fn new_rng(rng: &mut Rng) -> Self {
+    fn new_rng(rng: &mut Rng) -> Self {
         Self([
             rng.next_f32(),
             rng.next_f32(),
@@ -197,52 +263,31 @@ impl F32Group {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, PartialOrd)]
-#[repr(align(64))]
-pub struct AlignedArray<const N: usize>([f32; N]);
-
-impl<const N: usize> AlignedArray<N> {
-    pub fn new_rng(rng: &mut Rng) -> Self {
-        let mut out = [0.0; N];
-        for el in out.iter_mut() {
-            *el = rng.next_f32();
-        }
-        Self(out)
-    }
-}
-
-impl<const N: usize> Deref for AlignedArray<N> {
-    type Target = [f32; N];
-
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
-}
-
-impl<const N: usize> DerefMut for AlignedArray<N> {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.0
-    }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, PartialOrd)]
-pub struct Vec4ArraysAligned<const N: usize>(
-    AlignedArray<N>,
-    AlignedArray<N>,
-    AlignedArray<N>,
-    AlignedArray<N>,
+struct Vec4ArraysGrouped<const N: usize>(
+    [F32Group; N],
+    [F32Group; N],
+    [F32Group; N],
+    [F32Group; N],
 );
 
-impl<const N: usize> Vec4ArraysAligned<N> {
-    pub fn new_rng(rng: &mut Rng) -> Self {
-        Self(
-            AlignedArray::new_rng(rng),
-            AlignedArray::new_rng(rng),
-            AlignedArray::new_rng(rng),
-            AlignedArray::new_rng(rng),
-        )
+impl<const N: usize> Vec4ArraysGrouped<N> {
+    fn new_rng(rng: &mut Rng) -> Self {
+        let mut out = Self(
+            [F32Group::ZERO; N],
+            [F32Group::ZERO; N],
+            [F32Group::ZERO; N],
+            [F32Group::ZERO; N],
+        );
+        for i in 0..N {
+            out.0[i] = F32Group::new_rng(rng);
+            out.1[i] = F32Group::new_rng(rng);
+            out.2[i] = F32Group::new_rng(rng);
+            out.3[i] = F32Group::new_rng(rng);
+        }
+        out
     }
 
-    pub fn iter(&self) -> impl Iterator<Item = (&f32, &f32, &f32, &f32)> {
+    fn iter(&self) -> impl Iterator<Item = (&F32Group, &F32Group, &F32Group, &F32Group)> {
         self.0
             .iter()
             .zip(self.1.iter())
@@ -252,18 +297,21 @@ impl<const N: usize> Vec4ArraysAligned<N> {
     }
 }
 
-pub fn sum_dots_arrays_aligned<const N: usize>(
-    a: &Vec4ArraysAligned<N>,
-    b: &Vec4ArraysAligned<N>,
-) -> f32 {
+fn sum_dots_grouped<const N: usize>(a: &Vec4ArraysGrouped<N>, b: &Vec4ArraysGrouped<N>) -> f32 {
     a.iter()
         .zip(b.iter())
-        .map(|(a, b)| a.0 * b.0 + a.1 * b.1 + a.2 * b.2 + a.3 * b.3)
+        .map(|(a, b)| (a.0 * b.0 + a.1 * b.1 + a.2 * b.2 + a.3 * b.3).sum())
         .sum()
 }
 
 fn criterion_benchmark(c: &mut Criterion) {
     let mut rng = Rng::new(42);
+
+    let array1 = <Vec4ArraysGrouped<{ 1 << 13 }>>::new_rng(&mut rng);
+    let array2 = <Vec4ArraysGrouped<{ 1 << 13 }>>::new_rng(&mut rng);
+    c.bench_function("dots-grouped-array", |b| {
+        b.iter(|| sum_dots_grouped(&array1, &array2))
+    });
 
     let array1 = <Vec4Arrays<{ 1 << 16 }>>::new_rng(&mut rng);
     let array2 = <Vec4Arrays<{ 1 << 16 }>>::new_rng(&mut rng);
@@ -277,17 +325,15 @@ fn criterion_benchmark(c: &mut Criterion) {
         b.iter(|| sum_dots_arrays_aligned(&array1, &array2))
     });
 
+    let soa1: Soa<_> = make_vec4_list(&mut rng, 1 << 16);
+    let soa2: Soa<_> = make_vec4_list(&mut rng, 1 << 16);
     c.bench_function("dots-soa", |b| {
-        let soa1: Soa<_> = make_vec4_list(&mut rng, 1 << 16);
-        let soa2: Soa<_> = make_vec4_list(&mut rng, 1 << 16);
         b.iter(|| sum_dots_soa(soa1.as_slice(), soa2.as_slice()))
     });
 
-    c.bench_function("dots-vec", |b| {
-        let vec1: Vec<_> = make_vec4_list(&mut rng, 1 << 16);
-        let vec2: Vec<_> = make_vec4_list(&mut rng, 1 << 16);
-        b.iter(|| sum_dots_vec(&vec1, &vec2))
-    });
+    let vec1: Vec<_> = make_vec4_list(&mut rng, 1 << 16);
+    let vec2: Vec<_> = make_vec4_list(&mut rng, 1 << 16);
+    c.bench_function("dots-vec", |b| b.iter(|| sum_dots_vec(&vec1, &vec2)));
 }
 
 criterion_group!(benches, criterion_benchmark);
