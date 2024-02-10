@@ -399,6 +399,7 @@ pub fn fields_struct(
             }
         }
 
+        #[automatically_derived]
         impl ::soapy::WithRef for #ident {
             type Item = Self;
 
