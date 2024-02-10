@@ -48,6 +48,57 @@ where
     fn size_hint(&self) -> (usize, Option<usize>) {
         (self.len, Some(self.len))
     }
+
+    fn count(self) -> usize
+    where
+        Self: Sized,
+    {
+        self.len
+    }
+
+    fn nth(&mut self, n: usize) -> Option<Self::Item> {
+        if n >= self.len {
+            self.raw = unsafe { self.raw.offset(self.len) };
+            self.len = 0;
+            None
+        } else {
+            self.len -= n;
+            self.raw = unsafe { self.raw.offset(n) };
+            Some(Ref(unsafe { self.raw.get_ref() }))
+        }
+    }
+
+    fn last(self) -> Option<Self::Item>
+    where
+        Self: Sized,
+    {
+        if self.len == 0 {
+            None
+        } else {
+            Some(Ref(unsafe { self.raw.offset(self.len - 1).get_ref() }))
+        }
+    }
+
+    fn fold<B, F>(self, init: B, mut f: F) -> B
+    where
+        Self: Sized,
+        F: FnMut(B, Self::Item) -> B,
+    {
+        let Self { raw, len, _marker } = self;
+        if len == 0 {
+            return init;
+        }
+        let mut acc = init;
+        let mut i = 0;
+        loop {
+            acc = f(acc, Ref(unsafe { raw.offset(i).get_ref() }));
+            i += 1;
+            if i == len {
+                break;
+            }
+        }
+        acc
+    }
 }
 
 impl<'a, T> DoubleEndedIterator for Iter<'a, T>
