@@ -328,14 +328,6 @@ fn criterion_benchmark(c: &mut Criterion) {
         b.iter(|| sum_dots_soa(soa1.as_slice(), soa2.as_slice()))
     });
 
-    c.bench_function("dots-fold-soa", |b| {
-        b.iter(|| {
-            soa1.fold_zip(&soa2, 0.0, |acc, a, b| {
-                acc + a.0 * b.0 + a.1 * b.1 + a.2 * b.2 + a.3 * b.3
-            })
-        })
-    });
-
     c.bench_function("dots-fold-custom", |b| {
         b.iter(|| {
             soa1.f0()

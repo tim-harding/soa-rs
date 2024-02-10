@@ -297,31 +297,6 @@ where
         acc
     }
 
-    pub fn fold_zip<F, B>(&self, other: &Self, init: B, f: F) -> B
-    where
-        F: Fn(B, Ref<'_, T>, Ref<'_, T>) -> B,
-    {
-        let len = self.len.min(other.len);
-        if len == 0 {
-            return init;
-        }
-
-        let mut acc = init;
-        let mut i = 0;
-        loop {
-            acc = f(
-                acc,
-                Ref(unsafe { self.raw.offset(i).get_ref() }),
-                Ref(unsafe { other.raw.offset(i).get_ref() }),
-            );
-            i += 1;
-            if i == len {
-                break;
-            }
-        }
-        acc
-    }
-
     /// Calls a closure on each element of the collection.
     ///
     /// This is an internal iteration version of [`Iterator::for_each`] It is
