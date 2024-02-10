@@ -1,5 +1,5 @@
 use crate::{Ref, SoaRaw, Soapy};
-use std::marker::PhantomData;
+use std::{iter::FusedIterator, marker::PhantomData};
 
 /// Immutable [`Soa`] iterator.
 ///
@@ -51,3 +51,5 @@ where
         }
     }
 }
+
+impl<'a, T> FusedIterator for Iter<'a, T> where T: 'a + Soapy {}

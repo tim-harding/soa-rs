@@ -1,5 +1,5 @@
 use crate::{soa_ref::RefMut, SoaRaw, Soapy};
-use std::marker::PhantomData;
+use std::{iter::FusedIterator, marker::PhantomData};
 
 /// Mutable [`Soa`] iterator.
 ///
@@ -51,3 +51,5 @@ where
         }
     }
 }
+
+impl<'a, T> FusedIterator for IterMut<'a, T> where T: 'a + Soapy {}

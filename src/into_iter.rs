@@ -1,5 +1,5 @@
 use crate::{SoaRaw, Soapy};
-use std::mem::size_of;
+use std::{iter::FusedIterator, mem::size_of};
 
 // TODO: Nightly-only try_fold implementation
 
@@ -67,3 +67,5 @@ where
         }
     }
 }
+
+impl<T> FusedIterator for IntoIter<T> where T: Soapy {}
