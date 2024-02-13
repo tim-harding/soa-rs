@@ -73,6 +73,8 @@ pub fn fields_struct(
     let deref = format_ident!("{ident}SoaDeref");
     let item_ref = format_ident!("{ident}SoaRef");
     let item_ref_mut = format_ident!("{ident}SoaRefMut");
+    let slices = format_ident!("{ident}SoaSlices");
+    let slices_mut = format_ident!("{ident}SoaSlicesMut");
     let raw = format_ident!("{ident}SoaRaw");
 
     let mut out = TokenStream::new();
@@ -113,32 +115,36 @@ pub fn fields_struct(
         }
     });
 
-    let item_ref_def = match kind {
-        FieldKind::Named => quote! {
-            { #(#[automatically_derived] #vis_all #ident_all: &'a #ty_all),* }
-        },
-        FieldKind::Unnamed => quote! {
-            ( #(#[automatically_derived] #vis_all &'a #ty_all),* );
-        },
+    let define = |type_mapper: &dyn Fn(&syn::Type) -> TokenStream| {
+        let ty_mapped = ty_all.iter().map(type_mapper);
+        match kind {
+            FieldKind::Named => quote! {
+                { #(#[automatically_derived] #vis_all #ident_all: #ty_mapped),* }
+            },
+            FieldKind::Unnamed => quote! {
+                ( #(#[automatically_derived] #vis_all #ty_mapped),* );
+            },
+        }
     };
 
+    let slices_def = define(&|ty| quote! { &'a [#ty] });
     out.append_all(quote! {
-        #[automatically_derived]
-        #vis struct #item_ref<'a> #item_ref_def
+        struct #slices<'a> #slices_def
     });
 
-    let item_ref_mut_def = match kind {
-        FieldKind::Named => quote! {
-            { #(#[automatically_derived] #vis_all #ident_all: &'a mut #ty_all),* }
-        },
-        FieldKind::Unnamed => quote! {
-            ( #(#[automatically_derived] #vis_all &'a mut #ty_all),* );
-        },
-    };
-
+    let slices_mut_def = define(&|ty| quote! { &'a mut [#ty] });
     out.append_all(quote! {
-        #[automatically_derived]
-        #vis struct #item_ref_mut<'a> #item_ref_mut_def
+        struct #slices_mut<'a> #slices_mut_def
+    });
+
+    let item_ref_def = define(&|ty| quote! { &'a #ty });
+    out.append_all(quote! {
+        struct #item_ref<'a> #item_ref_def
+    });
+
+    let item_ref_mut_def = define(&|ty| quote! { &'a mut #ty });
+    out.append_all(quote! {
+        struct #item_ref_mut<'a> #item_ref_mut_def
     });
 
     let with_ref_impl = |item| {
