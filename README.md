@@ -4,32 +4,104 @@
 
 # Soapy
 
-Soapy makes it simple to work with structure-of-arrays memory layout. What `Vec<T>`
+Soapy makes it simple to work with the structure-of-arrays memory layout. What `Vec<T>`
 is to array-of-structures (AoS), `Soa<T>` is to structure-of-arrays (SoA).
 
-## Example
+## Examples
 
+First, derive [`Soapy`] for your type:
 ```rust
-# use soapy::{Soa, Soapy};
+# use soapy::{soa, Soapy};
 #[derive(Soapy, Debug, Clone, Copy, PartialEq)]
 struct Example {
     foo: u8,
     bar: u16,
 }
+```
 
-let elements = [Example { foo: 1, bar: 2 }, Example { foo: 3, bar: 4 }];
-let mut soa: Soa<_> = elements.into_iter().collect();
+You can create a [`Soa`] explicitly:
+```rust
+# use soapy::{soa, Soapy, Soa};
+# #[derive(Soapy, Debug, Clone, Copy, PartialEq)]
+# struct Example {
+#     foo: u8,
+#     bar: u16,
+# }
+let mut soa: Soa<Example> = Soa::new();
+soa.push(Example { foo: 1, bar: 2 });
+```
 
-// The index operator is not possible, but we can use idx:
-*soa.idx_mut(0).foo += 10;
+...or by using the [`soa!`] macro. 
+```rust
+# use soapy::{soa, Soapy};
+# #[derive(Soapy, Debug, Clone, Copy, PartialEq)]
+# struct Example {
+#     foo: u8,
+#     bar: u16,
+# }
+let mut soa = soa![
+    Example { foo: 1, bar: 2 }, 
+    Example { foo: 3, bar: 4 },
+    Example { foo: 5, bar: 6 },
+    Example { foo: 7, bar: 8 }
+];
+```
 
-// We can get the fields as slices as well:
-assert_eq!(soa.foo(), &[11, 3][..]);
-assert_eq!(soa.bar(), &[2, 4][..]);
+An SoA can be sliced just like a `&[T]`. Use `idx` in lieu of the index operator.
+```rust
+# use soapy::{soa, Soapy};
+# #[derive(Soapy, Debug, Clone, Copy, PartialEq)]
+# struct Example {
+#     foo: u8,
+#     bar: u16,
+# }
+# let mut soa = soa![
+#     Example { foo: 1, bar: 2 }, 
+#     Example { foo: 3, bar: 4 },
+#     Example { foo: 5, bar: 6 },
+#     Example { foo: 7, bar: 8 }
+# ];
+assert_eq!(soa.idx(1..3), [Example { foo: 3, bar: 4 }, Example { foo: 5, bar: 6 }]);
+```
 
-for (actual, expected) in soa.iter().zip(elements.iter()) {
-    assert_eq!(&expected.bar, actual.bar);
+You can access the fields as slices. Add `_mut` for mutable slices. 
+```rust
+# use soapy::{soa, Soapy};
+# #[derive(Soapy, Debug, Clone, Copy, PartialEq)]
+# struct Example {
+#     foo: u8,
+#     bar: u16,
+# }
+# let mut soa = soa![
+#     Example { foo: 1, bar: 2 }, 
+#     Example { foo: 3, bar: 4 },
+#     Example { foo: 5, bar: 6 },
+#     Example { foo: 7, bar: 8 }
+# ];
+assert_eq!(soa.foo(), &[1, 3, 5, 7][..]);
+soa.foo_mut().iter_mut().for_each(|foo| *foo += 10);
+assert_eq!(soa.foo(), &[11, 13, 15, 17][..]);
+```
+
+The usual collection APIs and iterators work normally.
+```rust
+# use soapy::{soa, Soapy};
+# #[derive(Soapy, Debug, Clone, Copy, PartialEq)]
+# struct Example {
+#     foo: u8,
+#     bar: u16,
+# }
+# let mut soa = soa![
+#     Example { foo: 1, bar: 2 }, 
+#     Example { foo: 3, bar: 4 },
+#     Example { foo: 5, bar: 6 },
+#     Example { foo: 7, bar: 8 }
+# ];
+assert_eq!(soa.pop(), Some(Example { foo: 7, bar: 8 }));
+for mut el in &mut soa {
+    *el.bar += 10;
 }
+assert_eq!(soa.bar(), &[12, 14, 16][..]);
 ```
 
 ## What is SoA?
@@ -72,13 +144,11 @@ yield these types instead of the original struct. If each field of some
 struct `Example` has type `F`, our new structs have the same fields but
 different types:
 
-| Struct             | Field type | Use                                   |
-|--------------------|------------|---------------------------------------|
-| `ExampleRawSoa`    | `*mut F`   | Low-level, unsafe interface for `Soa` |
-| `ExampleRef`       | `&F`       | `.iter()`, `nth()`, `.get()`          |
-| `ExampleRefMut`    | `&mut F`   | `.iter_mut()`, `nth_mut`, `get_mut()` |
-| `ExampleSlices`    | `&[F]`     | `.slices()`, `.get()`                 |
-| `ExampleSlicesMut` | `&mut [F]` | `.slices_mut()`, `.get_mut()`         |
+| Struct      | Field type | Use                                   |
+|-------------|------------|---------------------------------------|
+| `FooSoaRaw` | `*mut F`   | Low-level, unsafe interface for `Soa` |
+| `FooRef`    | `&F`       | `.iter()`, `nth()`, `.get()`          |
+| `FooRefMut` | `&mut F`   | `.iter_mut()`, `nth_mut`, `get_mut()` |
 
 These types are included as associated types on the [`Soapy`] trait as well.
 Generally, you won't need to think about these them as [`Soa`] picks them up
@@ -104,39 +174,3 @@ less code generation, and more accessible documentation.
 Whereas `soa-vec` only compiles on nightly, Soapy also compiles on stable.
 Rather than using derive macros, `soa-vec` instead uses macros to generate
 eight static copies of their SoA type with fixed tuple sizes.
-
-## Progress
-
-### Soa
-
-- [ ] `depup` / `dedup_by` / `dedup_by_key`
-- [ ] `drain`
-- [ ] `extend_from_slice` / `extend_from_within`
-- [ ] `extract_if`
-- [ ] `leak`
-- [ ] `retain`
-- [ ] `try_reserve` / `try_reserve_exact`
-- [ ] `dedup_by` / `dedup_by_key`
-- [ ] `resize` / `resize_with`
-- [ ] `splice`
-- [ ] `split_off`
-
-### SoaSlice
-- [ ] `select_nth_unstable` / `select_nth_unstable_by` / `select_nth_unstable_by_key`
-- [ ] `sort` / `sort_by` / `sort_by_key` / `sort_by_cached_key`
-- [ ] `sort_unstable` / `sort_unstable_by` / `sort_unstable_by_key` / `sort_unstable_by_cached_key`
-- [ ] `binary_search` / `binary_search_by` / `binary_search_by_key`
-- [ ] `is_sorted` / `is_sorted_by` / `is_sorted_by_key`
-- [ ] `chunks` / `rchunks`
-- [ ] `chunks_exact` / `rchunks_exact`
-- [ ] `rotate_left` / `rotate_right`
-- [ ] `split` / `rsplit` / `splitn`
-- [ ] `split_at` / `split_first` / `split_last`
-- [ ] `swap`
-- [ ] `swap_with_slice`
-- [ ] `group_by`
-- [ ] `contains`
-- [ ] `copy_within`
-- [ ] `fill` / `fill_with`
-- [ ] `repeat`
-- [ ] `reverse`

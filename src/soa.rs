@@ -52,7 +52,10 @@
 //! slice_mut_2.f0_mut()[0] = 40; // Added
 //! ```
 
-use crate::{eq_impl, IntoIter, Iter, IterMut, Slice, SliceMut, SliceRef, SoaRaw, Soapy};
+use crate::{
+    eq_impl, soa_ref::RefMut, IntoIter, Iter, IterMut, Ref, Slice, SliceMut, SliceRef, SoaRaw,
+    Soapy,
+};
 use std::{
     borrow::{Borrow, BorrowMut},
     cmp::Ordering,
@@ -736,6 +739,32 @@ where
             raw: soa.slice.raw,
             cap: soa.cap,
         }
+    }
+}
+
+impl<'a, T> IntoIterator for &'a Soa<T>
+where
+    T: Soapy,
+{
+    type Item = Ref<'a, T>;
+
+    type IntoIter = Iter<'a, T>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.deref().into_iter()
+    }
+}
+
+impl<'a, T> IntoIterator for &'a mut Soa<T>
+where
+    T: Soapy,
+{
+    type Item = RefMut<'a, T>;
+
+    type IntoIter = IterMut<'a, T>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.deref_mut().into_iter()
     }
 }
 
