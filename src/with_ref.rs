@@ -19,6 +19,7 @@
 /// [`Soapy::Ref`]: crate::Soapy::Ref
 /// [`Soapy::RefMut`]: crate::Soapy::RefMut
 pub trait WithRef {
+    /// The type to be borrowed.
     type Item;
 
     /// Calls the provided function with a reference to `T`
@@ -26,6 +27,11 @@ pub trait WithRef {
     where
         F: FnOnce(&Self::Item) -> R;
 
+    /// Creates a clone of the borrowed value.
+    ///
+    /// Prefer [`copied`] where possible.
+    ///
+    /// [`copied`]: WithRef::copied
     fn cloned(&self) -> Self::Item
     where
         Self::Item: Clone,
@@ -33,6 +39,7 @@ pub trait WithRef {
         self.with_ref(|me| me.clone())
     }
 
+    /// Creates a copy of the borrowed value.
     fn copied(&self) -> Self::Item
     where
         Self::Item: Copy,

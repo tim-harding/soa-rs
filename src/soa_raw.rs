@@ -21,6 +21,10 @@ use crate::Soapy;
 /// - the same value as was used for `new_capacity` in previous calls
 /// to [`SoaRaw::realloc_grow`] and [`SoaRaw::realloc_shrink`]
 pub unsafe trait SoaRaw: Copy + Clone {
+    /// The type of element the SoA will contain.
+    ///
+    /// This is also the type for which the trait implementation is derived when
+    /// using the derive macro.
     type Item: Soapy;
 
     /// Creates a [`SoaRaw`] with dangling pointers for all its fields and without

@@ -7,6 +7,11 @@ use std::{
     ops::{Deref, DerefMut},
 };
 
+/// An mutably borrowed [`Slice`].
+///
+/// A `SliceMut` is a thin wrapper over a [`Slice`] that applies the same
+/// borrowing rules as a mutable reference. It is semantically equivalent to
+/// `&mut Slice`.
 #[repr(transparent)]
 pub struct SliceMut<'a, T>(pub(crate) Slice<T>, pub(crate) PhantomData<&'a mut T>)
 where

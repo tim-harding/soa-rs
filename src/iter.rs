@@ -20,6 +20,8 @@ impl<'a, T> Iter<'a, T>
 where
     T: 'a + Soapy,
 {
+    /// Returns an immutable slice of all elements that have not been yielded
+    /// yet.
     pub fn as_slice(&self) -> SliceRef<'a, T> {
         SliceRef(
             unsafe { Slice::from_raw_parts(self.raw, self.len) },

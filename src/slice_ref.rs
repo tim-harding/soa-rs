@@ -7,6 +7,11 @@ use std::{
     ops::Deref,
 };
 
+/// An immutably borrowed [`Slice`].
+///
+/// A `SliceRef` is a thin wrapper over a [`Slice`] that applies the same
+/// borrowing rules as an immutable reference. It is semantically equivalent to
+/// `&Slice`.
 #[repr(transparent)]
 pub struct SliceRef<'a, T>(pub(crate) Slice<T>, pub(crate) PhantomData<&'a T>)
 where

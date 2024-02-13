@@ -8,8 +8,29 @@ use std::{
     ops::{ControlFlow, Deref, DerefMut},
 };
 
-/// A growable array type that stores the values for each field of `T`
-/// contiguously.
+/// A dynamically-sized view into the contents of a [`Soa`].
+///
+/// [`Slice`] and [`Soa`] have the same relationship as `[T]` and [`Vec`].
+/// Likewise, [`SliceRef`] is equivalent to `&[T]` and [`SliceMut`] to
+/// `&mut [T]`.
+///
+/// This struct is not usually constructed directly. Instead, it is accessed by
+/// reference or by using the [`SliceRef`] and [`SliceMut`] wrappers, which
+/// attach the appropriate lifetimes and ensure the same borrowing rules as `&`
+/// and `&mut`. The wrappers provide minimal implementations but [`Deref`] to
+/// this struct, which implements to majority of the functionality. [`Soa`] does
+/// the same for all its non-allocating functions.
+///
+/// Ideally, this struct would be dynamically-sized like `[T]` is and we would
+/// return a references for all borrowing functions, much the way that [`Vec`]
+/// and slice functions return slice references. However, slices can cheat by
+/// storing the length alongside the pointer as metadata. An SoA slice needs to
+/// store pointers to multiple fields and the pointer metadata cannot be
+/// customized to acheive this.
+///
+/// [`Soa`]: crate::Soa
+/// [`SliceRef`]: crate::SliceRef
+/// [`SliceMut`]: crate::SliceMut
 pub struct Slice<T>
 where
     T: Soapy,

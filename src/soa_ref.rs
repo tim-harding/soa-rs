@@ -5,12 +5,29 @@ use std::{
     ops::{Deref, DerefMut},
 };
 
+/// An immutable reference to an element of a [`Soa`].
+///
+/// This is similar to `&T` for an element of a `&[T]`. However, since the
+/// fields are stored separately for SoA, we need a different type that has
+/// references to each of fields for the element. This is a convenience wrapper
+/// over [`Soapy::Ref`], which is implemented for each type that derives
+/// [`Soapy`]. It uses [`WithRef`] to provide implementations of common standard
+/// library traits with less codegen and ceremony than doing the same in the
+/// macro.
+///
+/// [`Soa`]: crate::Soa
 #[derive(Clone, Copy)]
 #[repr(transparent)]
 pub struct Ref<'a, T>(pub(crate) T::Ref<'a>)
 where
     T: 'a + Soapy;
 
+/// A mutable reference to an element of a [`Soa`].
+///
+/// This is similar to `&mut T` for an element of a `&mut [T]`. See [`Ref`] for
+/// more details.
+///
+/// [`Soa`]: crate::Soa
 #[repr(transparent)]
 pub struct RefMut<'a, T>(pub(crate) T::RefMut<'a>)
 where
