@@ -1,6 +1,6 @@
 use crate::Soapy;
 
-/// A low-level utility providing fundamental operations needed by `Soa<T>`
+/// A low-level utility providing fundamental operations needed by [`Soa`].
 ///
 /// In particular, it manages an allocation and a set of pointers into
 /// the allocation. Each of the pointers corresponds to a field of the type `T`
@@ -20,6 +20,9 @@ use crate::Soapy;
 /// made, or
 /// - the same value as was used for `new_capacity` in previous calls
 /// to [`SoaRaw::realloc_grow`] and [`SoaRaw::realloc_shrink`]
+///
+/// [`Soa`]: crate::Soa
+#[doc(hidden)]
 pub unsafe trait SoaRaw: Copy + Clone {
     /// The type of element the SoA will contain.
     ///
