@@ -83,6 +83,15 @@ soa.foo_mut().iter_mut().for_each(|foo| *foo += 10);
 assert_eq!(soa.foo(), &[11, 13, 15, 17][..]);
 ```
 
+For tuple structs, prepend the field number with `f`:
+```rust
+# use soapy::{soa, Soapy};
+#[derive(Soapy)]
+struct Example(u8);
+let soa = soa![Example(5), Example(10)];
+assert_eq!(soa.f0(), &[5, 10][..]);
+```
+
 The usual collection APIs and iterators work normally.
 ```rust
 # use soapy::{soa, Soapy};

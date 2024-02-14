@@ -41,7 +41,33 @@ mod eq_impl;
 
 /// Derive macro for the [`Soapy`] trait.
 ///
-/// [`Soapy`]: soapy_shared::Soapy
+/// Deriving Soapy for some struct `Foo` will create the following additional
+/// structs:
+///
+/// | Struct      | Field type | Use                                          |
+/// |-------------|------------|----------------------------------------------|
+/// | `FooSoaRaw` | `*mut F`   | Low-level, unsafe memory handling for SoA    |
+/// | `FooRef`    | `&F`       | Immutable SoA element reference              |
+/// | `FooRefMut` | `&mut F`   | Mutable SoA element reference                |
+/// | `FooDeref`  |            | SoA [`Deref`] target, provides slice getters |
+///
+/// The [`Soapy`] trait implementation for `Foo` references these as associated
+/// types. [`WithRef`] is also implemented for `Foo`, `FooRef`, and `FooRefMut`.
+///
+/// # Alignment
+///
+/// Individual fields can be tagged with the `align` attribute to raise their
+/// alignment. The slice for that field will start at a multiple of the
+/// requested alignment if it is greater than or equal to the alignment of the
+/// field's type. This can be useful for vector operations.
+///
+/// ```
+/// # use soapy::{Soapy};
+/// #[derive(Soapy)]
+/// struct Foo(#[align(8)] u8);
+/// ```
+///
+/// [`Deref`]: std::ops::Deref
 pub use soapy_derive::Soapy;
 
 /// Creates a [`Soa`] containing the arguments.
