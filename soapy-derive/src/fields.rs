@@ -129,22 +129,22 @@ pub fn fields_struct(
 
     let slices_def = define(&|ty| quote! { &'a [#ty] });
     out.append_all(quote! {
-        struct #slices<'a> #slices_def
+        #vis struct #slices<'a> #slices_def
     });
 
     let slices_mut_def = define(&|ty| quote! { &'a mut [#ty] });
     out.append_all(quote! {
-        struct #slices_mut<'a> #slices_mut_def
+        #vis struct #slices_mut<'a> #slices_mut_def
     });
 
     let item_ref_def = define(&|ty| quote! { &'a #ty });
     out.append_all(quote! {
-        struct #item_ref<'a> #item_ref_def
+        #vis struct #item_ref<'a> #item_ref_def
     });
 
     let item_ref_mut_def = define(&|ty| quote! { &'a mut #ty });
     out.append_all(quote! {
-        struct #item_ref_mut<'a> #item_ref_mut_def
+        #vis struct #item_ref_mut<'a> #item_ref_mut_def
     });
 
     let with_ref_impl = |item| {
@@ -169,17 +169,8 @@ pub fn fields_struct(
     out.append_all(with_ref_impl(item_ref_mut.clone()));
 
     let indices = std::iter::repeat(()).enumerate().map(|(i, ())| i);
-
     let offsets_len = fields_len - 1;
-
-    let raw_body = match kind {
-        FieldKind::Named => quote! {
-            { #(#vis_all #ident_all: ::std::ptr::NonNull<#ty_all>,)* }
-        },
-        FieldKind::Unnamed => quote! {
-            ( #(#vis_all ::std::ptr::NonNull<#ty_all>),* );
-        },
-    };
+    let raw_body = define(&|ty| quote! { ::std::ptr::NonNull<#ty> });
 
     let layout_and_offsets_body = |checked: bool| {
         let check = if checked {
@@ -414,6 +405,30 @@ pub fn fields_struct(
                 F: FnOnce(&Self) -> R
             {
                 f(self)
+            }
+        }
+
+        #[automatically_derived]
+        impl ::soapy::WithRef for &#ident {
+            type Item = #ident;
+
+            fn with_ref<F, R>(&self, f: F) -> R
+            where
+                F: FnOnce(&#ident) -> R
+            {
+                f(*self)
+            }
+        }
+
+        #[automatically_derived]
+        impl ::soapy::WithRef for &mut #ident {
+            type Item = #ident;
+
+            fn with_ref<F, R>(&self, f: F) -> R
+            where
+                F: FnOnce(&#ident) -> R
+            {
+                f(*self)
             }
         }
     });

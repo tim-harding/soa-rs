@@ -1,32 +1,31 @@
-use crate::{index::SoaIndex, soa_ref::RefMut, Iter, IterMut, Ref, SoaRaw, Soapy};
+use crate::{index::SoaIndex, soa_ref::RefMut, Iter, IterMut, Ref, SoaRaw, Soapy, WithRef};
 use std::{
     cmp::Ordering,
     fmt::{self, Formatter},
     hash::{Hash, Hasher},
     marker::PhantomData,
-    mem::{transmute, ManuallyDrop},
+    mem::transmute,
     ops::{ControlFlow, Deref, DerefMut},
 };
 
 /// A dynamically-sized view into the contents of a [`Soa`].
 ///
-/// [`Slice`] and [`Soa`] have the same relationship as `[T]` and [`Vec`].
-/// Likewise, [`SliceRef`] is equivalent to `&[T]` and [`SliceMut`] to
+/// [`Slice`] and [`Soa`] have the same relationship as `[T]` and [`Vec`]. The
+/// related types [`SliceRef`] and [`SliceMut`] are equivalent to `&[T]` and
 /// `&mut [T]`.
 ///
-/// This struct is not usually constructed directly. Instead, it is accessed by
-/// reference or by using the [`SliceRef`] and [`SliceMut`] wrappers, which
-/// attach the appropriate lifetimes and ensure the same borrowing rules as `&`
-/// and `&mut`. The wrappers provide minimal implementations but [`Deref`] to
-/// this struct, which implements to majority of the functionality. [`Soa`] does
-/// the same for all its non-allocating functions.
+/// This struct provides most of the implementation for [`Soa`], [`SliceRef`],
+/// and [`SliceMut`] via [`Deref`] impls. It is not usually constructed directly
+/// but instead used through one of these other types. The [`SliceRef`] and
+/// [`SliceMut`] wrappers attach lifetimes and ensure the same borrowing rules
+/// as `&` and `&mut`.
 ///
-/// Ideally, this struct would be dynamically-sized like `[T]` is and we would
-/// return a references for all borrowing functions, much the way that [`Vec`]
-/// and slice functions return slice references. However, slices can cheat by
-/// storing the length alongside the pointer as metadata. An SoA slice needs to
-/// store pointers to multiple fields and the pointer metadata cannot be
-/// customized to acheive this.
+/// While [`Vec`] can return `&[T]` for all its slice methods, returning
+/// `&Slice` is not always possible. That is why [`SliceRef`] and [`SliceMut`]
+/// are necessary. While fat pointers allow packing length information as slice
+/// metadata, this is insufficient for SoA slices, which require multiple
+/// pointers alongside the length. Therefore, SoA slice references cannot be
+/// created on the stack and returned like normal slices can.
 ///
 /// [`Soa`]: crate::Soa
 /// [`SliceRef`]: crate::SliceRef
@@ -46,16 +45,14 @@ impl<T> Slice<T>
 where
     T: Soapy,
 {
-    /// Constructs a new, empty `Soa<T>`.
-    ///
-    /// The container will not allocate until elements are pushed onto it.
+    /// Constructs a new, empty `Slice<T>`.
     ///
     /// # Examples
     /// ```
-    /// # use soapy::{Soa, Soapy};
+    /// # use soapy::{Slice, Soapy};
     /// # #[derive(Soapy)]
     /// # struct Foo;
-    /// let mut soa = Soa::<Foo>::new();
+    /// let mut slice = Slice::<Foo>::empty();
     /// ```
     pub fn empty() -> Self {
         Self {
@@ -64,7 +61,7 @@ where
         }
     }
 
-    /// Returns the number of elements in the vector, also referred to as its
+    /// Returns the number of elements in the slice, also referred to as its
     /// length.
     ///
     /// # Examples
@@ -80,7 +77,7 @@ where
         self.len
     }
 
-    /// Returns true if the container contains no elements.
+    /// Returns true if the slice contains no elements.
     ///
     /// # Examples
     ///
@@ -170,198 +167,6 @@ where
             raw: self.raw,
             _marker: PhantomData,
         }
-    }
-
-    /// An internal iteration version of [`Iterator::try_fold`].
-    ///
-    /// Internal iteration is useful whenever you need to work with the elements
-    /// of `Soa` as `T`, rather than as [`Soapy::Ref`]. This can be the case if
-    /// you want to take advantage of traits or methods that are only
-    /// implemented for `T`. You can also use [`WithRef`] on the elements of
-    /// [`Iter`] or [`IterMut`].
-    ///
-    /// `try_fold` takes two arguments: an initial value, and a closure with two
-    /// arguments: an ‘accumulator’, and an element. The closure either returns
-    /// [`Continue`], with the value that the accumulator should have for the
-    /// next iteration, or it returns [`Break`], with a value that is returned
-    /// to the caller immediately (short-circuiting).
-    ///
-    /// The initial value is the value the accumulator will have on the first
-    /// call. If applying the closure succeeded against every element of the
-    /// iterator, `try_fold` returns the final accumulator.
-    ///
-    /// # Examples
-    ///
-    /// Basic usage:
-    /// ```
-    /// # use soapy::{Soa, Soapy, soa};
-    /// # use std::ops::{Add, ControlFlow};
-    /// # #[derive(Soapy, Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
-    /// # struct Foo(u8);
-    /// # impl Add for Foo {
-    /// #     type Output = Foo;
-    /// #
-    /// #     fn add(self, other: Self) -> Self::Output {
-    /// #         Self(self.0 + other.0)
-    /// #     }
-    /// # }
-    /// let soa = soa![Foo(1), Foo(2), Foo(3)];
-    /// let sum = soa.try_fold(Foo(0), |acc, &foo| ControlFlow::Continue(acc + foo));
-    /// assert_eq!(sum, Foo(6));
-    /// ```
-    ///
-    /// Short circuiting:
-    /// ```
-    /// # use soapy::{Soa, Soapy, soa};
-    /// # use std::ops::{Add, ControlFlow};
-    /// # #[derive(Soapy, Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
-    /// # struct Foo(u8);
-    /// let soa = soa![Foo(1), Foo(2), Foo(3), Foo(4)];
-    /// let index_of = |needle| soa.try_fold(0, |i, &foo| {
-    ///     if foo == needle {
-    ///         ControlFlow::Break(i)
-    ///     } else {
-    ///         ControlFlow::Continue(i + 1)
-    ///     }
-    /// });
-    /// assert_eq!(index_of(Foo(2)), 1);
-    /// assert_eq!(index_of(Foo(4)), 3);
-    /// ```
-    ///
-    /// [`Continue`]: ControlFlow::Continue
-    /// [`Break`]: ControlFlow::Break
-    /// [`WithRef`]: crate::WithRef
-    pub fn try_fold<F, B>(&self, init: B, mut f: F) -> B
-    where
-        F: FnMut(B, &T) -> ControlFlow<B, B>,
-    {
-        let mut acc = init;
-        let mut raw = self.raw;
-        for _ in 0..self.len {
-            let element = ManuallyDrop::new(unsafe { raw.get() });
-            raw = unsafe { raw.offset(1) };
-            let result = f(acc, &element);
-            match result {
-                ControlFlow::Continue(b) => acc = b,
-                ControlFlow::Break(b) => return b,
-            }
-        }
-        acc
-    }
-
-    /// Internal iteration over two `Soa` that applies a function to each pair
-    /// of elements.
-    ///
-    /// This function is similar to calling [`Iterator::try_fold`] on a [`Zip`].
-    /// It will walk each collection and call the provided function with each
-    /// pair of elements, short-circuiting when either container's elements are
-    /// exhausted or when the provided function returns [`Break`].
-    ///
-    /// Internal iteration is useful whenever you need to iterate the elements
-    /// of `Soa<T>` as `T`, rather than as [`Soapy::Ref`]. This can be the case
-    /// if you want to take advantage of traits or methods that are only
-    /// implemented for `T`. You can also use [`WithRef`] on the items of
-    /// [`Iter`] or [`IterMut`] for similar effect.
-    ///
-    /// `try_fold_zip` takes two arguments: an initial value, and a closure with
-    /// three arguments: an ‘accumulator’, and a pair of elements. The closure
-    /// either returns [`Continue`], with the value that the accumulator should
-    /// have for the next iteration, or it returns [`Break`], with a value that
-    /// is returned to the caller immediately (short-circuiting).
-    ///
-    /// The initial value is the value the accumulator will have on the first
-    /// call. If applying the closure succeeded against every element of the
-    /// iterator, `try_fold` returns the final accumulator.
-    ///
-    /// See also [`try_fold`].
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// # use soapy::{Soa, Soapy, soa};
-    /// # use std::ops::{Add, ControlFlow};
-    /// # #[derive(Soapy, Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
-    /// # struct Foo(u8);
-    /// let soa1 = soa![Foo(1), Foo(2)];
-    /// let soa2 = soa![Foo(3), Foo(4), Foo(5)];
-    /// let sums = soa1.try_fold_zip(&soa2, vec![], |mut acc, &a, &b| {
-    ///     acc.push(a.0 + b.0);
-    ///     ControlFlow::Continue(acc)
-    /// });
-    /// assert_eq!(sums, vec![4, 6]);
-    /// ```
-    ///
-    /// [`try_fold`]: Slice::try_fold
-    /// [`Zip`]: std::iter::Zip
-    /// [`Continue`]: ControlFlow::Continue
-    /// [`Break`]: ControlFlow::Break
-    /// [`WithRef`]: crate::WithRef
-    pub fn try_fold_zip<F, B>(&self, other: &Self, init: B, mut f: F) -> B
-    where
-        F: FnMut(B, &T, &T) -> ControlFlow<B, B>,
-    {
-        let mut acc = init;
-        let mut raw_a = self.raw;
-        let mut raw_b = other.raw;
-        let len = self.len.min(other.len);
-        for _ in 0..len {
-            let a = ManuallyDrop::new(unsafe { raw_a.get() });
-            let b = ManuallyDrop::new(unsafe { raw_b.get() });
-            raw_a = unsafe { raw_a.offset(1) };
-            raw_b = unsafe { raw_b.offset(1) };
-            let result = f(acc, &a, &b);
-            match result {
-                ControlFlow::Continue(b) => acc = b,
-                ControlFlow::Break(b) => return b,
-            }
-        }
-        acc
-    }
-
-    /// Calls a closure on each element of the collection.
-    ///
-    /// This is an internal iteration version of [`Iterator::for_each`] It is
-    /// equivalent to a for loop over the collection, although break and
-    /// continue are not possible from a closure.
-    ///
-    /// Internal iteration is useful whenever you need to iterate the elements
-    /// of `Soa<T>` as `T`, rather than as [`Soapy::Ref`]. This can be the case
-    /// if you want to take advantage of traits or methods that are only
-    /// implemented for `T`. You can also use [`WithRef`] on the items of
-    /// [`Iter`] or [`IterMut`] for similar effect.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// # use soapy::{Soa, Soapy, soa};
-    /// # #[derive(Soapy, Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
-    /// # struct Foo(String);
-    /// # impl Foo {
-    /// #     fn new(s: &str) -> Self {
-    /// #         Self(s.to_string())
-    /// #     }
-    /// # }
-    /// # impl std::ops::Deref for Foo {
-    /// #     type Target = str;
-    /// #     fn deref(&self) -> &Self::Target {
-    /// #         &self.0
-    /// #     }
-    /// # }
-    /// let soa = soa![Foo::new("Hello "), Foo::new("for_each")];
-    /// let mut msg = String::new();
-    /// soa.for_each(|item| msg.push_str(item));
-    /// assert_eq!(msg, "Hello for_each");
-    /// ```
-    ///
-    /// [`WithRef`]: crate::WithRef
-    pub fn for_each<F>(&self, mut f: F)
-    where
-        F: FnMut(&T),
-    {
-        self.try_fold((), |_, item| {
-            f(item);
-            ControlFlow::Continue(())
-        })
     }
 
     /// Returns a reference to an element or subslice depending on the type of
@@ -632,14 +437,7 @@ where
         if self.len != other.len {
             return false;
         }
-
-        self.try_fold_zip(other, true, |_, a, b| {
-            if a == b {
-                ControlFlow::Continue(true)
-            } else {
-                ControlFlow::Break(false)
-            }
-        })
+        self.iter().zip(other.iter()).all(|(me, them)| me == them)
     }
 }
 
@@ -653,19 +451,9 @@ where
         if self.len() != other.len() {
             return false;
         }
-
-        let mut iter = other.iter();
-        self.try_fold(true, |_, a| {
-            let b = iter.next();
-            // SAFETY:
-            // We already checked that the lengths are the same
-            let b = unsafe { b.unwrap_unchecked() };
-            if a == b {
-                ControlFlow::Continue(true)
-            } else {
-                ControlFlow::Break(false)
-            }
-        })
+        self.iter()
+            .zip(other.iter())
+            .all(|(me, them)| me.with_ref(|me| me == them))
     }
 }
 
@@ -764,8 +552,8 @@ where
 {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         let mut list = f.debug_list();
-        self.for_each(|item| {
-            list.entry(&item);
+        self.iter().for_each(|item| {
+            item.with_ref(|item| list.entry(&item));
         });
         list.finish()
     }
@@ -776,12 +564,16 @@ where
     T: Soapy + PartialOrd,
 {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        self.try_fold_zip(other, Some(Ordering::Equal), |_, a, b| {
-            match a.partial_cmp(b) {
+        match self
+            .iter()
+            .zip(other.iter())
+            .try_fold(Ordering::Equal, |_, (a, b)| match a.partial_cmp(&b) {
                 ord @ (None | Some(Ordering::Less | Ordering::Greater)) => ControlFlow::Break(ord),
-                Some(Ordering::Equal) => ControlFlow::Continue(Some(self.len.cmp(&other.len))),
-            }
-        })
+                Some(Ordering::Equal) => ControlFlow::Continue(self.len.cmp(&other.len)),
+            }) {
+            ControlFlow::Continue(ord) => Some(ord),
+            ControlFlow::Break(ord) => ord,
+        }
     }
 }
 
@@ -790,10 +582,15 @@ where
     T: Soapy + Ord,
 {
     fn cmp(&self, other: &Self) -> Ordering {
-        self.try_fold_zip(other, Ordering::Equal, |_, a, b| match a.cmp(b) {
-            ord @ (Ordering::Greater | Ordering::Less) => ControlFlow::Break(ord),
-            Ordering::Equal => ControlFlow::Continue(self.len.cmp(&other.len)),
-        })
+        match self
+            .iter()
+            .zip(other.iter())
+            .try_fold(Ordering::Equal, |_, (a, b)| match a.cmp(&b) {
+                ord @ (Ordering::Greater | Ordering::Less) => ControlFlow::Break(ord),
+                Ordering::Equal => ControlFlow::Continue(self.len.cmp(&other.len)),
+            }) {
+            ControlFlow::Continue(ord) | ControlFlow::Break(ord) => ord,
+        }
     }
 }
 
@@ -812,7 +609,9 @@ where
 {
     fn hash<H: Hasher>(&self, state: &mut H) {
         self.len.hash(state);
-        self.for_each(|item| item.hash(state));
+        for el in self.iter() {
+            el.with_ref(|el| el.hash(state))
+        }
     }
 }
 

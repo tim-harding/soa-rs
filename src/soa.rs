@@ -54,7 +54,7 @@
 
 use crate::{
     eq_impl, soa_ref::RefMut, IntoIter, Iter, IterMut, Ref, Slice, SliceMut, SliceRef, SoaRaw,
-    Soapy,
+    Soapy, WithRef,
 };
 use std::{
     borrow::{Borrow, BorrowMut},
@@ -774,9 +774,9 @@ where
 {
     fn clone(&self) -> Self {
         let mut out = Self::with_capacity(self.slice.len);
-        self.for_each(|el| {
-            out.push(el.clone());
-        });
+        for el in self {
+            out.push(el.cloned());
+        }
         out
     }
 
@@ -785,9 +785,9 @@ where
         if self.cap < source.slice.len {
             self.reserve_exact(source.slice.len);
         }
-        source.for_each(|el| {
-            self.push(el.clone());
-        });
+        for el in source {
+            self.push(el.cloned());
+        }
     }
 }
 

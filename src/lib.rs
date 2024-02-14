@@ -35,7 +35,7 @@ mod soa_raw;
 pub use soa_raw::SoaRaw;
 
 mod soa_ref;
-pub use soa_ref::Ref;
+pub use soa_ref::{Ref, RefMut};
 
 mod eq_impl;
 
