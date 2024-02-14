@@ -4,114 +4,9 @@
 
 # Soapy
 
-Soapy makes it simple to work with the structure-of-arrays memory layout. What `Vec<T>`
-is to array-of-structures (AoS), `Soa<T>` is to structure-of-arrays (SoA).
-
-## Examples
-
-First, derive [`Soapy`] for your type:
-```rust
-# use soapy::{soa, Soapy};
-#[derive(Soapy, Debug, Clone, Copy, PartialEq)]
-struct Example {
-    foo: u8,
-    bar: u16,
-}
-```
-
-You can create a [`Soa`] explicitly:
-```rust
-# use soapy::{soa, Soapy, Soa};
-# #[derive(Soapy, Debug, Clone, Copy, PartialEq)]
-# struct Example {
-#     foo: u8,
-#     bar: u16,
-# }
-let mut soa: Soa<Example> = Soa::new();
-soa.push(Example { foo: 1, bar: 2 });
-```
-
-...or by using the [`soa!`] macro. 
-```rust
-# use soapy::{soa, Soapy};
-# #[derive(Soapy, Debug, Clone, Copy, PartialEq)]
-# struct Example {
-#     foo: u8,
-#     bar: u16,
-# }
-let mut soa = soa![
-    Example { foo: 1, bar: 2 }, 
-    Example { foo: 3, bar: 4 },
-    Example { foo: 5, bar: 6 },
-    Example { foo: 7, bar: 8 }
-];
-```
-
-An SoA can be sliced just like a `&[T]`. Use `idx` in lieu of the index operator.
-```rust
-# use soapy::{soa, Soapy};
-# #[derive(Soapy, Debug, Clone, Copy, PartialEq)]
-# struct Example {
-#     foo: u8,
-#     bar: u16,
-# }
-# let mut soa = soa![
-#     Example { foo: 1, bar: 2 }, 
-#     Example { foo: 3, bar: 4 },
-#     Example { foo: 5, bar: 6 },
-#     Example { foo: 7, bar: 8 }
-# ];
-assert_eq!(soa.idx(1..3), [Example { foo: 3, bar: 4 }, Example { foo: 5, bar: 6 }]);
-```
-
-You can access the fields as slices. Add `_mut` for mutable slices. 
-```rust
-# use soapy::{soa, Soapy};
-# #[derive(Soapy, Debug, Clone, Copy, PartialEq)]
-# struct Example {
-#     foo: u8,
-#     bar: u16,
-# }
-# let mut soa = soa![
-#     Example { foo: 1, bar: 2 }, 
-#     Example { foo: 3, bar: 4 },
-#     Example { foo: 5, bar: 6 },
-#     Example { foo: 7, bar: 8 }
-# ];
-assert_eq!(soa.foo(), &[1, 3, 5, 7][..]);
-soa.foo_mut().iter_mut().for_each(|foo| *foo += 10);
-assert_eq!(soa.foo(), &[11, 13, 15, 17][..]);
-```
-
-For tuple structs, prepend the field number with `f`:
-```rust
-# use soapy::{soa, Soapy};
-#[derive(Soapy)]
-struct Example(u8);
-let soa = soa![Example(5), Example(10)];
-assert_eq!(soa.f0(), &[5, 10][..]);
-```
-
-The usual collection APIs and iterators work normally.
-```rust
-# use soapy::{soa, Soapy};
-# #[derive(Soapy, Debug, Clone, Copy, PartialEq)]
-# struct Example {
-#     foo: u8,
-#     bar: u16,
-# }
-# let mut soa = soa![
-#     Example { foo: 1, bar: 2 }, 
-#     Example { foo: 3, bar: 4 },
-#     Example { foo: 5, bar: 6 },
-#     Example { foo: 7, bar: 8 }
-# ];
-assert_eq!(soa.pop(), Some(Example { foo: 7, bar: 8 }));
-for mut el in &mut soa {
-    *el.bar += 10;
-}
-assert_eq!(soa.bar(), &[12, 14, 16][..]);
-```
+Soapy makes it simple to work with the structure-of-arrays memory layout. What
+`Vec<T>` is to array-of-structures (AoS), `Soa<T>` is to structure-of-arrays
+(SoA).
 
 ## What is SoA?
 
@@ -143,27 +38,6 @@ appropriate when either
 - You are frequently accessing or modifying only a subset of the fields
 
 As always, it is best to profile both for your use case.
-
-## Derive
-
-Soapy provides the [`Soapy`] derive macro to generate SoA compatibility for
-structs automatically. When deriving Soapy, several new structs are
-created. Because of the way SoA data is stored, iterators and getters often
-yield these types instead of the original struct. If each field of some
-struct `Example` has type `F`, our new structs have the same fields but
-different types:
-
-| Struct      | Field type | Use                                   |
-|-------------|------------|---------------------------------------|
-| `FooSoaRaw` | `*mut F`   | Low-level, unsafe interface for `Soa` |
-| `FooRef`    | `&F`       | `.iter()`, `nth()`, `.get()`          |
-| `FooRefMut` | `&mut F`   | `.iter_mut()`, `nth_mut`, `get_mut()` |
-
-These types are included as associated types on the [`Soapy`] trait as well.
-Generally, you won't need to think about these them as [`Soa`] picks them up
-automatically. However, since they inherit the visibility of the derived
-struct, you should consider whether to include them in the `pub` items of
-your module.
 
 ## Comparison
 

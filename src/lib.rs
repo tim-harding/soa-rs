@@ -99,7 +99,7 @@ macro_rules! soa {
         $crate::Soa::new()
     };
 
-    ($x:expr $(,$xs:expr)*) => {
+    ($x:expr $(,$xs:expr)* $(,)?) => {
         {
             let mut out = $crate::Soa::with($x);
             $(

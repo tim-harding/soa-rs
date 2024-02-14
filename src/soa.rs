@@ -14,6 +14,125 @@ use std::{
 
 /// A growable array type that stores the values for each field of `T`
 /// contiguously.
+///
+/// # Examples
+///
+/// First, derive [`Soapy`] for your type:
+/// ```
+/// # use soapy::{soa, Soapy};
+/// #[derive(Soapy, Debug, Clone, Copy, PartialEq)]
+/// struct Example {
+///     foo: u8,
+///     bar: u16,
+/// }
+/// ```
+///
+/// You can create an [`Soa`] explicitly:
+/// ```
+/// # use soapy::{soa, Soapy, Soa};
+/// # #[derive(Soapy, Debug, Clone, Copy, PartialEq)]
+/// # struct Example {
+/// #     foo: u8,
+/// #     bar: u16,
+/// # }
+/// let mut soa: Soa<Example> = Soa::new();
+/// soa.push(Example { foo: 1, bar: 2 });
+/// ```
+///
+/// ...or by using the [`soa!`] macro.
+/// ```
+/// # use soapy::{soa, Soapy};
+/// # #[derive(Soapy, Debug, Clone, Copy, PartialEq)]
+/// # struct Example {
+/// #     foo: u8,
+/// #     bar: u16,
+/// # }
+/// let mut soa = soa![Example { foo: 1, bar: 2 }, Example { foo: 3, bar: 4 }];
+/// ```
+///
+/// An SoA can be indexed and sliced just like a `&[T]`. Use `idx` in lieu of
+/// the index operator.
+/// ```
+/// # use soapy::{soa, Soapy};
+/// # #[derive(Soapy, Debug, Clone, Copy, PartialEq)]
+/// # struct Example {
+/// #     foo: u8,
+/// #     bar: u16,
+/// # }
+/// let mut soa = soa![
+///     Example { foo: 1, bar: 2 },
+///     Example { foo: 3, bar: 4 },
+///     Example { foo: 5, bar: 6 },
+///     Example { foo: 7, bar: 8 }
+/// ];
+/// assert_eq!(soa.idx(3), Example { foo: 7, bar: 8 });
+/// assert_eq!(soa.idx(1..3), [Example { foo: 3, bar: 4 }, Example { foo: 5, bar: 6 }]);
+/// ```
+///
+/// The usual [`Vec`] APIs work normally.
+/// ```
+/// # use soapy::{soa, Soapy, Soa};
+/// # #[derive(Soapy, Debug, Clone, Copy, PartialEq)]
+/// # struct Example {
+/// #     foo: u8,
+/// #     bar: u16,
+/// # }
+/// let mut soa = Soa::<Example>::new();
+/// soa.push(Example { foo: 1, bar: 2 });
+/// soa.push(Example { foo: 3, bar: 4 });
+/// soa.insert(0, Example { foo: 5, bar: 6 });
+/// assert_eq!(soa.pop(), Some(Example { foo: 3, bar: 4 }));
+/// for mut el in &mut soa {
+///     *el.bar += 10;
+/// }
+/// assert_eq!(soa.bar(), &[16, 12][..]);
+/// ```
+///
+/// # Field getters
+///
+/// You can access the fields as slices.
+/// ```
+/// # use soapy::{soa, Soapy};
+/// # #[derive(Soapy, Debug, Clone, Copy, PartialEq)]
+/// # struct Example {
+/// #     foo: u8,
+/// #     bar: u16,
+/// # }
+/// let mut soa = soa![
+///     Example { foo: 1, bar: 2 },
+///     Example { foo: 3, bar: 4 },
+/// ];
+/// assert_eq!(soa.foo(), &[1, 3][..]);
+/// ```
+///
+/// Postpend `_mut` for mutable slices.
+/// ```
+/// # use soapy::{soa, Soapy};
+/// # #[derive(Soapy, Debug, Clone, Copy, PartialEq)]
+/// # struct Example {
+/// #     foo: u8,
+/// #     bar: u16,
+/// # }
+/// # let mut soa = soa![
+/// #     Example { foo: 1, bar: 2 },
+/// #     Example { foo: 3, bar: 4 },
+/// # ];
+/// for foo in soa.foo_mut() {
+///     *foo += 10;
+/// }
+/// assert_eq!(soa.foo(), &[11, 13][..]);
+/// ```
+///
+/// For tuple structs, prepend the field number with `f`:
+/// ```
+/// # use soapy::{soa, Soapy};
+/// #[derive(Soapy)]
+/// struct Example(u8);
+/// let soa = soa![Example(5), Example(10)];
+/// assert_eq!(soa.f0(), &[5, 10][..]);
+/// ```
+///
+/// [`soa!`]: crate::soa!
 pub struct Soa<T>
 where
     T: Soapy,
