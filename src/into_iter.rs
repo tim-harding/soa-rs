@@ -56,12 +56,12 @@ where
     /// Returns an immutable slice of all elements that have not been yielded
     /// yet.
     pub fn as_slice(&self) -> &Slice<T> {
-        self.iter_raw.as_slice()
+        &self.iter_raw.slice
     }
 
     /// Returns a mutable slice of all elements that have not been yielded yet.
     pub fn as_mut_slice(&mut self) -> &mut Slice<T> {
-        self.iter_raw.as_mut_slice()
+        &mut self.iter_raw.slice
     }
 }
 

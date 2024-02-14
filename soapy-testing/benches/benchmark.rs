@@ -361,6 +361,58 @@ fn criterion_benchmark(c: &mut Criterion) {
         })
     });
 
+    c.bench_function("chunked-soa", |b| {
+        b.iter(|| {
+            soa1.chunks_exact(8).zip(soa2.chunks_exact(8)).fold(
+                (0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0),
+                |acc, (a, b)| {
+                    (
+                        acc.0
+                            + a.idx(0).0 * b.idx(0).0
+                            + a.idx(0).1 * b.idx(0).1
+                            + a.idx(0).2 * b.idx(0).2
+                            + a.idx(0).3 * b.idx(0).3,
+                        acc.1
+                            + a.idx(1).0 * b.idx(1).0
+                            + a.idx(1).1 * b.idx(1).1
+                            + a.idx(1).2 * b.idx(1).2
+                            + a.idx(1).3 * b.idx(1).3,
+                        acc.2
+                            + a.idx(2).0 * b.idx(2).0
+                            + a.idx(2).1 * b.idx(2).1
+                            + a.idx(2).2 * b.idx(2).2
+                            + a.idx(2).3 * b.idx(2).3,
+                        acc.3
+                            + a.idx(3).0 * b.idx(3).0
+                            + a.idx(3).1 * b.idx(3).1
+                            + a.idx(3).2 * b.idx(3).2
+                            + a.idx(3).3 * b.idx(3).3,
+                        acc.4
+                            + a.idx(4).0 * b.idx(4).0
+                            + a.idx(4).1 * b.idx(4).1
+                            + a.idx(4).2 * b.idx(4).2
+                            + a.idx(4).3 * b.idx(4).3,
+                        acc.5
+                            + a.idx(5).0 * b.idx(5).0
+                            + a.idx(5).1 * b.idx(5).1
+                            + a.idx(5).2 * b.idx(5).2
+                            + a.idx(5).3 * b.idx(5).3,
+                        acc.6
+                            + a.idx(6).0 * b.idx(6).0
+                            + a.idx(6).1 * b.idx(6).1
+                            + a.idx(6).2 * b.idx(6).2
+                            + a.idx(6).3 * b.idx(6).3,
+                        acc.7
+                            + a.idx(7).0 * b.idx(7).0
+                            + a.idx(7).1 * b.idx(7).1
+                            + a.idx(7).2 * b.idx(7).2
+                            + a.idx(7).3 * b.idx(7).3,
+                    )
+                },
+            )
+        })
+    });
+
     #[rustfmt::skip]
     c.bench_function("batched-vec", |b| {
         b.iter(|| {

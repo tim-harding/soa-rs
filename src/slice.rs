@@ -1,5 +1,6 @@
 use crate::{
-    index::SoaIndex, iter_raw::IterRaw, soa_ref::RefMut, Iter, IterMut, Ref, SoaRaw, Soapy, WithRef,
+    chunks_exact::ChunksExact, index::SoaIndex, iter_raw::IterRaw, soa_ref::RefMut, Iter, IterMut,
+    Ref, SoaRaw, Soapy, WithRef,
 };
 use std::{
     cmp::Ordering,
@@ -406,6 +407,30 @@ where
     /// ```
     pub fn last_mut(&mut self) -> Option<RefMut<'_, T>> {
         self.get_mut(self.len().saturating_sub(1))
+    }
+
+    /// Returns an iterator over `chunk_size` elements of the slice at a time,
+    /// starting at the beginning of the slice.
+    ///
+    /// The chunks are slices and do not overlap. If `chunk_size` does not divide
+    /// the length of the slice, then the last up to `chunk_size-1` elements will
+    /// be omitted and can be retrieved from the [`remainder`] function of the
+    /// iterator.
+    ///
+    /// Due to each chunk having exactly `chunk_size` elements, the compiler can
+    /// often optimize the resulting code better than in the case of chunks.
+    ///
+    /// [`remainder`]: ChunksExact::remainder
+    pub fn chunks_exact(&self, chunk_size: usize) -> ChunksExact<'_, T> {
+        if chunk_size == 0 {
+            panic!("chunk size must be nonzero")
+        }
+
+        ChunksExact {
+            chunk_size,
+            slice: *self,
+            _marker: PhantomData,
+        }
     }
 }
 

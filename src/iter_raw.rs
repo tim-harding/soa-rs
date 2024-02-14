@@ -40,23 +40,6 @@ where
 {
 }
 
-impl<T, A> IterRaw<T, A>
-where
-    T: Soapy,
-    A: IterRawAdapter<T>,
-{
-    /// Returns an immutable slice of all elements that have not been yielded
-    /// yet.
-    pub fn as_slice(&self) -> &Slice<T> {
-        &self.slice
-    }
-
-    /// Returns a mutable slice of all elements that have not been yielded yet.
-    pub fn as_mut_slice(&mut self) -> &mut Slice<T> {
-        &mut self.slice
-    }
-}
-
 impl<T, A> Iterator for IterRaw<T, A>
 where
     T: Soapy,
@@ -252,7 +235,7 @@ macro_rules! iter_with_raw {
 
         impl<$($lifetime,)? T> AsRef<Slice<T>> for $t where T: $($lifetime +)? Soapy {
             fn as_ref(&self) -> &Slice<T> {
-                self.iter_raw.as_slice()
+                &self.iter_raw.slice
             }
         }
     };
