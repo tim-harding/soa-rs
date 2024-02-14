@@ -131,3 +131,58 @@ macro_rules! soa {
         }
     };
 }
+
+// Making sure that violating borrow rules fails.
+//
+// # Simultaneous mutable and immutable borrows
+//
+// ## Okay
+//
+// ```
+// use soapy::{Soa, Soapy, soa, SliceRef, SliceMut};
+// #[derive(Soapy, PartialEq, Debug)]
+// struct Foo(usize);
+// let mut soa = soa![Foo(10), Foo(20)];
+// let slice: SliceRef<_> = soa.as_slice();
+// let slice_mut: SliceMut<_> = soa.as_mut_slice();
+// ```
+//
+// ## Not okay
+//
+// ```compile_fail
+// use soapy::{Soa, Soapy, soa, SliceRef, SliceMut};
+// #[derive(Soapy, PartialEq, Debug)]
+// struct Foo(usize);
+// let mut soa = soa![Foo(10), Foo(20)];
+// let slice: SliceRef<_> = soa.as_slice();
+// let slice_mut: SliceMut<_> = soa.as_mut_slice();
+// println!("{:?}", slice); // Added
+// ```
+//
+// # Multiple mutable borrows
+//
+// ## Okay
+//
+// ```
+// use soapy::{Soa, Soapy, soa, SliceMut};
+// #[derive(Soapy, PartialEq, Debug)]
+// struct Foo(usize);
+// let mut soa = soa![Foo(10), Foo(20)];
+// let mut slice_mut: SliceMut<_> = soa.as_mut_slice();
+// let mut slice_mut_2: SliceMut<_> = slice_mut.idx_mut(..);
+// slice_mut.f0_mut()[0] = 30;
+// ```
+//
+// ## Not okay
+//
+// ```compile_fail
+// use soapy::{Soa, Soapy, soa, SliceMut};
+// #[derive(Soapy, PartialEq, Debug)]
+// struct Foo(usize);
+// let mut soa = soa![Foo(10), Foo(20)];
+// let mut slice_mut: SliceMut<_> = soa.as_mut_slice();
+// let mut slice_mut_2: SliceMut<_> = slice_mut.idx_mut(..);
+// slice_mut.f0_mut()[0] = 30;
+// slice_mut_2.f0_mut()[0] = 40; // Added
+// ```
+mod borrow_tests {}
