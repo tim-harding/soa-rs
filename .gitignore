@@ -1,5 +1,6 @@
 /target
 /Cargo.lock
+/scripts
 *.svg
 perf.data
 perf.data.old
