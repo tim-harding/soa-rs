@@ -1,7 +1,7 @@
 use crate::{
     iter_raw::{iter_with_raw, IterRaw, IterRawAdapter},
     soa_ref::RefMut,
-    SliceMut, SliceRef, SoaRaw, Soapy,
+    Slice, SoaRaw, Soapy,
 };
 use std::{iter::FusedIterator, marker::PhantomData};
 
@@ -36,12 +36,12 @@ where
 {
     /// Returns an immutable slice of all elements that have not been yielded
     /// yet.
-    pub fn as_slice(&self) -> SliceRef<'_, T> {
+    pub fn as_slice(&self) -> &Slice<T> {
         self.iter_raw.as_slice()
     }
 
     /// Returns a mutable slice of all elements that have not been yielded yet.
-    pub fn as_mut_slice(&mut self) -> SliceMut<'_, T> {
+    pub fn as_mut_slice(&mut self) -> &mut Slice<T> {
         self.iter_raw.as_mut_slice()
     }
 }

@@ -32,9 +32,6 @@ where
     pub(crate) slice: Slice<T>,
 }
 
-unsafe impl<T> Send for Soa<T> where T: Send + Soapy {}
-unsafe impl<T> Sync for Soa<T> where T: Sync + Soapy {}
-
 impl<T> Soa<T>
 where
     T: Soapy,
@@ -640,8 +637,10 @@ where
         let soa = ManuallyDrop::new(self);
         IntoIter {
             iter_raw: IterRaw {
-                raw: soa.raw,
-                len: soa.len,
+                slice: Slice {
+                    raw: soa.raw,
+                    len: soa.len,
+                },
                 adapter: PhantomData,
             },
             ptr: soa.raw.into_parts(),

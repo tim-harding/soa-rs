@@ -65,8 +65,10 @@ where
     fn into_iter(self) -> Self::IntoIter {
         IterMut {
             iter_raw: IterRaw {
-                raw: self.raw,
-                len: self.len,
+                slice: Slice {
+                    raw: self.raw,
+                    len: self.len,
+                },
                 adapter: PhantomData,
             },
             _marker: PhantomData,

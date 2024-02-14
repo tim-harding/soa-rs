@@ -1,6 +1,6 @@
 use crate::{
     iter_raw::{iter_with_raw, IterRaw, IterRawAdapter},
-    Ref, SliceRef, SoaRaw, Soapy,
+    Ref, Slice, SoaRaw, Soapy,
 };
 use std::{iter::FusedIterator, marker::PhantomData};
 
@@ -24,7 +24,7 @@ where
 {
     /// Returns an immutable slice of all elements that have not been yielded
     /// yet.
-    pub fn as_slice(&self) -> SliceRef<'_, T> {
+    pub fn as_slice(&self) -> &Slice<T> {
         self.iter_raw.as_slice()
     }
 }

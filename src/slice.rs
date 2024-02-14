@@ -141,8 +141,10 @@ where
     pub const fn iter(&self) -> Iter<T> {
         Iter {
             iter_raw: IterRaw {
-                raw: self.raw,
-                len: self.len,
+                slice: Slice {
+                    raw: self.raw,
+                    len: self.len,
+                },
                 adapter: PhantomData,
             },
             _marker: PhantomData,
@@ -169,8 +171,10 @@ where
     pub fn iter_mut(&mut self) -> IterMut<T> {
         IterMut {
             iter_raw: IterRaw {
-                raw: self.raw,
-                len: self.len,
+                slice: Slice {
+                    raw: self.raw,
+                    len: self.len,
+                },
                 adapter: PhantomData,
             },
             _marker: PhantomData,

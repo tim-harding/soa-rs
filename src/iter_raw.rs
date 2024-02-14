@@ -1,5 +1,9 @@
-use crate::{Slice, SliceMut, SliceRef, SoaRaw, Soapy};
-use std::{iter::FusedIterator, marker::PhantomData};
+use crate::{Slice, SoaRaw, Soapy};
+use std::{
+    iter::FusedIterator,
+    marker::PhantomData,
+    ops::{Deref, DerefMut},
+};
 
 pub trait IterRawAdapter<T>
 where
@@ -15,8 +19,7 @@ where
     T: Soapy,
     A: IterRawAdapter<T>,
 {
-    pub(crate) raw: T::Raw,
-    pub(crate) len: usize,
+    pub(crate) slice: Slice<T>,
     pub(crate) adapter: PhantomData<A>,
 }
 
@@ -44,19 +47,13 @@ where
 {
     /// Returns an immutable slice of all elements that have not been yielded
     /// yet.
-    pub fn as_slice(&self) -> SliceRef<'_, T> {
-        SliceRef(
-            unsafe { Slice::from_raw_parts(self.raw, self.len) },
-            PhantomData,
-        )
+    pub fn as_slice(&self) -> &Slice<T> {
+        &self.slice
     }
 
     /// Returns a mutable slice of all elements that have not been yielded yet.
-    pub fn as_mut_slice(&mut self) -> SliceMut<'_, T> {
-        SliceMut(
-            unsafe { Slice::from_raw_parts(self.raw, self.len) },
-            PhantomData,
-        )
+    pub fn as_mut_slice(&mut self) -> &mut Slice<T> {
+        &mut self.slice
     }
 }
 
@@ -117,7 +114,10 @@ where
         Self: Sized,
         F: FnMut(B, Self::Item) -> B,
     {
-        let Self { raw, len, .. } = self;
+        let Self {
+            slice: Slice { raw, len },
+            adapter: _,
+        } = self;
         if len == 0 {
             return init;
         }
@@ -171,6 +171,28 @@ where
     T: Soapy,
     A: IterRawAdapter<T>,
 {
+}
+
+impl<T, A> Deref for IterRaw<T, A>
+where
+    T: Soapy,
+    A: IterRawAdapter<T>,
+{
+    type Target = Slice<T>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.slice
+    }
+}
+
+impl<T, A> DerefMut for IterRaw<T, A>
+where
+    T: Soapy,
+    A: IterRawAdapter<T>,
+{
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.slice
+    }
 }
 
 macro_rules! iter_with_raw {
@@ -227,6 +249,12 @@ macro_rules! iter_with_raw {
 
         impl<$($lifetime,)? T> FusedIterator for $t where T: $($lifetime +)? Soapy {}
         impl<$($lifetime,)? T> ExactSizeIterator for $t where T: $($lifetime +)? Soapy {}
+
+        impl<$($lifetime,)? T> AsRef<Slice<T>> for $t where T: $($lifetime +)? Soapy {
+            fn as_ref(&self) -> &Slice<T> {
+                self.iter_raw.as_slice()
+            }
+        }
     };
 }
 
