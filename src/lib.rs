@@ -159,6 +159,7 @@ mod soa_ref;
 pub use soa_ref::{Ref, RefMut};
 
 mod eq_impl;
+mod iter_raw;
 
 /// Derive macro for the [`Soapy`] trait.
 ///

@@ -1,4 +1,6 @@
-use crate::{index::SoaIndex, soa_ref::RefMut, Iter, IterMut, Ref, SoaRaw, Soapy, WithRef};
+use crate::{
+    index::SoaIndex, iter_raw::IterRaw, soa_ref::RefMut, Iter, IterMut, Ref, SoaRaw, Soapy, WithRef,
+};
 use std::{
     cmp::Ordering,
     fmt::{self, Formatter},
@@ -138,8 +140,11 @@ where
     /// ```
     pub const fn iter(&self) -> Iter<T> {
         Iter {
-            raw: self.raw,
-            len: self.len,
+            iter_raw: IterRaw {
+                raw: self.raw,
+                len: self.len,
+                adapter: PhantomData,
+            },
             _marker: PhantomData,
         }
     }
@@ -163,8 +168,11 @@ where
     /// ```
     pub fn iter_mut(&mut self) -> IterMut<T> {
         IterMut {
-            len: self.len,
-            raw: self.raw,
+            iter_raw: IterRaw {
+                raw: self.raw,
+                len: self.len,
+                adapter: PhantomData,
+            },
             _marker: PhantomData,
         }
     }
@@ -405,11 +413,7 @@ where
     type IntoIter = Iter<'a, T>;
 
     fn into_iter(self) -> Self::IntoIter {
-        Iter {
-            len: self.len,
-            raw: self.raw,
-            _marker: PhantomData,
-        }
+        self.iter()
     }
 }
 
@@ -421,11 +425,7 @@ where
     type IntoIter = IterMut<'a, T>;
 
     fn into_iter(self) -> Self::IntoIter {
-        IterMut {
-            len: self.len,
-            raw: self.raw,
-            _marker: PhantomData,
-        }
+        self.iter_mut()
     }
 }
 

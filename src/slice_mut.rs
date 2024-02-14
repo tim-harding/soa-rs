@@ -1,4 +1,4 @@
-use crate::{eq_impl, soa_ref::RefMut, IterMut, Slice, Soapy};
+use crate::{eq_impl, iter_raw::IterRaw, soa_ref::RefMut, IterMut, Slice, Soapy};
 use std::{
     cmp::Ordering,
     fmt::{self, Debug, Formatter},
@@ -64,8 +64,11 @@ where
 
     fn into_iter(self) -> Self::IntoIter {
         IterMut {
-            len: self.len(),
-            raw: self.0.raw,
+            iter_raw: IterRaw {
+                raw: self.raw,
+                len: self.len,
+                adapter: PhantomData,
+            },
             _marker: PhantomData,
         }
     }

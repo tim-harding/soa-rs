@@ -1,6 +1,6 @@
 use crate::{
-    eq_impl, soa_ref::RefMut, IntoIter, Iter, IterMut, Ref, Slice, SliceMut, SliceRef, SoaRaw,
-    Soapy, WithRef,
+    eq_impl, iter_raw::IterRaw, soa_ref::RefMut, IntoIter, Iter, IterMut, Ref, Slice, SliceMut,
+    SliceRef, SoaRaw, Soapy, WithRef,
 };
 use std::{
     borrow::{Borrow, BorrowMut},
@@ -501,57 +501,6 @@ where
         other.clear();
     }
 
-    /// Returns an iterator over the elements.
-    ///
-    /// The iterator yields all items from start to end.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// # use soapy::{Soa, Soapy, soa, WithRef};
-    /// # use std::fmt;
-    /// # #[derive(Soapy, Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
-    /// # struct Foo(usize);
-    /// let soa = soa![Foo(1), Foo(2), Foo(4)];
-    /// let mut iter = soa.iter();
-    /// assert_eq!(iter.next().unwrap(), Foo(1));
-    /// assert_eq!(iter.next().unwrap(), Foo(2));
-    /// assert_eq!(iter.next().unwrap(), Foo(4));
-    /// assert_eq!(iter.next(), None);
-    /// ```
-    pub fn iter(&self) -> Iter<T> {
-        Iter {
-            raw: self.slice.raw,
-            len: self.len,
-            _marker: PhantomData,
-        }
-    }
-
-    /// Returns an iterator over the elements that allows modifying each value.
-    ///
-    /// The iterator yields all items from start to end.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// # use soapy::{Soa, Soapy, soa, WithRef};
-    /// # use std::fmt;
-    /// # #[derive(Soapy, Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
-    /// # struct Foo(usize);
-    /// let mut soa = soa![Foo(1), Foo(2), Foo(4)];
-    /// for mut elem in soa.iter_mut() {
-    ///     *elem.0 *= 2;
-    /// }
-    /// assert_eq!(soa, [Foo(2), Foo(4), Foo(8)]);
-    /// ```
-    pub fn iter_mut(&mut self) -> IterMut<T> {
-        IterMut {
-            raw: self.slice.raw,
-            len: self.slice.len,
-            _marker: PhantomData,
-        }
-    }
-
     /// Clears the vector, removing all values.
     ///
     /// Note that this method has no effect on the allocated capacity of the
@@ -690,9 +639,12 @@ where
     fn into_iter(self) -> Self::IntoIter {
         let soa = ManuallyDrop::new(self);
         IntoIter {
+            iter_raw: IterRaw {
+                raw: soa.raw,
+                len: soa.len,
+                adapter: PhantomData,
+            },
             ptr: soa.raw.into_parts(),
-            len: soa.slice.len,
-            raw: soa.slice.raw,
             cap: soa.cap,
         }
     }

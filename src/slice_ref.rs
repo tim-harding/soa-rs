@@ -1,4 +1,4 @@
-use crate::{eq_impl, Iter, Ref, Slice, Soapy};
+use crate::{eq_impl, iter_raw::IterRaw, Iter, Ref, Slice, Soapy};
 use std::{
     cmp::Ordering,
     fmt::{self, Debug, Formatter},
@@ -57,8 +57,11 @@ where
 
     fn into_iter(self) -> Self::IntoIter {
         Iter {
-            len: self.len(),
-            raw: self.raw,
+            iter_raw: IterRaw {
+                raw: self.raw,
+                len: self.len,
+                adapter: PhantomData,
+            },
             _marker: PhantomData,
         }
     }

@@ -1,7 +1,8 @@
-use crate::{Slice, SliceMut, SliceRef, SoaRaw, Soapy};
-use std::{iter::FusedIterator, marker::PhantomData, mem::size_of};
-
-// TODO: Nightly-only try_fold implementation
+use crate::{
+    iter_raw::{iter_with_raw, IterRaw, IterRawAdapter},
+    SliceMut, SliceRef, SoaRaw, Soapy,
+};
+use std::{iter::FusedIterator, mem::size_of};
 
 /// An iterator that moves out of a [`Soa`].
 ///
@@ -14,10 +15,20 @@ pub struct IntoIter<T>
 where
     T: Soapy,
 {
+    pub(crate) iter_raw: IterRaw<T, Self>,
     pub(crate) ptr: *mut u8,
-    pub(crate) raw: T::Raw,
     pub(crate) cap: usize,
-    pub(crate) len: usize,
+}
+
+impl<T> IterRawAdapter<T> for IntoIter<T>
+where
+    T: Soapy,
+{
+    type Item = T;
+
+    fn item_from_raw(raw: T::Raw) -> Self::Item {
+        unsafe { raw.get() }
+    }
 }
 
 impl<T> IntoIter<T>
@@ -27,54 +38,12 @@ where
     /// Returns an immutable slice of all elements that have not been yielded
     /// yet.
     pub fn as_slice(&self) -> SliceRef<'_, T> {
-        SliceRef(
-            unsafe { Slice::from_raw_parts(self.raw, self.len) },
-            PhantomData,
-        )
+        self.iter_raw.as_slice()
     }
 
     /// Returns a mutable slice of all elements that have not been yielded yet.
     pub fn as_mut_slice(&mut self) -> SliceMut<'_, T> {
-        SliceMut(
-            unsafe { Slice::from_raw_parts(self.raw, self.len) },
-            PhantomData,
-        )
-    }
-}
-
-impl<T> Iterator for IntoIter<T>
-where
-    T: Soapy,
-{
-    type Item = T;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        if self.len == 0 {
-            None
-        } else {
-            self.len -= 1;
-            let out = Some(unsafe { self.raw.get() });
-            self.raw = unsafe { self.raw.offset(1) };
-            out
-        }
-    }
-
-    fn size_hint(&self) -> (usize, Option<usize>) {
-        (self.len, Some(self.len))
-    }
-}
-
-impl<T> DoubleEndedIterator for IntoIter<T>
-where
-    T: Soapy,
-{
-    fn next_back(&mut self) -> Option<Self::Item> {
-        if self.len == 0 {
-            None
-        } else {
-            self.len -= 1;
-            Some(unsafe { self.raw.offset(self.len).get() })
-        }
+        self.iter_raw.as_mut_slice()
     }
 }
 
@@ -90,5 +59,4 @@ where
     }
 }
 
-impl<T> FusedIterator for IntoIter<T> where T: Soapy {}
-impl<T> ExactSizeIterator for IntoIter<T> where T: Soapy {}
+iter_with_raw!(IntoIter<T>);
