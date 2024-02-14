@@ -24,7 +24,7 @@ where
 
 impl<'a, T> Debug for Iter<'a, T>
 where
-    T: 'a + Soapy + Debug,
+    T: Soapy + Debug,
 {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         write!(f, "{:?}", self.as_slice())
@@ -33,7 +33,7 @@ where
 
 impl<'a, T> Default for Iter<'a, T>
 where
-    T: 'a + Soapy,
+    T: Soapy,
 {
     fn default() -> Self {
         Self {
@@ -48,7 +48,7 @@ where
 
 impl<'a, T> Clone for Iter<'a, T>
 where
-    T: 'a + Soapy,
+    T: Soapy,
 {
     fn clone(&self) -> Self {
         Self {
@@ -60,7 +60,7 @@ where
 
 impl<'a, T> Iter<'a, T>
 where
-    T: 'a + Soapy,
+    T: Soapy,
 {
     /// Returns an immutable slice of all elements that have not been yielded
     /// yet.

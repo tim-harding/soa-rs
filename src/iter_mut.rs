@@ -25,7 +25,7 @@ where
 
 impl<'a, T> Debug for IterMut<'a, T>
 where
-    T: 'a + Soapy + Debug,
+    T: Soapy + Debug,
 {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         write!(f, "{:?}", self.as_slice())
@@ -34,7 +34,7 @@ where
 
 impl<'a, T> Default for IterMut<'a, T>
 where
-    T: 'a + Soapy,
+    T: Soapy,
 {
     fn default() -> Self {
         Self {
@@ -49,7 +49,7 @@ where
 
 impl<'a, T> IterRawAdapter<T> for IterMut<'a, T>
 where
-    T: 'a + Soapy,
+    T: Soapy,
 {
     type Item = RefMut<'a, T>;
 
@@ -60,7 +60,7 @@ where
 
 impl<'a, T> IterMut<'a, T>
 where
-    T: 'a + Soapy,
+    T: Soapy,
 {
     /// Returns an immutable slice of all elements that have not been yielded
     /// yet.

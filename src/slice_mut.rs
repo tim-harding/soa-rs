@@ -19,7 +19,7 @@ where
 
 impl<'a, T> AsRef<Slice<T>> for SliceMut<'a, T>
 where
-    T: 'a + Soapy,
+    T: Soapy,
 {
     fn as_ref(&self) -> &Slice<T> {
         &self.0
@@ -28,7 +28,7 @@ where
 
 impl<'a, T> AsMut<Slice<T>> for SliceMut<'a, T>
 where
-    T: 'a + Soapy,
+    T: Soapy,
 {
     fn as_mut(&mut self) -> &mut Slice<T> {
         &mut self.0
@@ -37,7 +37,7 @@ where
 
 impl<'a, T> Deref for SliceMut<'a, T>
 where
-    T: 'a + Soapy,
+    T: Soapy,
 {
     type Target = Slice<T>;
 
@@ -48,7 +48,7 @@ where
 
 impl<'a, T> DerefMut for SliceMut<'a, T>
 where
-    T: 'a + Soapy,
+    T: Soapy,
 {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.0
@@ -57,7 +57,7 @@ where
 
 impl<'a, T> IntoIterator for SliceMut<'a, T>
 where
-    T: 'a + Soapy,
+    T: Soapy,
 {
     type Item = RefMut<'a, T>;
     type IntoIter = IterMut<'a, T>;
@@ -80,7 +80,7 @@ eq_impl::impl_for!(SliceMut<'a, T>);
 
 impl<'a, T> Debug for SliceMut<'a, T>
 where
-    T: 'a + Soapy + Debug,
+    T: Soapy + Debug,
 {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         self.0.fmt(f)
@@ -89,7 +89,7 @@ where
 
 impl<'a, T> PartialOrd for SliceMut<'a, T>
 where
-    T: 'a + Soapy + PartialOrd,
+    T: Soapy + PartialOrd,
 {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
         self.0.partial_cmp(&other.0)
@@ -98,7 +98,7 @@ where
 
 impl<'a, T> Ord for SliceMut<'a, T>
 where
-    T: 'a + Soapy + Ord,
+    T: Soapy + Ord,
 {
     fn cmp(&self, other: &Self) -> Ordering {
         self.0.cmp(&other.0)
@@ -107,7 +107,7 @@ where
 
 impl<'a, T> Hash for SliceMut<'a, T>
 where
-    T: 'a + Soapy + Hash,
+    T: Soapy + Hash,
 {
     fn hash<H: Hasher>(&self, state: &mut H) {
         self.0.hash(state)

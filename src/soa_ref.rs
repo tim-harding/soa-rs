@@ -35,7 +35,7 @@ where
 
 impl<'a, T> Deref for Ref<'a, T>
 where
-    T: 'a + Soapy,
+    T: Soapy,
 {
     type Target = T::Ref<'a>;
 
@@ -46,7 +46,7 @@ where
 
 impl<'a, T> Deref for RefMut<'a, T>
 where
-    T: 'a + Soapy,
+    T: Soapy,
 {
     type Target = T::RefMut<'a>;
 
@@ -57,7 +57,7 @@ where
 
 impl<'a, T> DerefMut for RefMut<'a, T>
 where
-    T: 'a + Soapy,
+    T: Soapy,
 {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.0
@@ -68,7 +68,7 @@ macro_rules! ref_impls {
     ($t:ident) => {
         impl<'a, T> WithRef for $t<'a, T>
         where
-            T: 'a + Soapy,
+            T: Soapy,
         {
             type Item = T;
 
@@ -82,7 +82,7 @@ macro_rules! ref_impls {
 
         impl<'a, T> Debug for $t<'a, T>
         where
-            T: 'a + Soapy + Debug,
+            T: Soapy + Debug,
         {
             fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
                 self.with_ref(|me| me.fmt(f))
@@ -91,7 +91,7 @@ macro_rules! ref_impls {
 
         impl<'a, T, R> PartialEq<R> for $t<'a, T>
         where
-            T: 'a + Soapy + PartialEq,
+            T: Soapy + PartialEq,
             R: WithRef<Item = T>,
         {
             fn eq(&self, other: &R) -> bool {
@@ -103,7 +103,7 @@ macro_rules! ref_impls {
 
         impl<'a, T, R> PartialOrd<R> for $t<'a, T>
         where
-            T: 'a + Soapy + PartialOrd,
+            T: Soapy + PartialOrd,
             R: WithRef<Item = T>,
         {
             fn partial_cmp(&self, other: &R) -> Option<std::cmp::Ordering> {
@@ -113,7 +113,7 @@ macro_rules! ref_impls {
 
         impl<'a, T> Ord for $t<'a, T>
         where
-            T: 'a + Soapy + Ord,
+            T: Soapy + Ord,
         {
             fn cmp(&self, other: &Self) -> std::cmp::Ordering {
                 self.with_ref(|me| other.with_ref(|them| me.cmp(them)))
@@ -122,7 +122,7 @@ macro_rules! ref_impls {
 
         impl<'a, T> Hash for $t<'a, T>
         where
-            T: 'a + Soapy + Hash,
+            T: Soapy + Hash,
         {
             fn hash<H: Hasher>(&self, state: &mut H) {
                 self.with_ref(|me| me.hash(state))
