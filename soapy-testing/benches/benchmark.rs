@@ -306,29 +306,33 @@ fn criterion_benchmark(c: &mut Criterion) {
 
     let array1 = <Vec4ArraysGrouped<{ 1 << 13 }>>::new_rng(&mut rng);
     let array2 = <Vec4ArraysGrouped<{ 1 << 13 }>>::new_rng(&mut rng);
-    c.bench_function("dots-grouped-array", |b| {
+    c.bench_function("grouped-array", |b| {
         b.iter(|| sum_dots_grouped(&array1, &array2))
     });
 
     let array1 = <Vec4Arrays<{ 1 << 16 }>>::new_rng(&mut rng);
     let array2 = <Vec4Arrays<{ 1 << 16 }>>::new_rng(&mut rng);
-    c.bench_function("dots-array", |b| {
-        b.iter(|| sum_dots_arrays(&array1, &array2))
-    });
+    c.bench_function("array", |b| b.iter(|| sum_dots_arrays(&array1, &array2)));
 
     let array1 = <Vec4ArraysAligned<{ 1 << 16 }>>::new_rng(&mut rng);
     let array2 = <Vec4ArraysAligned<{ 1 << 16 }>>::new_rng(&mut rng);
-    c.bench_function("dots-aligned-array", |b| {
+    c.bench_function("aligned-array", |b| {
         b.iter(|| sum_dots_arrays_aligned(&array1, &array2))
     });
 
     let soa1: Soa<_> = make_vec4_list(&mut rng, 1 << 16);
     let soa2: Soa<_> = make_vec4_list(&mut rng, 1 << 16);
-    c.bench_function("dots-soa", |b| {
+    c.bench_function("soa", |b| {
         b.iter(|| sum_dots_soa(soa1.as_slice(), soa2.as_slice()))
     });
 
-    c.bench_function("dots-fold-custom", |b| {
+    let vec1: Vec<_> = make_vec4_list(&mut rng, 1 << 16);
+    let vec2: Vec<_> = make_vec4_list(&mut rng, 1 << 16);
+    c.bench_function("vec", |b| {
+        b.iter(|| sum_dots_vec(vec1.as_slice(), vec2.as_slice()))
+    });
+
+    c.bench_function("batched-soa", |b| {
         b.iter(|| {
             soa1.f0()
                 .chunks_exact(8)
@@ -357,9 +361,26 @@ fn criterion_benchmark(c: &mut Criterion) {
         })
     });
 
-    let vec1: Vec<_> = make_vec4_list(&mut rng, 1 << 16);
-    let vec2: Vec<_> = make_vec4_list(&mut rng, 1 << 16);
-    c.bench_function("dots-vec", |b| b.iter(|| sum_dots_vec(&vec1, &vec2)));
+    #[rustfmt::skip]
+    c.bench_function("batched-vec", |b| {
+        b.iter(|| {
+            vec1.chunks_exact(8).zip(vec2.chunks_exact(8)).fold(
+                (0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0),
+                |acc, (a, b)| {
+                    (
+                        acc.0 + a[0].0 * b[0].0 + a[0].1 * b[0].1 + a[0].2 * b[0].2 + a[0].3 * b[0].3,
+                        acc.1 + a[1].0 * b[1].0 + a[1].1 * b[1].1 + a[1].2 * b[1].2 + a[1].3 * b[1].3,
+                        acc.2 + a[2].0 * b[2].0 + a[2].1 * b[2].1 + a[2].2 * b[2].2 + a[2].3 * b[2].3,
+                        acc.3 + a[3].0 * b[3].0 + a[3].1 * b[3].1 + a[3].2 * b[3].2 + a[3].3 * b[3].3,
+                        acc.4 + a[4].0 * b[4].0 + a[4].1 * b[4].1 + a[4].2 * b[4].2 + a[4].3 * b[4].3,
+                        acc.5 + a[5].0 * b[5].0 + a[5].1 * b[5].1 + a[5].2 * b[5].2 + a[5].3 * b[5].3,
+                        acc.6 + a[6].0 * b[6].0 + a[6].1 * b[6].1 + a[6].2 * b[6].2 + a[6].3 * b[6].3,
+                        acc.7 + a[7].0 * b[7].0 + a[7].1 * b[7].1 + a[7].2 * b[7].2 + a[7].3 * b[7].3,
+                    )
+                },
+            )
+        })
+    });
 }
 
 criterion_group!(benches, criterion_benchmark);
