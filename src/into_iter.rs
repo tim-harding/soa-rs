@@ -1,8 +1,8 @@
 use crate::{
     iter_raw::{iter_with_raw, IterRaw, IterRawAdapter},
-    Slice, SoaRaw, Soapy,
+    Slice, Soa, SoaRaw, Soapy,
 };
-use std::{iter::FusedIterator, mem::size_of};
+use std::{fmt::Debug, iter::FusedIterator, mem::size_of};
 
 /// An iterator that moves out of a [`Soa`].
 ///
@@ -28,6 +28,24 @@ where
 
     fn item_from_raw(raw: T::Raw) -> Self::Item {
         unsafe { raw.get() }
+    }
+}
+
+impl<T> Default for IntoIter<T>
+where
+    T: Soapy,
+{
+    fn default() -> Self {
+        Soa::<T>::new().into_iter()
+    }
+}
+
+impl<T> Debug for IntoIter<T>
+where
+    T: Soapy + Debug,
+{
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{:?}", self.as_slice())
     }
 }
 

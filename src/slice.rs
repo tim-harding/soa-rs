@@ -3,7 +3,7 @@ use crate::{
 };
 use std::{
     cmp::Ordering,
-    fmt::{self, Formatter},
+    fmt::{self, Debug, Formatter},
     hash::{Hash, Hasher},
     marker::PhantomData,
     mem::transmute,
@@ -541,7 +541,6 @@ macro_rules! partial_eq_reflect_array {
     };
 }
 
-// TODO: Add array types
 partial_eq_reflect!(Vec<T>);
 partial_eq_reflect!([T]);
 partial_eq_reflect!(&[T]);
@@ -550,9 +549,9 @@ partial_eq_reflect_array!([T; N]);
 partial_eq_reflect_array!(&[T; N]);
 partial_eq_reflect_array!(&mut [T; N]);
 
-impl<T> fmt::Debug for Slice<T>
+impl<T> Debug for Slice<T>
 where
-    T: Soapy + fmt::Debug,
+    T: Soapy + Debug,
 {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         let mut list = f.debug_list();
