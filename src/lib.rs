@@ -1,5 +1,8 @@
+//! # Soapy
+//!
+//! Soapy makes it simple to work with the structure-of-arrays memory layout.
+//! What [`Vec`] is to array-of-structures, [`Soa`] is to structure-of-arrays.
 #![warn(missing_docs)]
-#![doc = include_str!("../README.md")]
 
 mod soa;
 pub use soa::Soa;
@@ -32,6 +35,7 @@ mod with_ref;
 pub use with_ref::WithRef;
 
 mod soa_raw;
+#[doc(hidden)]
 pub use soa_raw::SoaRaw;
 
 mod soa_ref;
@@ -186,3 +190,6 @@ macro_rules! soa {
 // slice_mut_2.f0_mut()[0] = 40; // Added
 // ```
 mod borrow_tests {}
+
+#[doc = include_str!("../README.md")]
+mod readme_tests {}

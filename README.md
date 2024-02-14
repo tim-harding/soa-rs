@@ -24,7 +24,7 @@ above example, each AoS element requires 128 bits to satisfy memory
 alignment requirements, whereas each SoA element only takes 72. This can
 mean better cache locality and lower memory usage.
 - SoA can be more amenable to vectorization. With SoA, multiple values can
-be direcly loaded into SIMD registers in bulk, as opposed to shuffling
+be directly loaded into SIMD registers in bulk, as opposed to shuffling
 struct fields into and out of different SIMD registers.
 
 SoA is a popular technique in data-oriented design. Andrew Kelley gives a
@@ -37,7 +37,47 @@ appropriate when either
 - Sequential access is the common access pattern
 - You are frequently accessing or modifying only a subset of the fields
 
-As always, it is best to profile both for your use case.
+## Example
+
+```rust
+use soapy::{Soapy, soa};
+
+// Derive Soapy for your type
+#[derive(Soapy, PartialEq, Debug)]
+struct Baz {
+    foo: u16,
+    bar: u8,
+}
+
+// Create the SoA
+let mut soa = soa![
+    Baz { foo: 1, bar: 2 }, 
+    Baz { foo: 3, bar: 4 }
+];
+
+// Each field has a slice
+assert_eq!(soa.foo(), [1, 3]);
+assert_eq!(soa.bar(), [2, 4]);
+
+// Normal Vec stuff works
+soa.insert(0, Baz { foo: 5, bar: 6 });
+assert_eq!(soa.pop(), Some(Baz { foo: 3, bar: 4 }));
+assert_eq!(soa.foo(), [5, 1]);
+for mut el in &mut soa {
+    *el.foo += 10;
+}
+assert_eq!(soa.foo(), [15, 11]);
+
+// Tuple structs are okay too
+#[derive(Soapy, PartialEq, Debug)]
+struct Tuple(u16, u8);
+let tuple = soa![Tuple(1, 2), Tuple(3, 4), Tuple(5, 6), Tuple(7, 8)];
+assert_eq!(tuple.f0(), [1, 3, 5, 7]);
+
+// SoA can be sliced and indexed like other slices
+assert_eq!(tuple.idx(1..3), [Tuple(3, 4), Tuple(5, 6)]);
+assert_eq!(tuple.idx(3), Tuple(7, 8));
+```
 
 ## Comparison
 
