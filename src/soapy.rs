@@ -1,21 +1,24 @@
 use crate::{SoaRaw, WithRef};
 
-/// Provides SOA data structure compatibility.
+/// Provides [`Soa`] compatibility.
 ///
 /// # Safety
 ///
 /// [`Soapy::Deref`] mut be `#[repr(transparent)]` with [`Slice<Self::Raw>`].
-/// This trait should be derived using the `soapy-derive` crate.
+/// This trait should be derived using the derive macro.
 ///
 /// [`Slice<Self::Raw>`]: crate::Slice
+/// [`Soa`]: crate::Soa
 pub unsafe trait Soapy: Sized {
-    /// Implements internal, unsafe, low-level routines used by `Soa`
+    /// Implements internal, unsafe, low-level routines used by [`Soa`]
+    ///
+    /// [`Soa`]: crate::Soa
     type Raw: SoaRaw<Item = Self>;
 
-    /// Soa dereferences to this type to provide getters for the individual
+    /// [`Slice`] dereferences to this type to provide getters for the individual
     /// fields as slices.
     ///
-    /// [`SliceData<Self::Raw>`]: crate::SliceData
+    /// [`Slice`]: crate::Slice
     type Deref;
 
     /// For each field with type `F` in `T`, `Ref` has a field with type
