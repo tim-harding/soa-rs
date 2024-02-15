@@ -1,6 +1,7 @@
 #![cfg(test)]
 
 use soapy::{soa, Soa, Soapy};
+use std::fmt::Debug;
 
 #[derive(Soapy, Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 struct ExtraImplTester {
@@ -444,5 +445,45 @@ pub fn iterator_slice_methods() {
         iter.next();
         assert_eq!(iter.as_slice(), expected);
         assert_eq!(iter.as_mut_slice(), expected);
+    }
+}
+
+#[test]
+fn iterator_size_hint() {
+    let soa = Soa::from(ABCDE);
+    assert_eq!(soa.iter().size_hint(), (5, Some(5)));
+}
+
+#[test]
+fn iterator_count() {
+    let soa = Soa::from(ABCDE);
+    assert_eq!(soa.iter().count(), 5);
+}
+
+fn assert_option_eq<U, V>(u: Option<U>, v: Option<V>)
+where
+    U: PartialEq<V> + Debug,
+    V: Debug,
+{
+    match (u, v) {
+        (Some(u), Some(v)) => assert_eq!(u, v),
+        (None, None) => {}
+        (u, v) => panic!("not equal: {u:?}, {v:?}"),
+    }
+}
+
+#[test]
+fn iterator_nth() {
+    let soa: Soa<_> = ABCDE.into_iter().cycle().take(20).collect();
+    let vec: Vec<_> = ABCDE.into_iter().cycle().take(20).collect();
+    assert_eq!(soa, vec);
+    let mut iter_soa = soa.iter();
+    let mut iter_vec = vec.iter();
+    for _ in 0..22 {
+        #[allow(clippy::iter_nth_zero)]
+        assert_option_eq(iter_soa.nth(0), iter_vec.nth(0));
+    }
+    for i in 0..10 {
+        assert_option_eq(iter_soa.nth(i), iter_vec.nth(i));
     }
 }

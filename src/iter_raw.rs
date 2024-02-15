@@ -75,9 +75,10 @@ where
             self.len = 0;
             None
         } else {
-            self.len -= n;
-            self.raw = unsafe { self.raw.offset(n) };
-            Some(A::item_from_raw(self.raw))
+            let out = A::item_from_raw(self.raw);
+            self.len -= n + 1;
+            self.raw = unsafe { self.raw.offset(n + 1) };
+            Some(out)
         }
     }
 
