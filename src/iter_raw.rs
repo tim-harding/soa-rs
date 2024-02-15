@@ -71,7 +71,6 @@ where
 
     fn nth(&mut self, n: usize) -> Option<Self::Item> {
         if n >= self.len {
-            self.raw = unsafe { self.raw.offset(self.len) };
             self.len = 0;
             None
         } else {

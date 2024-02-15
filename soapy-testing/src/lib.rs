@@ -473,10 +473,15 @@ where
 }
 
 #[test]
+fn iterator_last() {
+    let soa: Soa<_> = ABCDE.into();
+    assert_eq!(soa.into_iter().last(), Some(E));
+}
+
+#[test]
 fn iterator_nth() {
     let soa: Soa<_> = ABCDE.into_iter().cycle().take(20).collect();
     let vec: Vec<_> = ABCDE.into_iter().cycle().take(20).collect();
-    assert_eq!(soa, vec);
     let mut iter_soa = soa.iter();
     let mut iter_vec = vec.iter();
     for _ in 0..22 {
@@ -486,4 +491,42 @@ fn iterator_nth() {
     for i in 0..10 {
         assert_option_eq(iter_soa.nth(i), iter_vec.nth(i));
     }
+}
+
+#[test]
+fn iterator_nth_back() {
+    let soa: Soa<_> = ABCDE.into_iter().cycle().take(20).collect();
+    let vec: Vec<_> = ABCDE.into_iter().cycle().take(20).collect();
+    let mut iter_soa = soa.iter();
+    let mut iter_vec = vec.iter();
+    for _ in 0..22 {
+        #[allow(clippy::iter_nth_zero)]
+        assert_option_eq(iter_soa.nth_back(0), iter_vec.nth_back(0));
+    }
+    for i in 0..10 {
+        assert_option_eq(iter_soa.nth_back(i), iter_vec.nth_back(i));
+    }
+}
+
+#[test]
+fn iterator_next_back() {
+    let soa: Soa<_> = ABCDE.into();
+    let vec: Vec<_> = ABCDE.into();
+    let mut soa_iter = soa.iter();
+    let mut vec_iter = vec.iter();
+    for _ in 0..6 {
+        assert_option_eq(soa_iter.next_back(), vec_iter.next_back());
+    }
+}
+
+#[test]
+fn iterator_fold() {
+    fn fold(acc: u64, el: El) -> u64 {
+        acc + el.foo + el.bar as u64
+    }
+
+    let soa: Soa<_> = ABCDE.into();
+    let actual = soa.into_iter().fold(0, fold);
+    let expected = ABCDE.into_iter().fold(0, fold);
+    assert_eq!(actual, expected);
 }
