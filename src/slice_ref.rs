@@ -1,4 +1,4 @@
-use crate::{eq_impl, iter_raw::IterRaw, Iter, Ref, Slice, Soapy};
+use crate::{eq_impl, iter_raw::IterRaw, Iter, Ref, Slice, SliceMut, Soa, Soapy};
 use std::{
     cmp::Ordering,
     fmt::{self, Debug, Formatter},
@@ -69,8 +69,6 @@ where
     }
 }
 
-eq_impl::impl_for!(SliceRef<'a, T>);
-
 impl<'a, T> Debug for SliceRef<'a, T>
 where
     T: Soapy + Debug,
@@ -106,3 +104,5 @@ where
         self.0.hash(state)
     }
 }
+
+eq_impl::impl_for!(SliceRef<'a, T>);

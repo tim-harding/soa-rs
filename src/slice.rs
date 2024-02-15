@@ -1,6 +1,6 @@
 use crate::{
     chunks_exact::ChunksExact, index::SoaIndex, iter_raw::IterRaw, soa_ref::RefMut, Iter, IterMut,
-    Ref, SoaRaw, Soapy, WithRef,
+    Ref, SliceMut, SliceRef, Soa, SoaRaw, Soapy, WithRef,
 };
 use std::{
     cmp::Ordering,
@@ -518,7 +518,7 @@ trivial_ref_eq!(&mut [T]);
 trivial_ref_eq!(&[T; N], N);
 trivial_ref_eq!(&mut [T; N], N);
 
-macro_rules! partial_eq_reflect {
+macro_rules! reflect_eq {
     ($t:ty $(,$N:tt)?) => {
         impl<T $(,const $N: usize)?> PartialEq<Slice<T>> for $t
         where
@@ -531,13 +531,39 @@ macro_rules! partial_eq_reflect {
     };
 }
 
-partial_eq_reflect!(Vec<T>);
-partial_eq_reflect!([T]);
-partial_eq_reflect!(&[T]);
-partial_eq_reflect!(&mut [T]);
-partial_eq_reflect!([T; N], N);
-partial_eq_reflect!(&[T; N], N);
-partial_eq_reflect!(&mut [T; N], N);
+reflect_eq!(Vec<T>);
+reflect_eq!([T]);
+reflect_eq!(&[T]);
+reflect_eq!(&mut [T]);
+reflect_eq!([T; N], N);
+reflect_eq!(&[T; N], N);
+reflect_eq!(&mut [T; N], N);
+
+macro_rules! eq_for_slice_ref {
+    ($t:ty) => {
+        eq_for_slice_ref!($t, Vec<T>);
+        eq_for_slice_ref!($t, [T]);
+        eq_for_slice_ref!($t, [T; N], N);
+        eq_for_slice_ref!($t, Slice<T>);
+        eq_for_slice_ref!($t, SliceRef<'_, T>);
+        eq_for_slice_ref!($t, SliceMut<'_, T>);
+        eq_for_slice_ref!($t, Soa<T>);
+    };
+
+    ($t:ty, $s:ty $(,$N:tt)?) => {
+        impl<T $(,const $N: usize)?> PartialEq<$s> for $t
+        where
+            T: Soapy + PartialEq,
+        {
+            fn eq(&self, other: &$s) -> bool {
+                <Slice<T> as PartialEq<$s>>::eq(*self, other)
+            }
+        }
+    };
+}
+
+eq_for_slice_ref!(&Slice<T>);
+eq_for_slice_ref!(&mut Slice<T>);
 
 impl<T> Debug for Slice<T>
 where

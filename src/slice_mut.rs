@@ -1,4 +1,4 @@
-use crate::{eq_impl, iter_raw::IterRaw, soa_ref::RefMut, IterMut, Slice, Soapy};
+use crate::{eq_impl, iter_raw::IterRaw, soa_ref::RefMut, IterMut, Slice, SliceRef, Soa, Soapy};
 use std::{
     cmp::Ordering,
     fmt::{self, Debug, Formatter},

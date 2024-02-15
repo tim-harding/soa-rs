@@ -419,3 +419,30 @@ pub fn align_attribute() {
     let soa: Soa<_> = aligns.into_iter().collect();
     assert_eq!(soa, aligns);
 }
+
+#[test]
+pub fn iterator_slice_methods() {
+    let mut soa = Soa::from(ABCDE);
+    let expected = &ABCDE[1..];
+
+    {
+        let mut iter = soa.iter();
+        iter.next();
+        assert_eq!(iter.as_slice(), expected);
+    }
+
+    {
+        let mut iter = soa.iter_mut();
+        iter.next();
+        assert_eq!(iter.as_slice(), expected);
+        assert_eq!(iter.as_mut_slice(), expected);
+        assert_eq!(iter.into_slice(), expected);
+    }
+
+    {
+        let mut iter = soa.into_iter();
+        iter.next();
+        assert_eq!(iter.as_slice(), expected);
+        assert_eq!(iter.as_mut_slice(), expected);
+    }
+}

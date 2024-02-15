@@ -775,8 +775,6 @@ where
     }
 }
 
-eq_impl::impl_for!(Soa<T>);
-
 impl<T> fmt::Debug for Soa<T>
 where
     T: Soapy + fmt::Debug,
@@ -895,3 +893,5 @@ where
         &mut self.slice
     }
 }
+
+eq_impl::impl_for!(Soa<T>);
