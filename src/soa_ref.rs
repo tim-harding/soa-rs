@@ -64,6 +64,33 @@ where
     }
 }
 
+impl<'a, T> AsRef<T::Ref<'a>> for Ref<'a, T>
+where
+    T: Soapy,
+{
+    fn as_ref(&self) -> &T::Ref<'a> {
+        &self.0
+    }
+}
+
+impl<'a, T> AsRef<T::RefMut<'a>> for RefMut<'a, T>
+where
+    T: Soapy,
+{
+    fn as_ref(&self) -> &T::RefMut<'a> {
+        &self.0
+    }
+}
+
+impl<'a, T> AsMut<T::RefMut<'a>> for RefMut<'a, T>
+where
+    T: Soapy,
+{
+    fn as_mut(&mut self) -> &mut T::RefMut<'a> {
+        &mut self.0
+    }
+}
+
 macro_rules! ref_impls {
     ($t:ident) => {
         impl<'a, T> WithRef for $t<'a, T>
