@@ -677,3 +677,21 @@ where
         unsafe { transmute(self) }
     }
 }
+
+impl<T> AsRef<Slice<T>> for Slice<T>
+where
+    T: Soapy,
+{
+    fn as_ref(&self) -> &Self {
+        self
+    }
+}
+
+impl<T> AsMut<Slice<T>> for Slice<T>
+where
+    T: Soapy,
+{
+    fn as_mut(&mut self) -> &mut Self {
+        self
+    }
+}

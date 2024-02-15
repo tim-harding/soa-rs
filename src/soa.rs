@@ -840,6 +840,24 @@ where
     }
 }
 
+impl<T> AsRef<Self> for Soa<T>
+where
+    T: Soapy,
+{
+    fn as_ref(&self) -> &Self {
+        self
+    }
+}
+
+impl<T> AsMut<Self> for Soa<T>
+where
+    T: Soapy,
+{
+    fn as_mut(&mut self) -> &mut Self {
+        self
+    }
+}
+
 impl<T> Deref for Soa<T>
 where
     T: Soapy,
