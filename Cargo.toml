@@ -1,6 +1,6 @@
 [package]
 name = "soapy"
-version = "0.2.2"
+version = "0.2.4"
 edition = "2021"
 license = "MIT"
 description = "Structure-of-arrays derive macro"
@@ -16,4 +16,4 @@ debug = true
 members = ["soapy-derive", "soapy-testing"]
 
 [dependencies]
-soapy-derive = { path = "soapy-derive", version = "0.2.0" }
+soapy-derive = { path = "soapy-derive", version = "0.2.3" }
