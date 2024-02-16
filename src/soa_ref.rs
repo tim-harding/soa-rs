@@ -116,10 +116,10 @@ macro_rules! ref_impls {
             }
         }
 
-        impl<'a, T, R> PartialEq<R> for $t<'a, T>
+        impl<'a, T, U, R> PartialEq<R> for $t<'a, T>
         where
-            T: Soapy + PartialEq,
-            R: WithRef<Item = T>,
+            T: Soapy + PartialEq<U>,
+            R: WithRef<Item = U>,
         {
             fn eq(&self, other: &R) -> bool {
                 self.with_ref(|me| other.with_ref(|them| me.eq(them)))
@@ -128,10 +128,10 @@ macro_rules! ref_impls {
 
         impl<'a, T> Eq for $t<'a, T> where T: 'a + Soapy + Eq {}
 
-        impl<'a, T, R> PartialOrd<R> for $t<'a, T>
+        impl<'a, T, U, R> PartialOrd<R> for $t<'a, T>
         where
-            T: Soapy + PartialOrd,
-            R: WithRef<Item = T>,
+            T: Soapy + PartialOrd<U>,
+            R: WithRef<Item = U>,
         {
             fn partial_cmp(&self, other: &R) -> Option<std::cmp::Ordering> {
                 self.with_ref(|me| other.with_ref(|them| me.partial_cmp(them)))
