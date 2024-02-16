@@ -39,6 +39,18 @@ impl Vec4 {
     }
 }
 
+impl Vec4 {
+    fn dot(&self, other: &Self) -> f32 {
+        self.0 * other.0 + self.1 * other.1 + self.2 * other.2 + self.3 * other.3
+    }
+}
+
+impl<'a> Vec4SoaRef<'a> {
+    fn dot(&self, other: &Self) -> f32 {
+        self.0 * other.0 + self.1 * other.1 + self.2 * other.2 + self.3 * other.3
+    }
+}
+
 fn make_vec4_list<T>(rng: &mut Rng, count: usize) -> T
 where
     T: FromIterator<Vec4>,
@@ -361,13 +373,7 @@ fn criterion_benchmark(c: &mut Criterion) {
             soa1.chunks_exact(8)
                 .zip(soa2.chunks_exact(8))
                 .fold([0.; 8], |acc, (a, b)| {
-                    std::array::from_fn(|i| {
-                        acc[i]
-                            + a.idx(i).0 * b.idx(i).0
-                            + a.idx(i).1 * b.idx(i).1
-                            + a.idx(i).2 * b.idx(i).2
-                            + a.idx(i).3 * b.idx(i).3
-                    })
+                    std::array::from_fn(|i| acc[i] + a.idx(i).dot(&b.idx(i)))
                 })
                 .into_iter()
                 .sum::<f32>()
@@ -381,7 +387,7 @@ fn criterion_benchmark(c: &mut Criterion) {
                 [0.; 8],
                 |acc, (a, b)| {
                     std::array::from_fn(|i| {
-                        acc[i] + a[i].0 * b[i].0 + a[i].1 * b[i].1 + a[i].2 * b[i].2 + a[i].3 * b[i].3
+                        acc[i] + a[i].dot(&b[i])
                     })
                 },
             ).into_iter().sum::<f32>()
