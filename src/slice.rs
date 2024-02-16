@@ -521,11 +521,14 @@ trivial_ref_eq!(&mut [U; N], N);
 
 macro_rules! reflect_eq {
     ($t:ty $(,$N:tt)?) => {
-        impl<T $(,const $N: usize)?> PartialEq<Slice<T>> for $t
+        impl<T, U $(,const $N: usize)?> PartialEq<Slice<U>> for $t
         where
-            T: Soapy + PartialEq,
+            // TODO: Makes more sense to do
+            // T: PartialEq<U>,
+            // U: Soapy,
+            U: Soapy + PartialEq<T>,
         {
-            fn eq(&self, other: &Slice<T>) -> bool {
+            fn eq(&self, other: &Slice<U>) -> bool {
                 other.eq(self)
             }
         }
