@@ -587,11 +587,12 @@ where
     }
 }
 
-impl<T> PartialOrd for Slice<T>
+impl<T, U> PartialOrd<Slice<U>> for Slice<T>
 where
-    T: Soapy + PartialOrd,
+    T: Soapy + PartialOrd<U>,
+    U: Soapy,
 {
-    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+    fn partial_cmp(&self, other: &Slice<U>) -> Option<Ordering> {
         match self
             .iter()
             .zip(other.iter())

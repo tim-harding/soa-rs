@@ -784,11 +784,12 @@ where
     }
 }
 
-impl<T> PartialOrd for Soa<T>
+impl<T, U> PartialOrd<Soa<U>> for Soa<T>
 where
-    T: Soapy + PartialOrd,
+    T: Soapy + PartialOrd<U>,
+    U: Soapy,
 {
-    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+    fn partial_cmp(&self, other: &Soa<U>) -> Option<Ordering> {
         self.slice.partial_cmp(other)
     }
 }
