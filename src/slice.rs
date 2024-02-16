@@ -470,6 +470,20 @@ where
 
 impl<T> Eq for Slice<T> where T: Soapy + Eq {}
 
+impl<T, U> PartialEq<Slice<U>> for [T]
+where
+    T: PartialEq<U>,
+    U: Soapy,
+{
+    fn eq(&self, other: &Slice<U>) -> bool {
+        self.len() == other.len
+            && self
+                .iter()
+                .zip(other.iter())
+                .all(|(me, them)| them.with_ref(|them| me == them))
+    }
+}
+
 impl<T, U> PartialEq<[U]> for Slice<T>
 where
     T: Soapy + PartialEq<U>,
@@ -483,82 +497,73 @@ where
     }
 }
 
-impl<T, U> PartialEq<Vec<U>> for Slice<T>
-where
-    T: Soapy + PartialEq<U>,
-{
-    fn eq(&self, other: &Vec<U>) -> bool {
-        self.eq(other.as_slice())
-    }
+macro_rules! as_slice_eq {
+    ($t:ty $(,$N:tt)?) => {
+        impl<T, U $(,const $N: usize)?> PartialEq<$t> for Slice<U>
+        where
+            U: Soapy + PartialEq<T>,
+        {
+            fn eq(&self, other: &$t) -> bool {
+                self.eq(other.as_slice())
+            }
+        }
+
+        impl<T, U $(,const $N: usize)?> PartialEq<Slice<U>> for $t
+        where
+            T: PartialEq<U>,
+            U: Soapy,
+        {
+            fn eq(&self, other: &Slice<U>) -> bool {
+                self.as_slice().eq(other)
+            }
+        }
+    };
 }
 
-impl<T, U, const N: usize> PartialEq<[U; N]> for Slice<T>
-where
-    T: Soapy + PartialEq<U>,
-{
-    fn eq(&self, other: &[U; N]) -> bool {
-        self.eq(other.as_slice())
-    }
-}
+as_slice_eq!([T; N], N);
+as_slice_eq!(Vec<T>);
 
 macro_rules! trivial_ref_eq {
     ($t:ty $(,$N:tt)?) => {
-        impl<T, U $(,const $N: usize)?> PartialEq<$t> for Slice<T>
+        impl<T, U $(,const $N: usize)?> PartialEq<$t> for Slice<U>
         where
-            T: Soapy + PartialEq<U>,
+            U: Soapy + PartialEq<T>,
         {
             fn eq(&self, other: &$t) -> bool {
                 self.eq(*other)
             }
         }
-    };
-}
 
-trivial_ref_eq!(&[U]);
-trivial_ref_eq!(&mut [U]);
-trivial_ref_eq!(&[U; N], N);
-trivial_ref_eq!(&mut [U; N], N);
-
-macro_rules! reflect_eq {
-    ($t:ty $(,$N:tt)?) => {
         impl<T, U $(,const $N: usize)?> PartialEq<Slice<U>> for $t
         where
-            // TODO: Makes more sense to do
-            // T: PartialEq<U>,
-            // U: Soapy,
-            U: Soapy + PartialEq<T>,
+            T: PartialEq<U>,
+            U: Soapy,
         {
             fn eq(&self, other: &Slice<U>) -> bool {
-                other.eq(self)
+                (**self).eq(other)
             }
         }
     };
 }
 
-reflect_eq!(Vec<T>);
-reflect_eq!([T]);
-reflect_eq!(&[T]);
-reflect_eq!(&mut [T]);
-reflect_eq!([T; N], N);
-reflect_eq!(&[T; N], N);
-reflect_eq!(&mut [T; N], N);
+trivial_ref_eq!(&[T]);
+trivial_ref_eq!(&mut [T]);
+trivial_ref_eq!(&[T; N], N);
+trivial_ref_eq!(&mut [T; N], N);
 
 macro_rules! eq_for_slice_ref {
     ($t:ty) => {
-        eq_for_slice_ref!($t, Vec<T>);
-        eq_for_slice_ref!($t, [T]);
-        eq_for_slice_ref!($t, [T; N], N);
-        eq_for_slice_ref!($t, Slice<T>);
-        eq_for_slice_ref!($t, SliceRef<'_, T>);
-        eq_for_slice_ref!($t, SliceMut<'_, T>);
-        eq_for_slice_ref!($t, Soa<T>);
+        eq_for_slice_ref!($t, Vec<U>, T: Soapy + PartialEq<U>, U);
+        eq_for_slice_ref!($t, [U], T: Soapy + PartialEq<U>, U);
+        eq_for_slice_ref!($t, [U; N], T: Soapy + PartialEq<U>, U, const N: usize);
+        eq_for_slice_ref!($t, Slice<U>, T: Soapy + PartialEq<U>, U: Soapy);
+        eq_for_slice_ref!($t, SliceRef<'_, T>, T: Soapy + PartialEq); // TODO
+        eq_for_slice_ref!($t, SliceMut<'_, T>, T: Soapy + PartialEq); // TODO
+        eq_for_slice_ref!($t, Soa<T>, T: Soapy + PartialEq); // TODO
     };
 
-    ($t:ty, $s:ty $(,$N:tt)?) => {
-        impl<T $(,const $N: usize)?> PartialEq<$s> for $t
-        where
-            T: Soapy + PartialEq,
-        {
+    ($t:ty, $s:ty, $($b:tt)+) => {
+        impl<$($b)+> PartialEq<$s> for $t {
             fn eq(&self, other: &$s) -> bool {
                 <Slice<T> as PartialEq<$s>>::eq(*self, other)
             }

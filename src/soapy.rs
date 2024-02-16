@@ -9,7 +9,7 @@ use crate::{SoaRaw, WithRef};
 ///
 /// [`Slice<Self::Raw>`]: crate::Slice
 /// [`Soa`]: crate::Soa
-pub unsafe trait Soapy: Sized {
+pub unsafe trait Soapy: WithRef {
     /// Implements internal, unsafe, low-level routines used by [`Soa`]
     ///
     /// [`Soa`]: crate::Soa
