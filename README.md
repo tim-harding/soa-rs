@@ -30,24 +30,23 @@ let mut soa = soa![
 assert_eq!(soa.foo(), [1, 3]);
 assert_eq!(soa.bar(), [2, 4]);
 
-// Normal Vec stuff works
-soa.insert(0, Baz { foo: 5, bar: 6 });
-assert_eq!(soa.pop(), Some(Baz { foo: 3, bar: 4 }));
-assert_eq!(soa.foo(), [5, 1]);
-for mut el in &mut soa {
-    *el.foo += 10;
-}
-assert_eq!(soa.foo(), [15, 11]);
-
-// Tuple structs are okay too
+// Tuple structs work too
 #[derive(Soapy, PartialEq, Debug)]
 struct Tuple(u16, u8);
 let tuple = soa![Tuple(1, 2), Tuple(3, 4), Tuple(5, 6), Tuple(7, 8)];
-assert_eq!(tuple.f0(), [1, 3, 5, 7]);
 
-// SoA can be sliced and indexed like other slices
+// SoA can be sliced and indexed like normal slices
 assert_eq!(tuple.idx(1..3), [Tuple(3, 4), Tuple(5, 6)]);
 assert_eq!(tuple.idx(3), Tuple(7, 8));
+
+// Drop-in for Vec in many cases
+soa.insert(0, Baz { foo: 5, bar: 6 });
+assert_eq!(soa.pop(), Some(Baz { foo: 3, bar: 4 }));
+assert_eq!(soa, [Baz { foo: 5, bar: 6 }, Baz { foo: 1, bar: 2 }]);
+for mut el in &mut soa {
+    *el.foo += 10;
+}
+assert_eq!(soa, [Baz { foo: 15, bar: 6 }, Baz { foo: 11, bar: 2 }]);
 ```
 
 ## What is SoA?
