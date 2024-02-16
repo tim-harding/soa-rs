@@ -76,7 +76,7 @@ where
     }
 }
 
-eq_impl::impl_for!(SliceMut<'a, T>);
+eq_impl::impl_for!(SliceMut<'_, T>);
 
 impl<'a, T> Debug for SliceMut<'a, T>
 where

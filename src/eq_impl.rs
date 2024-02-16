@@ -1,10 +1,10 @@
 macro_rules! uni {
-    ($u:ty, $t:ty $(,$N:tt)?) => {
-        impl<'a, T $(,const $N: usize)?> PartialEq<$t> for $u
+    ($t:ty, $u:ty $(,$N:tt)?) => {
+        impl<T $(,const $N: usize)?> PartialEq<$u> for $t
         where
             T: Soapy + PartialEq,
         {
-            fn eq(&self, other: &$t) -> bool {
+            fn eq(&self, other: &$u) -> bool {
                 let me: &Slice<T> = self.as_ref();
                 me.eq(other)
             }
@@ -17,7 +17,7 @@ macro_rules! bi {
     ($t:ty, $u:ty $(,$N:tt)?) => {
         $crate::eq_impl::uni!($t, $u $(,$N)?);
 
-        impl<'a, T $(,const $N: usize)?> PartialEq<$t> for $u
+        impl<T $(,const $N: usize)?> PartialEq<$t> for $u
         where
             T: Soapy + PartialEq,
         {

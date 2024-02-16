@@ -105,4 +105,4 @@ where
     }
 }
 
-eq_impl::impl_for!(SliceRef<'a, T>);
+eq_impl::impl_for!(SliceRef<'_, T>);
