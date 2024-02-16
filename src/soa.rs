@@ -127,7 +127,7 @@ where
     ///
     /// ```
     /// # use soapy::{Soa, Soapy, soa};
-    /// # #[derive(Soapy, Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
+    /// # #[derive(Soapy, Debug, PartialEq)]
     /// # struct Foo(usize);
     /// let soa = Soa::with(Foo(10));
     /// assert_eq!(soa, [Foo(10)]);
@@ -207,7 +207,7 @@ where
     ///
     /// ```
     /// # use soapy::{Soa, Soapy, soa};
-    /// # #[derive(Soapy, Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
+    /// # #[derive(Soapy, Debug, PartialEq)]
     /// # struct Foo(usize);
     /// let mut soa = soa![Foo(1), Foo(2)];
     /// soa.push(Foo(3));
@@ -228,7 +228,7 @@ where
     ///
     /// ```
     /// # use soapy::{Soa, Soapy, soa};
-    /// # #[derive(Soapy, Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
+    /// # #[derive(Soapy, Debug, PartialEq)]
     /// # struct Foo(usize);
     /// let mut soa = soa![Foo(1), Foo(2), Foo(3)];
     /// assert_eq!(soa.pop(), Some(Foo(3)));
@@ -254,7 +254,7 @@ where
     ///
     /// ```
     /// # use soapy::{Soa, Soapy, soa};
-    /// # #[derive(Soapy, Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
+    /// # #[derive(Soapy, Debug, PartialEq)]
     /// # struct Foo(usize);
     /// let mut soa = soa![Foo(1), Foo(2), Foo(3)];
     /// soa.insert(1, Foo(4));
@@ -280,7 +280,7 @@ where
     ///
     /// ```
     /// # use soapy::{Soa, Soapy, soa};
-    /// # #[derive(Soapy, Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
+    /// # #[derive(Soapy, Debug, PartialEq)]
     /// # struct Foo(usize);
     /// let mut soa = soa![Foo(1), Foo(2), Foo(3)];
     /// assert_eq!(soa.remove(1), Foo(2));
@@ -307,7 +307,7 @@ where
     ///
     /// ```
     /// # use soapy::{Soa, Soapy, soa};
-    /// # #[derive(Soapy, Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
+    /// # #[derive(Soapy, Debug, PartialEq)]
     /// # struct Foo(usize);
     /// let mut soa = soa![Foo(1)];
     /// soa.reserve(10);
@@ -335,7 +335,7 @@ where
     ///
     /// ```
     /// # use soapy::{Soa, Soapy, soa};
-    /// # #[derive(Soapy, Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
+    /// # #[derive(Soapy, Debug, PartialEq)]
     /// # struct Foo(usize);
     /// let mut soa = soa![Foo(1)];
     /// soa.reserve(10);
@@ -355,7 +355,7 @@ where
     ///
     /// ```
     /// # use soapy::{Soa, Soapy, soa};
-    /// # #[derive(Soapy, Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
+    /// # #[derive(Soapy, Debug, PartialEq)]
     /// # struct Foo(usize);
     /// let mut soa = Soa::<Foo>::with_capacity(10);
     /// soa.extend([Foo(1), Foo(2), Foo(3)]);
@@ -377,7 +377,7 @@ where
     ///
     /// ```
     /// # use soapy::{Soa, Soapy, soa};
-    /// # #[derive(Soapy, Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
+    /// # #[derive(Soapy, Debug, PartialEq)]
     /// # struct Foo(usize);
     /// let mut soa = Soa::<Foo>::with_capacity(10);
     /// soa.extend([Foo(1), Foo(2), Foo(3)]);
@@ -404,7 +404,7 @@ where
     /// Truncating a five-element SOA to two elements:
     /// ```
     /// # use soapy::{Soa, Soapy, soa};
-    /// # #[derive(Soapy, Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
+    /// # #[derive(Soapy, Debug, PartialEq)]
     /// # struct Foo(usize);
     /// let mut soa = soa![Foo(1), Foo(2), Foo(3), Foo(4), Foo(5)];
     /// soa.truncate(2);
@@ -415,7 +415,7 @@ where
     /// length:
     /// ```
     /// # use soapy::{Soa, Soapy, soa};
-    /// # #[derive(Soapy, Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
+    /// # #[derive(Soapy, Debug, PartialEq)]
     /// # struct Foo(usize);
     /// let mut soa = soa![Foo(1), Foo(2), Foo(3)];
     /// soa.truncate(8);
@@ -425,7 +425,7 @@ where
     /// Truncating with `len == 0` is equivalent to [`Soa::clear`].
     /// ```
     /// # use soapy::{Soa, Soapy, soa};
-    /// # #[derive(Soapy, Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
+    /// # #[derive(Soapy, Debug, PartialEq)]
     /// # struct Foo(usize);
     /// let mut soa = soa![Foo(1), Foo(2), Foo(3)];
     /// soa.truncate(0);
@@ -451,7 +451,7 @@ where
     ///
     /// ```
     /// # use soapy::{Soa, Soapy, soa};
-    /// # #[derive(Soapy, Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
+    /// # #[derive(Soapy, Debug, PartialEq)]
     /// # struct Foo(usize);
     /// let mut soa = soa![Foo(0), Foo(1), Foo(2), Foo(3)];
     ///
@@ -481,7 +481,7 @@ where
     ///
     /// ```
     /// # use soapy::{Soa, Soapy, soa};
-    /// # #[derive(Soapy, Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
+    /// # #[derive(Soapy, Debug, PartialEq)]
     /// # struct Foo(usize);
     /// let mut soa1  = soa![Foo(1), Foo(2), Foo(3)];
     /// let mut soa2 = soa![Foo(4), Foo(5), Foo(6)];
@@ -507,7 +507,7 @@ where
     ///
     /// ```
     /// # use soapy::{Soa, Soapy, soa};
-    /// # #[derive(Soapy, Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
+    /// # #[derive(Soapy, Debug, PartialEq)]
     /// # struct Foo(usize);
     /// let mut soa = soa![Foo(1), Foo(2)];
     /// soa.clear();
@@ -525,7 +525,7 @@ where
     ///
     /// ```
     /// # use soapy::{Soa, Soapy, soa};
-    /// # #[derive(Soapy, Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
+    /// # #[derive(Soapy, Debug, PartialEq)]
     /// # struct Foo(usize);
     /// let soa = soa![Foo(10), Foo(20)];
     /// assert_eq!(soa.as_slice(), soa.get(..).unwrap());
@@ -542,7 +542,7 @@ where
     ///
     /// ```
     /// # use soapy::{Soa, Soapy, soa};
-    /// # #[derive(Soapy, Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
+    /// # #[derive(Soapy, Debug, PartialEq)]
     /// # struct Foo(usize);
     /// let mut soa = soa![Foo(10), Foo(20)];
     /// soa.as_mut_slice().f0_mut()[0] = 30;
