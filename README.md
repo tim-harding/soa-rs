@@ -8,35 +8,6 @@ Soapy makes it simple to work with the structure-of-arrays memory layout. What
 `Vec<T>` is to array-of-structures (AoS), `Soa<T>` is to structure-of-arrays
 (SoA).
 
-## What is SoA?
-
-The following types illustrate the difference between AoS and SoA:
-```text
-[(u8,   u64)] // AoS
-([u8], [u64]) // SoA
-```
-
-Whereas AoS stores all the fields of a type in each element of the array,
-SoA splits each field into its own array. This has several benefits:
-
-- There is no padding required between instances of the same type. In the
-above example, each AoS element requires 128 bits to satisfy memory
-alignment requirements, whereas each SoA element only takes 72. This can
-mean better cache locality and lower memory usage.
-- SoA can be more amenable to vectorization. With SoA, multiple values can
-be directly loaded into SIMD registers in bulk, as opposed to shuffling
-struct fields into and out of different SIMD registers.
-
-SoA is a popular technique in data-oriented design. Andrew Kelley gives a
-wonderful [talk](https://vimeo.com/649009599) describing how SoA and other
-data-oriented design patterns earned him a 39% reduction in wall clock time
-in the Zig compiler.
-
-Note that SoA does not offer performance wins in all cases. SoA is most
-appropriate when either
-- Sequential access is the common access pattern
-- You are frequently accessing or modifying only a subset of the fields
-
 ## Example
 
 ```rust
@@ -52,7 +23,7 @@ struct Baz {
 // Create the SoA
 let mut soa = soa![
     Baz { foo: 1, bar: 2 }, 
-    Baz { foo: 3, bar: 4 }
+    Baz { foo: 3, bar: 4 },
 ];
 
 // Each field has a slice
@@ -79,18 +50,96 @@ assert_eq!(tuple.idx(1..3), [Tuple(3, 4), Tuple(5, 6)]);
 assert_eq!(tuple.idx(3), Tuple(7, 8));
 ```
 
+## What is SoA?
+
+The following types illustrate the difference between AoS and SoA:
+```rust
+type AoS = [(u8,   u64)]
+type SoA = ([u8], [u64])
+```
+
+Whereas AoS stores all the fields of a type in each element of the array,
+SoA splits each field into its own array. For example, consider 
+
+```rust
+struct Example {
+    foo: u8,
+    bar: u64,
+}
+```
+
+In order to have proper memory alignment, this struct will have the following
+layout. In this extreme example, almost half of the memory is wasted to padding.
+```
+╭───┬───────────────────────────┬───────────────────────────────╮
+│foo│         padding           │              bar              │
+╰───┴───────────────────────────┴───────────────────────────────╯
+```
+
+By using SoA, the fields will be stored separately, removing the need for
+padding:
+```
+╭───┬───┬───┬───┬───┬───┬───┬───┬───┬───┬───┬───┬───┬───┬───┬───┬┄
+│foo│foo│foo│foo│foo│foo│foo│foo│foo│foo│foo│foo│foo│foo│foo│foo│
+╰───┴───┴───┴───┴───┴───┴───┴───┴───┴───┴───┴───┴───┴───┴───┴───┴┄
+╭───────────────────────────────┬───────────────────────────────┬┄
+│             bar               │              bar              │
+╰───────────────────────────────┴───────────────────────────────┴┄
+```
+
+## Performance
+
+In addition to lowering memory usage, there are several reasons why SoA can
+offer better performance:
+
+- By removing padding, each cacheline is typically more information-dense.
+- When accessing only a subset of the available fields, only data for those
+fields will be fetched. 
+
+SoA does not offer performance wins in all cases. In particular, operations such
+as `push` and `pop` are usually slower than for `Vec` since the memory for each
+
+field is far apart. SoA is most appropriate when either
+- Sequential access is the common access pattern
+- You are frequently accessing or modifying only a subset of the fields
+
+### SIMD vectorization
+
+SoA makes getting data into and out of SIMD registers trivial. Since values are
+stored sequentially, loading data is as simple as reading a range of memory into
+the register. This bulk data transfer is very amenable to auto-vectorization. In
+contrast, AoS stores fields at disjoint locations in memory. Therefore,
+individual fields must be individually copied to different positions within the
+registers and, later, shuffled back out in the same way. This can prevent the
+compiler from applying vectorization. For this reason, SoA is much more likely
+to benefit from SIMD optimizations. 
+
+### Examples
+
+#### Zig
+
+SoA is a popular technique in data-oriented design. Andrew Kelley gives a
+wonderful [talk](https://vimeo.com/649009599) describing how SoA and other
+data-oriented design patterns earned him a 39% reduction in wall clock time
+in the Zig compiler.
+
+#### Benchmark
+
+`soapy-testing` contains a
+[benchmark](https://github.com/tim-harding/soapy/blob/92c12415d1fb8b9f2a015b35ff02a23b0e3aaa96/soapy-testing/benches/benchmark.rs#L82-L88)
+comparison that sums the dot products of 2¹⁶ 4D vectors. The `Vec` version runs
+in 132µs and the `Soa` version runs in 22µs, a 6x improvement. 
+
 ## Comparison
 
 ### [`soa_derive`](https://docs.rs/soa_derive/latest/soa_derive/)
 
 `soa_derive` makes each field its own `Vec`. Because of this, each field's
 length, capacity, and allocation are managed separately. In contrast, Soapy
-manages a single allocation for each `Soa`. This uses less space and allows
-the collection to grow and shrink more efficiently. `soa_derive` also
-generates a new collection type for every struct, whereas Soapy generates a
-minimal, low-level interface and uses the generic `Soa` type for the
-majority of the implementation. This provides more type system flexibility,
-less code generation, and more accessible documentation.
+manages a single allocation for each `Soa`. `soa_derive` also generates a new
+collection type for every struct, whereas Soapy generates a minimal, low-level
+interface that the generic `Soa` type uses for its implementation. This provides
+more type system flexibility, less code generation, and better documentation.
 
 ### [`soa-vec`](https://docs.rs/soa-vec/latest/soa_vec/)
 
