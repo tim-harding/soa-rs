@@ -530,8 +530,8 @@ where
     /// let soa = soa![Foo(10), Foo(20)];
     /// assert_eq!(soa.as_slice(), soa.get(..).unwrap());
     /// ```
-    pub fn as_slice(&self) -> SliceRef<'_, T> {
-        SliceRef(self.slice, PhantomData)
+    pub fn as_slice(&self) -> &Slice<T> {
+        &self.slice
     }
 
     /// Extracts a mutable slice with the entire container's contents.
@@ -548,8 +548,8 @@ where
     /// soa.as_mut_slice().f0_mut()[0] = 30;
     /// assert_eq!(soa, [Foo(30), Foo(20)]);
     /// ```
-    pub fn as_mut_slice(&mut self) -> SliceMut<'_, T> {
-        SliceMut(self.slice, PhantomData)
+    pub fn as_mut_slice(&mut self) -> &mut Slice<T> {
+        &mut self.slice
     }
 
     /// Grows the allocated capacity if `len == cap`.

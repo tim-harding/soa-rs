@@ -52,12 +52,6 @@ assert_eq!(tuple.idx(3), Tuple(7, 8));
 
 ## What is SoA?
 
-The following types illustrate the difference between AoS and SoA:
-```rust
-type AoS = [(u8,   u64)]
-type SoA = ([u8], [u64])
-```
-
 Whereas AoS stores all the fields of a type in each element of the array,
 SoA splits each field into its own array. For example, consider 
 
@@ -70,7 +64,8 @@ struct Example {
 
 In order to have proper memory alignment, this struct will have the following
 layout. In this extreme example, almost half of the memory is wasted to padding.
-```
+
+```text
 ╭───┬───────────────────────────┬───────────────────────────────╮
 │foo│         padding           │              bar              │
 ╰───┴───────────────────────────┴───────────────────────────────╯
@@ -78,7 +73,8 @@ layout. In this extreme example, almost half of the memory is wasted to padding.
 
 By using SoA, the fields will be stored separately, removing the need for
 padding:
-```
+
+```text
 ╭───┬───┬───┬───┬───┬───┬───┬───┬───┬───┬───┬───┬───┬───┬───┬───┬┄
 │foo│foo│foo│foo│foo│foo│foo│foo│foo│foo│foo│foo│foo│foo│foo│foo│
 ╰───┴───┴───┴───┴───┴───┴───┴───┴───┴───┴───┴───┴───┴───┴───┴───┴┄
