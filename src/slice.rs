@@ -557,9 +557,9 @@ macro_rules! eq_for_slice_ref {
         eq_for_slice_ref!($t, [U], T: Soapy + PartialEq<U>, U);
         eq_for_slice_ref!($t, [U; N], T: Soapy + PartialEq<U>, U, const N: usize);
         eq_for_slice_ref!($t, Slice<U>, T: Soapy + PartialEq<U>, U: Soapy);
-        eq_for_slice_ref!($t, SliceRef<'_, T>, T: Soapy + PartialEq); // TODO
-        eq_for_slice_ref!($t, SliceMut<'_, T>, T: Soapy + PartialEq); // TODO
-        eq_for_slice_ref!($t, Soa<T>, T: Soapy + PartialEq); // TODO
+        eq_for_slice_ref!($t, SliceRef<'_, U>, T: Soapy + PartialEq<U>, U: Soapy);
+        eq_for_slice_ref!($t, SliceMut<'_, U>, T: Soapy + PartialEq<U>, U: Soapy);
+        eq_for_slice_ref!($t, Soa<U>, T: Soapy + PartialEq<U>, U: Soapy);
     };
 
     ($t:ty, $s:ty, $($b:tt)+) => {

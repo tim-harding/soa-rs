@@ -177,7 +177,7 @@ where
     /// # struct Foo(usize);
     /// let soa = soa![Foo(1), Foo(2)];
     /// let (ptr, len, cap) = soa.into_raw_parts();
-    /// let rebuilt = unsafe { Soa::from_raw_parts(ptr, len, cap) };
+    /// let rebuilt = unsafe { Soa::<Foo>::from_raw_parts(ptr, len, cap) };
     /// assert_eq!(rebuilt, [Foo(1), Foo(2)]);
     /// ```
     pub fn into_raw_parts(self) -> (*mut u8, usize, usize) {
