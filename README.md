@@ -94,8 +94,8 @@ fields will be fetched.
 
 SoA does not offer performance wins in all cases. In particular, operations such
 as `push` and `pop` are usually slower than for `Vec` since the memory for each
-
 field is far apart. SoA is most appropriate when either
+
 - Sequential access is the common access pattern
 - You are frequently accessing or modifying only a subset of the fields
 
