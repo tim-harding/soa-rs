@@ -458,22 +458,23 @@ where
     }
 }
 
-impl<T> PartialEq for Slice<T>
+impl<T, U> PartialEq<Slice<U>> for Slice<T>
 where
-    T: Soapy + PartialEq,
+    T: Soapy + PartialEq<U>,
+    U: Soapy,
 {
-    fn eq(&self, other: &Self) -> bool {
+    fn eq(&self, other: &Slice<U>) -> bool {
         self.len == other.len && self.iter().zip(other.iter()).all(|(me, them)| me == them)
     }
 }
 
 impl<T> Eq for Slice<T> where T: Soapy + Eq {}
 
-impl<T> PartialEq<[T]> for Slice<T>
+impl<T, U> PartialEq<[U]> for Slice<T>
 where
-    T: Soapy + PartialEq,
+    T: Soapy + PartialEq<U>,
 {
-    fn eq(&self, other: &[T]) -> bool {
+    fn eq(&self, other: &[U]) -> bool {
         self.len == other.len()
             && self
                 .iter()
@@ -482,29 +483,29 @@ where
     }
 }
 
-impl<T> PartialEq<Vec<T>> for Slice<T>
+impl<T, U> PartialEq<Vec<U>> for Slice<T>
 where
-    T: Soapy + PartialEq,
+    T: Soapy + PartialEq<U>,
 {
-    fn eq(&self, other: &Vec<T>) -> bool {
+    fn eq(&self, other: &Vec<U>) -> bool {
         self.eq(other.as_slice())
     }
 }
 
-impl<T, const N: usize> PartialEq<[T; N]> for Slice<T>
+impl<T, U, const N: usize> PartialEq<[U; N]> for Slice<T>
 where
-    T: Soapy + PartialEq,
+    T: Soapy + PartialEq<U>,
 {
-    fn eq(&self, other: &[T; N]) -> bool {
+    fn eq(&self, other: &[U; N]) -> bool {
         self.eq(other.as_slice())
     }
 }
 
 macro_rules! trivial_ref_eq {
     ($t:ty $(,$N:tt)?) => {
-        impl<T $(,const $N: usize)?> PartialEq<$t> for Slice<T>
+        impl<T, U $(,const $N: usize)?> PartialEq<$t> for Slice<T>
         where
-            T: Soapy + PartialEq,
+            T: Soapy + PartialEq<U>,
         {
             fn eq(&self, other: &$t) -> bool {
                 self.eq(*other)
@@ -513,10 +514,10 @@ macro_rules! trivial_ref_eq {
     };
 }
 
-trivial_ref_eq!(&[T]);
-trivial_ref_eq!(&mut [T]);
-trivial_ref_eq!(&[T; N], N);
-trivial_ref_eq!(&mut [T; N], N);
+trivial_ref_eq!(&[U]);
+trivial_ref_eq!(&mut [U]);
+trivial_ref_eq!(&[U; N], N);
+trivial_ref_eq!(&mut [U; N], N);
 
 macro_rules! reflect_eq {
     ($t:ty $(,$N:tt)?) => {
