@@ -530,3 +530,15 @@ fn iterator_fold() {
     let expected = ABCDE.into_iter().fold(0, fold);
     assert_eq!(actual, expected);
 }
+
+#[test]
+fn chunks_exact() {
+    let soa: Soa<_> = ABCDE.into_iter().cycle().take(19).collect();
+    let vec: Vec<_> = ABCDE.into_iter().cycle().take(19).collect();
+    let mut soa_iter = soa.chunks_exact(4);
+    let mut vec_iter = vec.chunks_exact(4);
+    for _ in 0..(19 / 4) {
+        assert_option_eq(soa_iter.next(), vec_iter.next());
+    }
+    assert_eq!(soa_iter.remainder(), vec_iter.remainder());
+}
