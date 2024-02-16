@@ -70,11 +70,9 @@ pub fn fields_struct(
     let ty_tail: Vec<_> = ty_all.iter().skip(1).cloned().collect();
     let ident_tail: Vec<_> = ident_all.iter().skip(1).cloned().collect();
 
-    let deref = format_ident!("{ident}SoaDeref");
-    let item_ref = format_ident!("{ident}SoaRef");
-    let item_ref_mut = format_ident!("{ident}SoaRefMut");
-    let slices = format_ident!("{ident}SoaSlices");
-    let slices_mut = format_ident!("{ident}SoaSlicesMut");
+    let deref = format_ident!("{ident}Deref");
+    let item_ref = format_ident!("{ident}Ref");
+    let item_ref_mut = format_ident!("{ident}RefMut");
     let raw = format_ident!("{ident}SoaRaw");
 
     let mut out = TokenStream::new();
@@ -126,16 +124,6 @@ pub fn fields_struct(
             },
         }
     };
-
-    let slices_def = define(&|ty| quote! { &'a [#ty] });
-    out.append_all(quote! {
-        #vis struct #slices<'a> #slices_def
-    });
-
-    let slices_mut_def = define(&|ty| quote! { &'a mut [#ty] });
-    out.append_all(quote! {
-        #vis struct #slices_mut<'a> #slices_mut_def
-    });
 
     let item_ref_def = define(&|ty| quote! { &'a #ty });
     out.append_all(quote! {
