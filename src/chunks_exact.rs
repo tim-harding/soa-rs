@@ -1,4 +1,4 @@
-use crate::{Slice, SoaRaw, Soapy};
+use crate::{Slice, SliceRef, SoaRaw, Soapy};
 use std::marker::PhantomData;
 
 /// An iterator over a [`Slice`] in (non-overlapping) chunks of `chunk_size`
@@ -16,20 +16,34 @@ pub struct ChunksExact<'a, T>
 where
     T: 'a + Soapy,
 {
-    pub(crate) slice: Slice<T, ()>,
-    pub(crate) len: usize,
-    pub(crate) chunk_size: usize,
-    pub(crate) _marker: PhantomData<&'a T>,
+    slice: Slice<T, ()>,
+    remainder: SliceRef<'a, T>,
+    parts_remaining: usize,
+    chunk_size: usize,
 }
 
 impl<'a, T> ChunksExact<'a, T>
 where
     T: Soapy,
 {
+    pub(crate) fn new(slice: &'a Slice<T>, chunk_size: usize) -> Self {
+        let len = slice.len();
+        let rem_len = len % chunk_size;
+        let fst_len = len - rem_len;
+        let remainder = slice.idx(fst_len..);
+        let slice = unsafe { slice.as_sized() };
+        Self {
+            slice,
+            remainder,
+            parts_remaining: fst_len / chunk_size,
+            chunk_size,
+        }
+    }
+
     /// Returns the remainder of the original slice that has not been yielded by
     /// the iterator.
     pub fn remainder(&self) -> &Slice<T> {
-        unsafe { self.slice.as_unsized(self.len) }
+        self.remainder.as_ref()
     }
 }
 
@@ -37,14 +51,18 @@ impl<'a, T> Iterator for ChunksExact<'a, T>
 where
     T: Soapy,
 {
-    type Item = &'a Slice<T>;
+    type Item = SliceRef<'a, T>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        if self.len < self.chunk_size {
+        if self.parts_remaining == 0 {
             None
         } else {
-            let out = unsafe { self.slice.as_unsized(self.len) };
-            self.len -= self.chunk_size;
+            let out = SliceRef {
+                slice: self.slice,
+                len: self.chunk_size,
+                marker: PhantomData,
+            };
+            self.parts_remaining -= 1;
             self.slice
                 .set_raw(unsafe { self.slice.raw().offset(self.chunk_size) });
             Some(out)

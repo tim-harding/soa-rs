@@ -40,14 +40,6 @@ where
     T: Soapy,
 {
     /// Constructs a new, empty `Slice<T>`.
-    ///
-    /// # Examples
-    /// ```
-    /// # use soapy::{Slice, Soapy};
-    /// # #[derive(Soapy)]
-    /// # struct Foo;
-    /// let mut slice = Slice::<Foo>::empty();
-    /// ```
     pub(crate) fn empty() -> Self {
         Self(Dst(<T::Raw as SoaRaw>::dangling(), ()))
     }
@@ -437,12 +429,7 @@ where
             panic!("chunk size must be nonzero")
         }
 
-        ChunksExact {
-            chunk_size,
-            slice: unsafe { self.as_sized() },
-            len: self.len(),
-            _marker: PhantomData,
-        }
+        ChunksExact::new(self, chunk_size)
     }
 
     pub(crate) const unsafe fn as_sized(&self) -> Slice<T, ()> {
