@@ -4,6 +4,7 @@ use syn::Visibility;
 
 pub fn zst_struct(ident: Ident, vis: Visibility, kind: ZstKind) -> TokenStream {
     let raw = format_ident!("{ident}SoaRaw");
+    let deref = format_ident!("{ident}Deref");
     let unit_construct = match kind {
         ZstKind::Unit => quote! {},
         ZstKind::Empty => quote! { {} },
@@ -14,9 +15,26 @@ pub fn zst_struct(ident: Ident, vis: Visibility, kind: ZstKind) -> TokenStream {
         #[automatically_derived]
         unsafe impl ::soapy::Soapy for #ident {
             type Raw = #raw;
-            type Deref = ();
+            type Deref = #deref;
             type Ref<'a> = #ident;
             type RefMut<'a> = #ident;
+        }
+
+        // TODO: Consolidate duplication from fields
+        #[automatically_derived]
+        #[repr(transparent)]
+        #vis struct #deref(::soapy::Slice<#ident>);
+
+        impl ::soapy::SoaDeref for #deref {
+            type Item = #ident;
+
+            fn from_slice(slice: &::soapy::Slice<Self::Item>) -> &Self {
+                unsafe { ::std::mem::transmute(slice) }
+            }
+
+            fn from_slice_mut(slice: &mut ::soapy::Slice<Self::Item>) -> &mut Self {
+                unsafe { ::std::mem::transmute(slice) }
+            }
         }
 
         #[automatically_derived]

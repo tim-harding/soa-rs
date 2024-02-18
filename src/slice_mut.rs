@@ -12,17 +12,21 @@ use std::{
 /// A `SliceMut` is a thin wrapper over a [`Slice`] that applies the same
 /// borrowing rules as a mutable reference. It is semantically equivalent to
 /// `&mut Slice`.
-#[repr(transparent)]
-pub struct SliceMut<'a, T>(pub(crate) Slice<T>, pub(crate) PhantomData<&'a mut T>)
+pub struct SliceMut<'a, T>
 where
-    T: 'a + Soapy;
+    T: 'a + Soapy,
+{
+    pub(crate) slice: Slice<T, ()>,
+    pub(crate) len: usize,
+    pub(crate) marker: PhantomData<&'a mut T>,
+}
 
 impl<'a, T> AsRef<Slice<T>> for SliceMut<'a, T>
 where
     T: Soapy,
 {
     fn as_ref(&self) -> &Slice<T> {
-        &self.0
+        self.deref()
     }
 }
 
@@ -31,7 +35,7 @@ where
     T: Soapy,
 {
     fn as_mut(&mut self) -> &mut Slice<T> {
-        &mut self.0
+        self.deref_mut()
     }
 }
 
@@ -42,7 +46,7 @@ where
     type Target = Slice<T>;
 
     fn deref(&self) -> &Self::Target {
-        &self.0
+        unsafe { self.slice.as_unsized(self.len) }
     }
 }
 
@@ -51,7 +55,7 @@ where
     T: Soapy,
 {
     fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.0
+        unsafe { self.slice.as_unsized_mut(self.len) }
     }
 }
 
@@ -65,10 +69,8 @@ where
     fn into_iter(self) -> Self::IntoIter {
         IterMut {
             iter_raw: IterRaw {
-                slice: Slice {
-                    raw: self.raw,
-                    len: self.len,
-                },
+                slice: Slice::with_raw(self.raw()),
+                len: self.len(),
                 adapter: PhantomData,
             },
             _marker: PhantomData,
@@ -83,7 +85,7 @@ where
     T: Soapy + Debug,
 {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        self.0.fmt(f)
+        self.as_ref().fmt(f)
     }
 }
 
@@ -92,7 +94,7 @@ where
     T: Soapy + PartialOrd,
 {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        self.0.partial_cmp(&other.0)
+        self.as_ref().partial_cmp(other.as_ref())
     }
 }
 
@@ -101,7 +103,7 @@ where
     T: Soapy + Ord,
 {
     fn cmp(&self, other: &Self) -> Ordering {
-        self.0.cmp(&other.0)
+        self.as_ref().cmp(other.as_ref())
     }
 }
 
@@ -110,6 +112,6 @@ where
     T: Soapy + Hash,
 {
     fn hash<H: Hasher>(&self, state: &mut H) {
-        self.0.hash(state)
+        self.as_ref().hash(state)
     }
 }

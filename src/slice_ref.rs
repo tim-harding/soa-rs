@@ -12,10 +12,14 @@ use std::{
 /// A `SliceRef` is a thin wrapper over a [`Slice`] that applies the same
 /// borrowing rules as an immutable reference. It is semantically equivalent to
 /// `&Slice`.
-#[repr(transparent)]
-pub struct SliceRef<'a, T>(pub(crate) Slice<T>, pub(crate) PhantomData<&'a T>)
+pub struct SliceRef<'a, T>
 where
-    T: 'a + Soapy;
+    T: 'a + Soapy,
+{
+    pub(crate) slice: Slice<T, ()>,
+    pub(crate) len: usize,
+    pub(crate) marker: PhantomData<&'a T>,
+}
 
 impl<'a, T> Clone for SliceRef<'a, T>
 where
@@ -33,7 +37,7 @@ where
     T: Soapy,
 {
     fn as_ref(&self) -> &Slice<T> {
-        &self.0
+        unsafe { self.slice.as_unsized(self.len) }
     }
 }
 
@@ -44,7 +48,7 @@ where
     type Target = Slice<T>;
 
     fn deref(&self) -> &Self::Target {
-        &self.0
+        self.as_ref()
     }
 }
 
@@ -58,10 +62,8 @@ where
     fn into_iter(self) -> Self::IntoIter {
         Iter {
             iter_raw: IterRaw {
-                slice: Slice {
-                    raw: self.raw,
-                    len: self.len,
-                },
+                slice: Slice::with_raw(self.raw()),
+                len: self.len(),
                 adapter: PhantomData,
             },
             _marker: PhantomData,
@@ -74,7 +76,7 @@ where
     T: Soapy + Debug,
 {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        self.0.fmt(f)
+        self.as_ref().fmt(f)
     }
 }
 
@@ -83,7 +85,7 @@ where
     T: Soapy + PartialOrd,
 {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        self.0.partial_cmp(&other.0)
+        self.as_ref().partial_cmp(other.as_ref())
     }
 }
 
@@ -92,7 +94,7 @@ where
     T: Soapy + Ord,
 {
     fn cmp(&self, other: &Self) -> Ordering {
-        self.0.cmp(&other.0)
+        self.as_ref().cmp(other.as_ref())
     }
 }
 
@@ -101,7 +103,7 @@ where
     T: Soapy + Hash,
 {
     fn hash<H: Hasher>(&self, state: &mut H) {
-        self.0.hash(state)
+        self.as_ref().hash(state)
     }
 }
 

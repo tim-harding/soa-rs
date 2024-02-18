@@ -1,4 +1,4 @@
-use crate::{SoaRaw, WithRef};
+use crate::{SoaDeref, SoaRaw, WithRef};
 
 /// Provides [`Soa`] compatibility.
 ///
@@ -19,7 +19,7 @@ pub unsafe trait Soapy: WithRef {
     /// fields as slices.
     ///
     /// [`Slice`]: crate::Slice
-    type Deref;
+    type Deref: ?Sized + SoaDeref<Item = Self>;
 
     /// For each field with type `F` in `T`, `Ref` has a field with type
     /// `&F`

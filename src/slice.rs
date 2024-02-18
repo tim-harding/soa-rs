@@ -1,13 +1,12 @@
 use crate::{
-    chunks_exact::ChunksExact, index::SoaIndex, iter_raw::IterRaw, soa_ref::RefMut, Iter, IterMut,
-    Ref, SliceMut, SliceRef, Soa, SoaRaw, Soapy, WithRef,
+    chunks_exact::ChunksExact, dst::Dst, index::SoaIndex, iter_raw::IterRaw, soa_ref::RefMut, Iter,
+    IterMut, Ref, Soa, SoaDeref, SoaRaw, Soapy, WithRef,
 };
 use std::{
     cmp::Ordering,
     fmt::{self, Debug, Formatter},
     hash::{Hash, Hasher},
     marker::PhantomData,
-    mem::transmute,
     ops::{ControlFlow, Deref, DerefMut},
 };
 
@@ -33,18 +32,10 @@ use std::{
 /// [`Soa`]: crate::Soa
 /// [`SliceRef`]: crate::SliceRef
 /// [`SliceMut`]: crate::SliceMut
-pub struct Slice<T>
-where
-    T: Soapy,
-{
-    pub(crate) raw: T::Raw,
-    pub(crate) len: usize,
-}
+#[repr(transparent)]
+pub struct Slice<T: Soapy, D: ?Sized = [()]>(pub(crate) Dst<T::Raw, D>);
 
-unsafe impl<T> Send for Slice<T> where T: Send + Soapy {}
-unsafe impl<T> Sync for Slice<T> where T: Sync + Soapy {}
-
-impl<T> Slice<T>
+impl<T> Slice<T, ()>
 where
     T: Soapy,
 {
@@ -57,13 +48,47 @@ where
     /// # struct Foo;
     /// let mut slice = Slice::<Foo>::empty();
     /// ```
-    pub fn empty() -> Self {
-        Self {
-            len: 0,
-            raw: <T::Raw as SoaRaw>::dangling(),
-        }
+    pub(crate) fn empty() -> Self {
+        Self(Dst(<T::Raw as SoaRaw>::dangling(), ()))
     }
 
+    pub(crate) fn with_raw(raw: T::Raw) -> Self {
+        Self(Dst(raw, ()))
+    }
+
+    pub(crate) unsafe fn as_unsized_mut<'a>(&mut self, len: usize) -> &'a mut Slice<T> {
+        std::mem::transmute(self.0.as_unsized_mut(len))
+    }
+
+    pub(crate) unsafe fn as_unsized<'a>(&self, len: usize) -> &'a Slice<T> {
+        std::mem::transmute(self.0.as_unsized(len))
+    }
+}
+
+impl<T, D: ?Sized> Slice<T, D>
+where
+    T: Soapy,
+{
+    /// Gets the [`SoaRaw`] the slice uses.
+    ///
+    /// Used by the [`Soapy`] derive macro, but generally not intended for use
+    /// by end users.
+    #[doc(hidden)]
+    pub const fn raw(&self) -> T::Raw {
+        self.0 .0
+    }
+
+    /// Sets the [`SoaRaw`] the slice uses.
+    #[doc(hidden)]
+    pub(crate) fn set_raw(&mut self, raw: T::Raw) {
+        self.0 .0 = raw;
+    }
+}
+
+impl<T> Slice<T>
+where
+    T: Soapy,
+{
     /// Returns the number of elements in the slice, also referred to as its
     /// length.
     ///
@@ -77,7 +102,7 @@ where
     /// assert_eq!(soa.len(), 3);
     /// ```
     pub const fn len(&self) -> usize {
-        self.len
+        self.0.len()
     }
 
     /// Returns true if the slice contains no elements.
@@ -95,30 +120,6 @@ where
     /// ```
     pub const fn is_empty(&self) -> bool {
         self.len() == 0
-    }
-
-    /// Creates a slice from a [`SoaRaw`] and a length.
-    ///
-    /// # Safety
-    ///
-    /// This is highly unsafe due to the number of invariants that aren't
-    /// checked. Given that many of these invariants are private implementation
-    /// details, it is better not to uphold them manually. Instead, use the
-    /// methods of, for example, a [`Soa`] to get a handle to a slice.
-    ///
-    /// [`Soa`]: crate::Soa
-    #[doc(hidden)]
-    pub const unsafe fn from_raw_parts(raw: T::Raw, length: usize) -> Self {
-        Self { len: length, raw }
-    }
-
-    /// Gets the [`SoaRaw`] the slice uses.
-    ///
-    /// Used by the [`Soapy`] derive macro, but generally not intended for use
-    /// by end users.
-    #[doc(hidden)]
-    pub const fn raw(&self) -> T::Raw {
-        self.raw
     }
 
     /// Returns an iterator over the elements.
@@ -142,10 +143,8 @@ where
     pub const fn iter(&self) -> Iter<T> {
         Iter {
             iter_raw: IterRaw {
-                slice: Slice {
-                    raw: self.raw,
-                    len: self.len,
-                },
+                slice: unsafe { self.as_sized() },
+                len: self.len(),
                 adapter: PhantomData,
             },
             _marker: PhantomData,
@@ -172,10 +171,8 @@ where
     pub fn iter_mut(&mut self) -> IterMut<T> {
         IterMut {
             iter_raw: IterRaw {
-                slice: Slice {
-                    raw: self.raw,
-                    len: self.len,
-                },
+                slice: unsafe { self.as_sized() },
+                len: self.len(),
                 adapter: PhantomData,
             },
             _marker: PhantomData,
@@ -324,13 +321,13 @@ where
     /// assert_eq!(soa, [Foo(0), Foo(1), Foo(4), Foo(3), Foo(2)]);
     /// ```
     pub fn swap(&mut self, a: usize, b: usize) {
-        if a >= self.len || b >= self.len {
+        if a >= self.len() || b >= self.len() {
             panic!("index out of bounds");
         }
 
         unsafe {
-            let a = self.raw.offset(a);
-            let b = self.raw.offset(b);
+            let a = self.raw().offset(a);
+            let b = self.raw().offset(b);
             let tmp = a.get();
             b.copy_to(a, 1);
             b.set(tmp);
@@ -442,11 +439,27 @@ where
 
         ChunksExact {
             chunk_size,
-            slice: *self,
+            slice: unsafe { self.as_sized() },
+            len: self.len(),
             _marker: PhantomData,
         }
     }
+
+    pub(crate) const unsafe fn as_sized(&self) -> Slice<T, ()> {
+        Slice(unsafe { self.0.as_sized() })
+    }
 }
+
+impl<T> Clone for Slice<T, ()>
+where
+    T: Soapy,
+{
+    fn clone(&self) -> Self {
+        *self
+    }
+}
+
+impl<T> Copy for Slice<T, ()> where T: Soapy {}
 
 impl<'a, T> IntoIterator for &'a Slice<T>
 where
@@ -478,7 +491,7 @@ where
     U: Soapy,
 {
     fn eq(&self, other: &Slice<U>) -> bool {
-        self.len == other.len && self.iter().zip(other.iter()).all(|(me, them)| me == them)
+        self.len() == other.len() && self.iter().zip(other.iter()).all(|(me, them)| me == them)
     }
 }
 
@@ -490,7 +503,7 @@ where
     U: Soapy,
 {
     fn eq(&self, other: &Slice<U>) -> bool {
-        self.len() == other.len
+        self.len() == other.len()
             && self
                 .iter()
                 .zip(other.iter())
@@ -503,7 +516,7 @@ where
     T: Soapy + PartialEq<U>,
 {
     fn eq(&self, other: &[U]) -> bool {
-        self.len == other.len()
+        self.len() == other.len()
             && self
                 .iter()
                 .zip(other.iter())
@@ -571,8 +584,6 @@ macro_rules! eq_for_slice_ref {
         eq_for_slice_ref!($t, [U], U);
         eq_for_slice_ref!($t, [U; N], U, const N: usize);
         eq_for_slice_ref!($t, Slice<U>, U: Soapy);
-        eq_for_slice_ref!($t, SliceRef<'_, U>, U: Soapy);
-        eq_for_slice_ref!($t, SliceMut<'_, U>, U: Soapy);
         eq_for_slice_ref!($t, Soa<U>, U: Soapy);
     };
 
@@ -615,7 +626,7 @@ where
             .zip(other.iter())
             .try_fold(Ordering::Equal, |_, (a, b)| match a.partial_cmp(&b) {
                 ord @ (None | Some(Ordering::Less | Ordering::Greater)) => ControlFlow::Break(ord),
-                Some(Ordering::Equal) => ControlFlow::Continue(self.len.cmp(&other.len)),
+                Some(Ordering::Equal) => ControlFlow::Continue(self.len().cmp(&other.len())),
             }) {
             ControlFlow::Continue(ord) => Some(ord),
             ControlFlow::Break(ord) => ord,
@@ -633,19 +644,10 @@ where
             .zip(other.iter())
             .try_fold(Ordering::Equal, |_, (a, b)| match a.cmp(&b) {
                 ord @ (Ordering::Greater | Ordering::Less) => ControlFlow::Break(ord),
-                Ordering::Equal => ControlFlow::Continue(self.len.cmp(&other.len)),
+                Ordering::Equal => ControlFlow::Continue(self.len().cmp(&other.len())),
             }) {
             ControlFlow::Continue(ord) | ControlFlow::Break(ord) => ord,
         }
-    }
-}
-
-impl<T> Default for Slice<T>
-where
-    T: Soapy,
-{
-    fn default() -> Self {
-        Self::empty()
     }
 }
 
@@ -654,23 +656,12 @@ where
     T: Soapy + Hash,
 {
     fn hash<H: Hasher>(&self, state: &mut H) {
-        self.len.hash(state);
+        self.len().hash(state);
         for el in self.iter() {
             el.with_ref(|el| el.hash(state))
         }
     }
 }
-
-impl<T> Clone for Slice<T>
-where
-    T: Soapy,
-{
-    fn clone(&self) -> Self {
-        *self
-    }
-}
-
-impl<T> Copy for Slice<T> where T: Soapy {}
 
 impl<T> Deref for Slice<T>
 where
@@ -679,9 +670,7 @@ where
     type Target = T::Deref;
 
     fn deref(&self) -> &Self::Target {
-        // SAFETY:
-        // T::Deref is #[repr(transparent)] of Slice
-        unsafe { transmute(self) }
+        <T::Deref as SoaDeref>::from_slice(self)
     }
 }
 
@@ -690,9 +679,7 @@ where
     T: Soapy,
 {
     fn deref_mut(&mut self) -> &mut Self::Target {
-        // SAFETY:
-        // T::Deref is #[repr(transparent)] of Slice
-        unsafe { transmute(self) }
+        <T::Deref as SoaDeref>::from_slice_mut(self)
     }
 }
 

@@ -40,6 +40,7 @@ where
         Self {
             iter_raw: IterRaw {
                 slice: Slice::empty(),
+                len: 0,
                 adapter: PhantomData,
             },
             _marker: PhantomData,
@@ -65,12 +66,12 @@ where
     /// Returns an immutable slice of all elements that have not been yielded
     /// yet.
     pub fn as_slice(&self) -> &Slice<T> {
-        &self.iter_raw.slice
+        unsafe { self.iter_raw.slice.as_unsized(self.iter_raw.len) }
     }
 
     /// Returns a mutable slice of all elements that have not been yielded yet.
     pub fn as_mut_slice(&mut self) -> &mut Slice<T> {
-        &mut self.iter_raw.slice
+        unsafe { self.iter_raw.slice.as_unsized_mut(self.iter_raw.len) }
     }
 
     /// Returns a mutable slice of all elements that have not been yielded yet.
@@ -78,7 +79,11 @@ where
     /// To avoid creating `&mut` references that alias, this is forced to
     /// consume the iterator.
     pub fn into_slice(self) -> SliceMut<'a, T> {
-        SliceMut(self.iter_raw.slice, PhantomData)
+        SliceMut {
+            slice: self.iter_raw.slice,
+            len: self.iter_raw.len,
+            marker: PhantomData,
+        }
     }
 }
 

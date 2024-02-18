@@ -29,7 +29,8 @@ where
     T: Soapy,
 {
     pub(crate) cap: usize,
-    pub(crate) slice: Slice<T>,
+    pub(crate) slice: Slice<T, ()>,
+    pub(crate) len: usize,
 }
 
 impl<T> Soa<T>
@@ -55,6 +56,7 @@ where
         Self {
             cap: if size_of::<T>() == 0 { usize::MAX } else { 0 },
             slice: Slice::empty(),
+            len: 0,
         }
     }
 
@@ -104,11 +106,13 @@ where
                     Self {
                         cap: usize::MAX,
                         slice: Slice::empty(),
+                        len: 0,
                     }
                 } else {
                     Self {
                         cap: capacity,
-                        slice: unsafe { Slice::from_raw_parts(T::Raw::alloc(capacity), 0) },
+                        slice: Slice::with_raw(unsafe { T::Raw::alloc(capacity) }),
+                        len: 0,
                     }
                 }
             }
@@ -182,7 +186,7 @@ where
     /// ```
     pub fn into_raw_parts(self) -> (*mut u8, usize, usize) {
         let me = ManuallyDrop::new(self);
-        (me.slice.raw.into_parts(), me.slice.len, me.cap)
+        (me.raw().into_parts(), me.len, me.cap)
     }
 
     /// Creates a `Soa<T>` from a pointer, a length, and a capacity.
@@ -197,7 +201,8 @@ where
     pub unsafe fn from_raw_parts(ptr: *mut u8, length: usize, capacity: usize) -> Self {
         Self {
             cap: capacity,
-            slice: Slice::from_raw_parts(<T::Raw as SoaRaw>::from_parts(ptr, capacity), length),
+            slice: Slice::with_raw(unsafe { T::Raw::from_parts(ptr, capacity) }),
+            len: length,
         }
     }
 
@@ -216,9 +221,9 @@ where
     pub fn push(&mut self, element: T) {
         self.maybe_grow();
         unsafe {
-            self.slice.raw.offset(self.slice.len).set(element);
+            self.raw().offset(self.len).set(element);
         }
-        self.slice.len += 1;
+        self.len += 1;
     }
 
     /// Removes the last element from a vector and returns it, or [`None`] if it
@@ -235,11 +240,11 @@ where
     /// assert_eq!(soa, [Foo(1), Foo(2)]);
     /// ```
     pub fn pop(&mut self) -> Option<T> {
-        if self.slice.len == 0 {
+        if self.len == 0 {
             None
         } else {
-            self.slice.len -= 1;
-            Some(unsafe { self.slice.raw.offset(self.slice.len).get() })
+            self.len -= 1;
+            Some(unsafe { self.raw().offset(self.len).get() })
         }
     }
 
@@ -263,14 +268,14 @@ where
     /// assert_eq!(soa, [Foo(1), Foo(4), Foo(2), Foo(3), Foo(5)]);
     /// ```
     pub fn insert(&mut self, index: usize, element: T) {
-        assert!(index <= self.slice.len, "index out of bounds");
+        assert!(index <= self.len, "index out of bounds");
         self.maybe_grow();
         unsafe {
-            let ith = self.raw.offset(index);
+            let ith = self.raw().offset(index);
             ith.copy_to(ith.offset(1), self.len - index);
             ith.set(element);
         }
-        self.slice.len += 1;
+        self.len += 1;
     }
 
     /// Removes and returns the element at position index within the vector,
@@ -287,12 +292,12 @@ where
     /// assert_eq!(soa, [Foo(1), Foo(3)])
     /// ```
     pub fn remove(&mut self, index: usize) -> T {
-        assert!(index < self.slice.len, "index out of bounds");
-        self.slice.len -= 1;
-        let ith = unsafe { self.raw.offset(index) };
+        assert!(index < self.len, "index out of bounds");
+        self.len -= 1;
+        let ith = unsafe { self.raw().offset(index) };
         let out = unsafe { ith.get() };
         unsafe {
-            ith.offset(1).copy_to(ith, self.slice.len - index);
+            ith.offset(1).copy_to(ith, self.len - index);
         }
         out
     }
@@ -317,7 +322,7 @@ where
         if additional == 0 {
             return;
         }
-        let new_cap = (self.slice.len + additional)
+        let new_cap = (self.len + additional)
             // Ensure exponential growth
             .max(self.cap * 2)
             .max(Self::SMALL_CAPACITY);
@@ -345,7 +350,7 @@ where
         if additional == 0 {
             return;
         }
-        let new_cap = (additional + self.slice.len).max(self.cap);
+        let new_cap = (additional + self.len).max(self.cap);
         self.grow(new_cap);
     }
 
@@ -364,7 +369,7 @@ where
     /// assert_eq!(soa.capacity(), 3);
     /// ```
     pub fn shrink_to_fit(&mut self) {
-        self.shrink(self.slice.len);
+        self.shrink(self.len);
     }
 
     /// Shrinks the capacity of the vector with a lower bound.
@@ -387,7 +392,7 @@ where
     /// soa.shrink_to(0);
     /// assert_eq!(soa.capacity(), 3);
     pub fn shrink_to(&mut self, min_capacity: usize) {
-        let new_cap = self.slice.len.max(min_capacity);
+        let new_cap = self.len.max(min_capacity);
         if new_cap < self.cap {
             self.shrink(new_cap);
         }
@@ -432,7 +437,7 @@ where
     /// assert_eq!(soa, []);
     /// ```
     pub fn truncate(&mut self, len: usize) {
-        while len < self.slice.len {
+        while len < self.len {
             self.pop();
         }
     }
@@ -465,9 +470,9 @@ where
         if index >= self.len() {
             panic!("index out of bounds")
         }
-        self.slice.len -= 1;
-        let to_remove = unsafe { self.slice.raw.offset(index) };
-        let last = unsafe { self.slice.raw.offset(self.len) };
+        self.len -= 1;
+        let to_remove = unsafe { self.raw().offset(index) };
+        let last = unsafe { self.raw().offset(self.len) };
         let out = unsafe { to_remove.get() };
         unsafe {
             last.copy_to(to_remove, 1);
@@ -491,8 +496,8 @@ where
     /// ```
     pub fn append(&mut self, other: &mut Self) {
         self.reserve(other.len());
-        for i in 0..other.slice.len {
-            let element = unsafe { other.slice.raw.offset(i).get() };
+        for i in 0..other.len {
+            let element = unsafe { other.raw().offset(i).get() };
             self.push(element);
         }
         other.clear();
@@ -531,7 +536,7 @@ where
     /// assert_eq!(soa.as_slice(), soa.get(..).unwrap());
     /// ```
     pub fn as_slice(&self) -> &Slice<T> {
-        &self.slice
+        self.as_ref()
     }
 
     /// Extracts a mutable slice with the entire container's contents.
@@ -549,12 +554,12 @@ where
     /// assert_eq!(soa, [Foo(30), Foo(20)]);
     /// ```
     pub fn as_mut_slice(&mut self) -> &mut Slice<T> {
-        &mut self.slice
+        self.as_mut()
     }
 
     /// Grows the allocated capacity if `len == cap`.
     fn maybe_grow(&mut self) {
-        if self.slice.len < self.cap {
+        if self.len < self.cap {
             return;
         }
         let new_cap = match self.cap {
@@ -574,16 +579,14 @@ where
         if new_cap == 0 {
             debug_assert!(self.cap > 0);
             unsafe {
-                self.slice.raw.dealloc(self.cap);
+                self.raw().dealloc(self.cap);
             }
-            self.slice.raw = T::Raw::dangling();
+            self.set_raw(T::Raw::dangling());
         } else {
             debug_assert!(new_cap < self.cap);
-            debug_assert!(self.slice.len <= new_cap);
+            debug_assert!(self.len <= new_cap);
             unsafe {
-                self.slice
-                    .raw
-                    .realloc_shrink(self.cap, new_cap, self.slice.len);
+                self.raw().realloc_shrink(self.cap, new_cap, self.len);
             }
         }
 
@@ -597,13 +600,11 @@ where
 
         if self.cap == 0 {
             debug_assert!(new_cap > 0);
-            self.slice.raw = unsafe { T::Raw::alloc(new_cap) };
+            self.set_raw(unsafe { T::Raw::alloc(new_cap) });
         } else {
-            debug_assert!(self.slice.len <= self.cap);
+            debug_assert!(self.len <= self.cap);
             unsafe {
-                self.slice
-                    .raw
-                    .realloc_grow(self.cap, new_cap, self.slice.len);
+                self.raw().realloc_grow(self.cap, new_cap, self.len);
             }
         }
 
@@ -619,7 +620,7 @@ where
         while self.pop().is_some() {}
         if size_of::<T>() > 0 && self.cap > 0 {
             unsafe {
-                self.slice.raw.dealloc(self.cap);
+                self.raw().dealloc(self.cap);
             }
         }
     }
@@ -637,13 +638,11 @@ where
         let soa = ManuallyDrop::new(self);
         IntoIter {
             iter_raw: IterRaw {
-                slice: Slice {
-                    raw: soa.raw,
-                    len: soa.len,
-                },
+                slice: soa.slice,
+                len: soa.len,
                 adapter: PhantomData,
             },
-            ptr: soa.raw.into_parts(),
+            ptr: soa.raw().into_parts(),
             cap: soa.cap,
         }
     }
@@ -680,7 +679,7 @@ where
     T: Soapy + Clone,
 {
     fn clone(&self) -> Self {
-        let mut out = Self::with_capacity(self.slice.len);
+        let mut out = Self::with_capacity(self.len);
         for el in self {
             out.push(el.cloned());
         }
@@ -689,8 +688,8 @@ where
 
     fn clone_from(&mut self, source: &Self) {
         self.clear();
-        if self.cap < source.slice.len {
-            self.reserve_exact(source.slice.len);
+        if self.cap < source.len {
+            self.reserve_exact(source.len);
         }
         for el in source {
             self.push(el.cloned());
@@ -780,7 +779,7 @@ where
     T: Soapy + fmt::Debug,
 {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        self.slice.fmt(f)
+        self.as_slice().fmt(f)
     }
 }
 
@@ -790,7 +789,7 @@ where
     U: Soapy,
 {
     fn partial_cmp(&self, other: &Soa<U>) -> Option<Ordering> {
-        self.slice.partial_cmp(other)
+        self.as_slice().partial_cmp(other)
     }
 }
 
@@ -799,7 +798,7 @@ where
     T: Soapy + Ord,
 {
     fn cmp(&self, other: &Self) -> Ordering {
-        self.slice.cmp(other)
+        self.as_slice().cmp(other)
     }
 }
 
@@ -808,7 +807,7 @@ where
     T: Soapy + Hash,
 {
     fn hash<H: Hasher>(&self, state: &mut H) {
-        self.slice.hash(state)
+        self.as_slice().hash(state)
     }
 }
 
@@ -826,7 +825,7 @@ where
     T: Soapy,
 {
     fn as_ref(&self) -> &Slice<T> {
-        &self.slice
+        unsafe { self.slice.as_unsized(self.len) }
     }
 }
 
@@ -835,7 +834,7 @@ where
     T: Soapy,
 {
     fn as_mut(&mut self) -> &mut Slice<T> {
-        &mut self.slice
+        unsafe { self.slice.as_unsized_mut(self.len) }
     }
 }
 
@@ -864,7 +863,7 @@ where
     type Target = Slice<T>;
 
     fn deref(&self) -> &Self::Target {
-        &self.slice
+        self.as_ref()
     }
 }
 
@@ -873,7 +872,7 @@ where
     T: Soapy,
 {
     fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.slice
+        self.as_mut()
     }
 }
 
@@ -882,7 +881,7 @@ where
     T: Soapy,
 {
     fn borrow(&self) -> &Slice<T> {
-        &self.slice
+        self.as_ref()
     }
 }
 
@@ -891,7 +890,7 @@ where
     T: Soapy,
 {
     fn borrow_mut(&mut self) -> &mut Slice<T> {
-        &mut self.slice
+        self.as_mut()
     }
 }
 

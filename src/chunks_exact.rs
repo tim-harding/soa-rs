@@ -1,4 +1,4 @@
-use crate::{Slice, SliceRef, SoaRaw, Soapy};
+use crate::{Slice, SoaRaw, Soapy};
 use std::marker::PhantomData;
 
 /// An iterator over a [`Slice`] in (non-overlapping) chunks of `chunk_size`
@@ -16,7 +16,8 @@ pub struct ChunksExact<'a, T>
 where
     T: 'a + Soapy,
 {
-    pub(crate) slice: Slice<T>,
+    pub(crate) slice: Slice<T, ()>,
+    pub(crate) len: usize,
     pub(crate) chunk_size: usize,
     pub(crate) _marker: PhantomData<&'a T>,
 }
@@ -27,8 +28,8 @@ where
 {
     /// Returns the remainder of the original slice that has not been yielded by
     /// the iterator.
-    pub fn remainder(&self) -> SliceRef<'a, T> {
-        SliceRef(self.slice, PhantomData)
+    pub fn remainder(&self) -> &Slice<T> {
+        unsafe { self.slice.as_unsized(self.len) }
     }
 }
 
@@ -36,19 +37,17 @@ impl<'a, T> Iterator for ChunksExact<'a, T>
 where
     T: Soapy,
 {
-    type Item = SliceRef<'a, T>;
+    type Item = &'a Slice<T>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        if self.slice.len < self.chunk_size {
+        if self.len < self.chunk_size {
             None
         } else {
-            let out = Slice {
-                len: self.chunk_size,
-                raw: self.slice.raw,
-            };
-            self.slice.len -= self.chunk_size;
-            self.slice.raw = unsafe { self.slice.raw.offset(self.chunk_size) };
-            Some(SliceRef(out, PhantomData))
+            let out = unsafe { self.slice.as_unsized(self.len) };
+            self.len -= self.chunk_size;
+            self.slice
+                .set_raw(unsafe { self.slice.raw().offset(self.chunk_size) });
+            Some(out)
         }
     }
 }

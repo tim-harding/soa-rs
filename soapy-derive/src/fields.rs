@@ -92,6 +92,18 @@ pub fn fields_struct(
         #[repr(transparent)]
         #vis struct #deref(::soapy::Slice<#ident>);
 
+        impl ::soapy::SoaDeref for #deref {
+            type Item = #ident;
+
+            fn from_slice(slice: &::soapy::Slice<Self::Item>) -> &Self {
+                unsafe { ::std::mem::transmute(slice) }
+            }
+
+            fn from_slice_mut(slice: &mut ::soapy::Slice<Self::Item>) -> &mut Self {
+                unsafe { ::std::mem::transmute(slice) }
+            }
+        }
+
         impl #deref {
             #(
             #vis_all fn #slice_getters_ref(&self) -> &[#ty_all] {

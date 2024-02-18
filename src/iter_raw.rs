@@ -1,9 +1,5 @@
 use crate::{Slice, SoaRaw, Soapy};
-use std::{
-    iter::FusedIterator,
-    marker::PhantomData,
-    ops::{Deref, DerefMut},
-};
+use std::{fmt::Debug, iter::FusedIterator, marker::PhantomData};
 
 pub trait IterRawAdapter<T>
 where
@@ -13,14 +9,28 @@ where
     fn item_from_raw(raw: T::Raw) -> Self::Item;
 }
 
-#[derive(Debug)]
 pub struct IterRaw<T, A>
 where
     T: Soapy,
     A: IterRawAdapter<T>,
 {
-    pub(crate) slice: Slice<T>,
+    pub(crate) slice: Slice<T, ()>,
+    pub(crate) len: usize,
     pub(crate) adapter: PhantomData<A>,
+}
+
+impl<T, A> IterRaw<T, A>
+where
+    T: Soapy,
+    A: IterRawAdapter<T>,
+{
+    pub(crate) unsafe fn as_slice<'a>(&self) -> &'a Slice<T> {
+        unsafe { self.slice.as_unsized(self.len) }
+    }
+
+    pub(crate) unsafe fn as_mut_slice(&mut self) -> &mut Slice<T> {
+        unsafe { self.slice.as_unsized_mut(self.len) }
+    }
 }
 
 impl<T, A> Clone for IterRaw<T, A>
@@ -40,6 +50,16 @@ where
 {
 }
 
+impl<T, A> Debug for IterRaw<T, A>
+where
+    T: Soapy + Debug,
+    A: IterRawAdapter<T>,
+{
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        unsafe { self.slice.as_unsized(self.len).fmt(f) }
+    }
+}
+
 impl<T, A> Iterator for IterRaw<T, A>
 where
     T: Soapy,
@@ -52,8 +72,8 @@ where
             None
         } else {
             self.len -= 1;
-            let out = Some(A::item_from_raw(self.raw));
-            self.raw = unsafe { self.raw.offset(1) };
+            let out = Some(A::item_from_raw(self.slice.raw()));
+            self.slice.set_raw(unsafe { self.slice.raw().offset(1) });
             out
         }
     }
@@ -74,9 +94,10 @@ where
             self.len = 0;
             None
         } else {
-            let out = A::item_from_raw(self.raw);
+            let out = A::item_from_raw(self.slice.raw());
             self.len -= n + 1;
-            self.raw = unsafe { self.raw.offset(n + 1) };
+            self.slice
+                .set_raw(unsafe { self.slice.raw().offset(n + 1) });
             Some(out)
         }
     }
@@ -88,7 +109,9 @@ where
         if self.len == 0 {
             None
         } else {
-            Some(A::item_from_raw(unsafe { self.raw.offset(self.len - 1) }))
+            Some(A::item_from_raw(unsafe {
+                self.slice.raw().offset(self.len - 1)
+            }))
         }
     }
 
@@ -98,7 +121,8 @@ where
         F: FnMut(B, Self::Item) -> B,
     {
         let Self {
-            slice: Slice { raw, len },
+            slice,
+            len,
             adapter: _,
         } = self;
         if len == 0 {
@@ -107,7 +131,7 @@ where
         let mut acc = init;
         let mut i = 0;
         loop {
-            acc = f(acc, A::item_from_raw(unsafe { raw.offset(i) }));
+            acc = f(acc, A::item_from_raw(unsafe { slice.raw().offset(i) }));
             i += 1;
             if i == len {
                 break;
@@ -127,7 +151,9 @@ where
             None
         } else {
             self.len -= 1;
-            Some(unsafe { A::item_from_raw(self.raw.offset(self.len)) })
+            Some(unsafe {
+                A::item_from_raw(self.slice.as_unsized(self.len).raw().offset(self.len))
+            })
         }
     }
 
@@ -137,7 +163,9 @@ where
             None
         } else {
             self.len -= n + 1;
-            Some(A::item_from_raw(unsafe { self.raw.offset(self.len) }))
+            Some(A::item_from_raw(unsafe {
+                self.slice.as_unsized(self.len).raw().offset(self.len)
+            }))
         }
     }
 }
@@ -154,28 +182,6 @@ where
     T: Soapy,
     A: IterRawAdapter<T>,
 {
-}
-
-impl<T, A> Deref for IterRaw<T, A>
-where
-    T: Soapy,
-    A: IterRawAdapter<T>,
-{
-    type Target = Slice<T>;
-
-    fn deref(&self) -> &Self::Target {
-        &self.slice
-    }
-}
-
-impl<T, A> DerefMut for IterRaw<T, A>
-where
-    T: Soapy,
-    A: IterRawAdapter<T>,
-{
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.slice
-    }
 }
 
 macro_rules! iter_with_raw {
@@ -235,8 +241,8 @@ macro_rules! iter_with_raw {
 
         impl<$($lifetime,)? T> AsRef<Slice<T>> for $t where T: $($lifetime +)? Soapy {
             fn as_ref(&self) -> &Slice<T> {
-                &self.iter_raw.slice
-            }
+                unsafe { self.iter_raw.as_slice() }
+           }
         }
     };
 }

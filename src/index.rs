@@ -3,7 +3,7 @@ use std::{
     ops::{Range, RangeFrom, RangeFull, RangeInclusive, RangeTo, RangeToInclusive},
 };
 
-use crate::{slice_mut::SliceMut, soa_ref::RefMut, Ref, Slice, SliceRef, SoaRaw, Soapy};
+use crate::{dst::Dst, soa_ref::RefMut, Ref, Slice, SliceMut, SliceRef, SoaRaw, Soapy};
 
 /// A helper trait for indexing operations.
 pub trait SoaIndex<T>
@@ -39,7 +39,7 @@ where
 
     fn get(self, slice: &Slice<T>) -> Option<Self::Output<'_>> {
         if self < slice.len() {
-            Some(Ref(unsafe { slice.raw.offset(self).get_ref() }))
+            Some(Ref(unsafe { slice.raw().offset(self).get_ref() }))
         } else {
             None
         }
@@ -47,7 +47,7 @@ where
 
     fn get_mut(self, slice: &mut Slice<T>) -> Option<Self::OutputMut<'_>> {
         if self < slice.len() {
-            Some(RefMut(unsafe { slice.raw.offset(self).get_mut() }))
+            Some(RefMut(unsafe { slice.raw().offset(self).get_mut() }))
         } else {
             None
         }
@@ -67,11 +67,19 @@ where
         T: 'a;
 
     fn get(self, slice: &Slice<T>) -> Option<Self::Output<'_>> {
-        Some(SliceRef(*slice, PhantomData))
+        Some(SliceRef {
+            slice: unsafe { slice.as_sized() },
+            len: slice.len(),
+            marker: PhantomData,
+        })
     }
 
     fn get_mut(self, slice: &mut Slice<T>) -> Option<Self::OutputMut<'_>> {
-        Some(SliceMut(*slice, PhantomData))
+        Some(SliceMut {
+            slice: unsafe { slice.as_sized() },
+            len: slice.len(),
+            marker: PhantomData,
+        })
     }
 }
 
@@ -89,19 +97,19 @@ where
 
     fn get(self, slice: &Slice<T>) -> Option<Self::Output<'_>> {
         let len = self.len();
-        (len + self.start <= slice.len()).then(|| {
-            SliceRef(
-                Slice {
-                    len,
-                    raw: unsafe { slice.raw.offset(self.start) },
-                },
-                PhantomData,
-            )
+        (len + self.start <= slice.len()).then(|| SliceRef {
+            slice: Slice(Dst(unsafe { slice.raw().offset(self.start) }, ())),
+            len,
+            marker: PhantomData,
         })
     }
 
     fn get_mut(self, slice: &mut Slice<T>) -> Option<Self::OutputMut<'_>> {
-        self.get(slice).map(|s| SliceMut(s.0, PhantomData))
+        self.get(slice).map(|s| SliceMut {
+            slice: unsafe { s.as_sized() },
+            len: s.len(),
+            marker: PhantomData,
+        })
     }
 }
 
