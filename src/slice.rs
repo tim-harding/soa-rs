@@ -1,6 +1,6 @@
 use crate::{
     chunks_exact::ChunksExact, dst::Dst, index::SoaIndex, iter_raw::IterRaw, soa_ref::RefMut, Iter,
-    IterMut, Ref, Soa, SoaDeref, SoaRaw, Soapy, WithRef,
+    IterMut, Ref, SliceMut, SliceRef, Soa, SoaDeref, SoaRaw, Soapy, WithRef,
 };
 use std::{
     cmp::Ordering,
@@ -571,6 +571,8 @@ macro_rules! eq_for_slice_ref {
         eq_for_slice_ref!($t, [U], U);
         eq_for_slice_ref!($t, [U; N], U, const N: usize);
         eq_for_slice_ref!($t, Slice<U>, U: Soapy);
+        eq_for_slice_ref!($t, SliceRef<'_, U>, U: Soapy);
+        eq_for_slice_ref!($t, SliceMut<'_, U>, U: Soapy);
         eq_for_slice_ref!($t, Soa<U>, U: Soapy);
     };
 

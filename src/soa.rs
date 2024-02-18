@@ -467,7 +467,7 @@ where
     /// assert_eq!(soa, [Foo(2), Foo(3)])
     /// ```
     pub fn swap_remove(&mut self, index: usize) -> T {
-        if index >= self.len() {
+        if index >= self.len {
             panic!("index out of bounds")
         }
         self.len -= 1;
@@ -495,7 +495,7 @@ where
     /// assert_eq!(soa2, []);
     /// ```
     pub fn append(&mut self, other: &mut Self) {
-        self.reserve(other.len());
+        self.reserve(other.len);
         for i in 0..other.len {
             let element = unsafe { other.raw().offset(i).get() };
             self.push(element);
