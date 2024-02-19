@@ -63,8 +63,7 @@ where
                 marker: PhantomData,
             };
             self.parts_remaining -= 1;
-            self.slice
-                .set_raw(unsafe { self.slice.raw().offset(self.chunk_size) });
+            self.slice.raw = unsafe { self.slice.raw().offset(self.chunk_size) };
             Some(out)
         }
     }

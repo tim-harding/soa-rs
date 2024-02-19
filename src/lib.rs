@@ -164,9 +164,6 @@ pub use soa_ref::{Ref, RefMut};
 mod chunks_exact;
 pub use chunks_exact::ChunksExact;
 
-mod dst;
-pub use dst::Dst;
-
 mod eq_impl;
 mod iter_raw;
 

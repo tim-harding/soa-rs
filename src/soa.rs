@@ -581,13 +581,12 @@ where
             unsafe {
                 self.raw().dealloc(self.cap);
             }
-            self.set_raw(T::Raw::dangling());
+            self.raw = T::Raw::dangling();
         } else {
             debug_assert!(new_cap < self.cap);
             debug_assert!(self.len <= new_cap);
             unsafe {
-                let new_raw = self.raw().realloc_shrink(self.cap, new_cap, self.len);
-                self.set_raw(new_raw);
+                self.raw = self.raw().realloc_shrink(self.cap, new_cap, self.len);
             }
         }
 
@@ -601,12 +600,11 @@ where
 
         if self.cap == 0 {
             debug_assert!(new_cap > 0);
-            self.set_raw(unsafe { T::Raw::alloc(new_cap) });
+            self.raw = unsafe { T::Raw::alloc(new_cap) };
         } else {
             debug_assert!(self.len <= self.cap);
             unsafe {
-                let new_raw = self.raw().realloc_grow(self.cap, new_cap, self.len);
-                self.set_raw(new_raw);
+                self.raw = self.raw().realloc_grow(self.cap, new_cap, self.len);
             }
         }
 

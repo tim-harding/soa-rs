@@ -1,9 +1,8 @@
+use crate::{soa_ref::RefMut, Ref, Slice, SliceMut, SliceRef, SoaRaw, Soapy};
 use std::{
     marker::PhantomData,
     ops::{Range, RangeFrom, RangeFull, RangeInclusive, RangeTo, RangeToInclusive},
 };
-
-use crate::{dst::Dst, soa_ref::RefMut, Ref, Slice, SliceMut, SliceRef, SoaRaw, Soapy};
 
 /// A helper trait for indexing operations.
 pub trait SoaIndex<T>
@@ -98,7 +97,7 @@ where
     fn get(self, slice: &Slice<T>) -> Option<Self::Output<'_>> {
         let len = self.len();
         (len + self.start <= slice.len()).then(|| SliceRef {
-            slice: Slice(Dst(unsafe { slice.raw().offset(self.start) }, ())),
+            slice: Slice::with_raw(unsafe { slice.raw().offset(self.start) }),
             len,
             marker: PhantomData,
         })

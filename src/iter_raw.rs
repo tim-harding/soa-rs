@@ -73,7 +73,7 @@ where
         } else {
             self.len -= 1;
             let out = Some(A::item_from_raw(self.slice.raw()));
-            self.slice.set_raw(unsafe { self.slice.raw().offset(1) });
+            self.slice.raw = unsafe { self.slice.raw().offset(1) };
             out
         }
     }
@@ -96,8 +96,7 @@ where
         } else {
             let out = A::item_from_raw(self.slice.raw());
             self.len -= n + 1;
-            self.slice
-                .set_raw(unsafe { self.slice.raw().offset(n + 1) });
+            self.slice.raw = unsafe { self.slice.raw().offset(n + 1) };
             Some(out)
         }
     }

@@ -1,6 +1,6 @@
 use crate::{
-    chunks_exact::ChunksExact, dst::Dst, index::SoaIndex, iter_raw::IterRaw, soa_ref::RefMut, Iter,
-    IterMut, Ref, SliceMut, SliceRef, Soa, SoaDeref, SoaRaw, Soapy, WithRef,
+    chunks_exact::ChunksExact, index::SoaIndex, iter_raw::IterRaw, soa_ref::RefMut, Iter, IterMut,
+    Ref, SliceMut, SliceRef, Soa, SoaDeref, SoaRaw, Soapy, WithRef,
 };
 use std::{
     cmp::Ordering,
@@ -32,8 +32,10 @@ use std::{
 /// [`Soa`]: crate::Soa
 /// [`SliceRef`]: crate::SliceRef
 /// [`SliceMut`]: crate::SliceMut
-#[repr(transparent)]
-pub struct Slice<T: Soapy, D: ?Sized = [()]>(pub(crate) Dst<T::Raw, D>);
+pub struct Slice<T: Soapy, D: ?Sized = [()]> {
+    pub(crate) raw: T::Raw,
+    pub(crate) dst: D,
+}
 
 impl<T> Slice<T, ()>
 where
@@ -41,19 +43,33 @@ where
 {
     /// Constructs a new, empty `Slice<T>`.
     pub(crate) fn empty() -> Self {
-        Self(Dst(<T::Raw as SoaRaw>::dangling(), ()))
+        Self::with_raw(<T::Raw as SoaRaw>::dangling())
     }
 
     pub(crate) fn with_raw(raw: T::Raw) -> Self {
-        Self(Dst(raw, ()))
+        Self { raw, dst: () }
     }
 
+    /// Converts to an mutable unsized variant.
+    ///
+    /// # Safety
+    ///
+    /// - `length` must be valid for the underlying type `T`.
+    /// - The lifetime of the returned reference is unconstrained. Ensure that
+    /// the right lifetimes are applied.
     pub(crate) unsafe fn as_unsized_mut<'a>(&mut self, len: usize) -> &'a mut Slice<T> {
-        std::mem::transmute(self.0.as_unsized_mut(len))
+        &mut *(std::ptr::slice_from_raw_parts_mut(self, len) as *mut Slice<T>)
     }
 
+    /// Converts to an unsized variant.
+    ///
+    /// # Safety
+    ///
+    /// - `length` must be valid for the underlying type `T`.
+    /// - The lifetime of the returned reference is unconstrained. Ensure that
+    /// the right lifetimes are applied.
     pub(crate) unsafe fn as_unsized<'a>(&self, len: usize) -> &'a Slice<T> {
-        std::mem::transmute(self.0.as_unsized(len))
+        &*(std::ptr::slice_from_raw_parts(self, len) as *const Slice<T>)
     }
 }
 
@@ -67,13 +83,7 @@ where
     /// by end users.
     #[doc(hidden)]
     pub const fn raw(&self) -> T::Raw {
-        self.0 .0
-    }
-
-    /// Sets the [`SoaRaw`] the slice uses.
-    #[doc(hidden)]
-    pub(crate) fn set_raw(&mut self, raw: T::Raw) {
-        self.0 .0 = raw;
+        self.raw
     }
 }
 
@@ -94,7 +104,7 @@ where
     /// assert_eq!(soa.len(), 3);
     /// ```
     pub const fn len(&self) -> usize {
-        self.0.len()
+        self.dst.len()
     }
 
     /// Returns true if the slice contains no elements.
@@ -432,8 +442,17 @@ where
         ChunksExact::new(self, chunk_size)
     }
 
+    /// Converts from an unsized variant to sized variant
+    ///
+    /// # Safety
+    ///
+    /// Since this returns an owned value, it implicitly extends the lifetime &
+    /// in an unbounded way. The caller must ensure proper lifetimes with, for
+    /// example, [`PhantomData`].
+    ///
+    /// [`PhantomData`]: std::marker::PhantomData
     pub(crate) const unsafe fn as_sized(&self) -> Slice<T, ()> {
-        Slice(unsafe { self.0.as_sized() })
+        *(self as *const _ as *const Slice<T, ()>)
     }
 }
 
