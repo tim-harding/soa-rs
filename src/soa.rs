@@ -586,7 +586,8 @@ where
             debug_assert!(new_cap < self.cap);
             debug_assert!(self.len <= new_cap);
             unsafe {
-                self.raw().realloc_shrink(self.cap, new_cap, self.len);
+                let new_raw = self.raw().realloc_shrink(self.cap, new_cap, self.len);
+                self.set_raw(new_raw);
             }
         }
 
@@ -604,7 +605,8 @@ where
         } else {
             debug_assert!(self.len <= self.cap);
             unsafe {
-                self.raw().realloc_grow(self.cap, new_cap, self.len);
+                let new_raw = self.raw().realloc_grow(self.cap, new_cap, self.len);
+                self.set_raw(new_raw);
             }
         }
 

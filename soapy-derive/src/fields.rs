@@ -293,7 +293,12 @@ pub fn fields_struct(
             }
 
             #[inline]
-            unsafe fn realloc_grow(&mut self, old_capacity: usize, new_capacity: usize, length: usize) {
+            unsafe fn realloc_grow(
+                &mut self,
+                old_capacity: usize,
+                new_capacity: usize,
+                length: usize,
+            ) -> Self {
                 // SAFETY: We already constructed this layout for a previous allocation
                 let (old_layout, old_offsets) = Self::layout_and_offsets_unchecked(old_capacity);
                 let (new_layout, new_offsets) = Self::layout_and_offsets(new_capacity)
@@ -316,11 +321,16 @@ pub fn fields_struct(
                     ::std::ptr::copy(old.#ident_rev.as_ptr(), new.#ident_rev.as_ptr(), length);
                 )*
 
-                *self = new;
+                new
             }
 
             #[inline]
-            unsafe fn realloc_shrink(&mut self, old_capacity: usize, new_capacity: usize, length: usize) {
+            unsafe fn realloc_shrink(
+                &mut self,
+                old_capacity: usize,
+                new_capacity: usize,
+                length: usize,
+            ) -> Self {
                 // SAFETY: We already constructed this layout for a previous allocation
                 let (old_layout, _) = Self::layout_and_offsets_unchecked(old_capacity);
                 let (new_layout, new_offsets) = Self::layout_and_offsets(new_capacity)
@@ -341,7 +351,7 @@ pub fn fields_struct(
                 }
 
                 // Pointer may have moved, can't reuse dst
-                *self = Self::with_offsets(ptr, new_offsets);
+                Self::with_offsets(ptr, new_offsets)
             }
 
             #[inline]

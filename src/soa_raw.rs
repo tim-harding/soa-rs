@@ -61,6 +61,7 @@ pub unsafe trait SoaRaw: Copy + Clone {
     /// - `size_of::<T>() > 0`
     /// - `capacity > 0`
     /// - `PREV_CAP == 0` (Otherwise use [`SoaRaw::realloc_grow`])
+    #[must_use]
     unsafe fn alloc(capacity: usize) -> Self;
 
     /// Grows the allocation with room for `old_capacity` elements to fit
@@ -75,7 +76,13 @@ pub unsafe trait SoaRaw: Copy + Clone {
     /// - `new_capacity > old_capacity`
     /// - `length <= old_capacity`
     /// - `old_capacity > 0` (Otherwise use [`SoaRaw::alloc`])
-    unsafe fn realloc_grow(&mut self, old_capacity: usize, new_capacity: usize, length: usize);
+    #[must_use]
+    unsafe fn realloc_grow(
+        &mut self,
+        old_capacity: usize,
+        new_capacity: usize,
+        length: usize,
+    ) -> Self;
 
     /// Shrinks the allocation with room for `old_capacity` elements to fit
     /// `new_capacity` elements and moves `length` number of array elements to
@@ -89,7 +96,13 @@ pub unsafe trait SoaRaw: Copy + Clone {
     /// - `new_capacity < old_capacity`
     /// - `length <= new_capacity`
     /// - `old_capacity > 0` (Otherwise use [`SoaRaw::dealloc`])
-    unsafe fn realloc_shrink(&mut self, old_capacity: usize, new_capacity: usize, length: usize);
+    #[must_use]
+    unsafe fn realloc_shrink(
+        &mut self,
+        old_capacity: usize,
+        new_capacity: usize,
+        length: usize,
+    ) -> Self;
 
     /// Deallocates the allocation with room for `capacity` elements. The state
     /// after calling this method is equivalent to [`SoaRaw::dangling`].
