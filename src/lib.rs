@@ -263,59 +263,113 @@ macro_rules! soa {
     };
 }
 
-// Making sure that violating borrow rules fails.
-//
-// # Simultaneous mutable and immutable borrows
-//
-// ## Okay
-//
-// ```
-// use soapy::{Soa, Soapy, soa, SliceRef, SliceMut};
-// #[derive(Soapy, PartialEq, Debug)]
-// struct Foo(usize);
-// let mut soa = soa![Foo(10), Foo(20)];
-// let slice: SliceRef<_> = soa.as_slice();
-// let slice_mut: SliceMut<_> = soa.as_mut_slice();
-// ```
-//
-// ## Not okay
-//
-// ```compile_fail
-// use soapy::{Soa, Soapy, soa, SliceRef, SliceMut};
-// #[derive(Soapy, PartialEq, Debug)]
-// struct Foo(usize);
-// let mut soa = soa![Foo(10), Foo(20)];
-// let slice: SliceRef<_> = soa.as_slice();
-// let slice_mut: SliceMut<_> = soa.as_mut_slice();
-// println!("{:?}", slice); // Added
-// ```
-//
-// # Multiple mutable borrows
-//
-// ## Okay
-//
-// ```
-// use soapy::{Soa, Soapy, soa, SliceMut};
-// #[derive(Soapy, PartialEq, Debug)]
-// struct Foo(usize);
-// let mut soa = soa![Foo(10), Foo(20)];
-// let mut slice_mut: SliceMut<_> = soa.as_mut_slice();
-// let mut slice_mut_2: SliceMut<_> = slice_mut.idx_mut(..);
-// slice_mut.f0_mut()[0] = 30;
-// ```
-//
-// ## Not okay
-//
-// ```compile_fail
-// use soapy::{Soa, Soapy, soa, SliceMut};
-// #[derive(Soapy, PartialEq, Debug)]
-// struct Foo(usize);
-// let mut soa = soa![Foo(10), Foo(20)];
-// let mut slice_mut: SliceMut<_> = soa.as_mut_slice();
-// let mut slice_mut_2: SliceMut<_> = slice_mut.idx_mut(..);
-// slice_mut.f0_mut()[0] = 30;
-// slice_mut_2.f0_mut()[0] = 40; // Added
-// ```
+/// Making sure that violating borrow rules fails.
+///
+/// # Simultaneous mutable and immutable borrows
+///
+/// ## Okay
+///
+/// ```
+/// use soapy::{Soa, Soapy, soa, Slice};
+/// #[derive(Soapy, PartialEq, Debug)]
+/// struct Foo(usize);
+/// let mut soa = soa![Foo(10), Foo(20)];
+/// let slice: &Slice<_> = soa.as_slice();
+/// let slice_mut: &mut Slice<_> = soa.as_mut_slice();
+/// ```
+///
+/// ## Not okay
+///
+/// ```compile_fail
+/// use soapy::{Soa, Soapy, soa, Slice};
+/// #[derive(Soapy, PartialEq, Debug)]
+/// struct Foo(usize);
+/// let mut soa = soa![Foo(10), Foo(20)];
+/// let slice: &Slice<_> = soa.as_slice();
+/// let slice_mut: &mut Slice<_> = soa.as_mut_slice();
+/// println!("{:?}", slice); // Added
+/// ```
+///
+/// # Multiple mutable borrows
+///
+/// ## Okay
+///
+/// ```
+/// use soapy::{Soa, Soapy, soa, Slice};
+/// #[derive(Soapy, PartialEq, Debug)]
+/// struct Foo(usize);
+/// let mut soa = soa![Foo(10), Foo(20)];
+/// let slice: &Slice<_> = soa.as_slice();
+/// let slice_mut: &mut Slice<_> = soa.as_mut_slice();
+/// slice_mut.f0_mut()[0] = 30;
+/// ```
+///
+/// ## Not okay
+///
+/// ```compile_fail
+/// use soapy::{Soa, Soapy, soa, Slice};
+/// #[derive(Soapy, PartialEq, Debug)]
+/// struct Foo(usize);
+/// let mut soa = soa![Foo(10), Foo(20)];
+/// let slice: &Slice<_> = soa.as_slice();
+/// let slice_mut: &mut Slice<_> = soa.as_mut_slice();
+/// slice_mut.f0_mut()[0] = 30;
+/// slice_mut_2.f0_mut()[0] = 40; // Added
+/// ```
+///
+/// # Swapping slices by mut reference
+/// Regression test for https://github.com/tim-harding/soapy/issues/2
+///
+/// ## Okay
+///
+/// ```
+/// use soapy::{Soa, Soapy};
+///
+/// #[derive(Soapy)]
+/// struct Foo(u8);
+///
+/// let mut x = Soa::<Foo>::new();
+/// x.push(Foo(0));
+/// let mut y = Soa::<Foo>::new();
+/// ```
+///
+/// ## Not Okay
+///
+/// ```no_compile
+/// use soapy::{Soa, Soapy};
+///
+/// #[derive(Soapy)]
+/// struct Foo(u8);
+///
+/// let mut x = Soa::<Foo>::new();
+/// x.push(Foo(0));
+/// let mut y = Soa::<Foo>::new();
+/// std::mem::swap(x.as_mut_slice(), y.as_mut_slice());
+/// ```
+///
+/// ```no_compile
+/// use soapy::{Soa, Soapy};
+///
+/// #[derive(Soapy)]
+/// struct Foo(u8);
+///
+/// let mut x = Soa::<Foo>::new();
+/// x.push(Foo(0));
+/// let mut y = Soa::<Foo>::new();
+/// std::mem::swap(x.deref_mut(), y.deref_mut());
+/// ```
+///
+/// ```no_compile
+/// use soapy::{Soa, Soapy};
+///
+/// #[derive(Soapy)]
+/// struct Foo(u8);
+///
+/// let mut x = Soa::<Foo>::new();
+/// x.push(Foo(0));
+/// let mut y = Soa::<Foo>::new();
+/// std::mem::swap(x.as_mut(), y.as_mut());
+/// ```
 mod borrow_tests {}
 
 #[doc = include_str!("../README.md")]
