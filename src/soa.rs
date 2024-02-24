@@ -132,6 +132,7 @@ where
     /// ```
     /// # use soapy::{Soa, Soapy, soa};
     /// # #[derive(Soapy, Debug, PartialEq)]
+    /// # #[extra_impl(Debug, PartialEq)]
     /// # struct Foo(usize);
     /// let soa = Soa::with(Foo(10));
     /// assert_eq!(soa, [Foo(10)]);

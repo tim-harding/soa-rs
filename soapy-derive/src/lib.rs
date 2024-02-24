@@ -3,14 +3,14 @@
 mod fields;
 mod zst;
 
-use fields::{fields_struct, FieldKind};
+use fields::{fields_struct, ExtraImpl, FieldKind};
 use proc_macro::TokenStream;
 use proc_macro2::TokenStream as TokenStream2;
 use quote::quote_spanned;
 use syn::{parse_macro_input, Data, DeriveInput, Fields};
 use zst::{zst_struct, ZstKind};
 
-#[proc_macro_derive(Soapy, attributes(align))]
+#[proc_macro_derive(Soapy, attributes(align, extra_impl))]
 pub fn soa(input: TokenStream) -> TokenStream {
     let input: DeriveInput = parse_macro_input!(input);
     let span = input.ident.span();
@@ -31,18 +31,26 @@ fn soa_inner(input: DeriveInput) -> Result<TokenStream2, SoapyError> {
         ident,
         vis,
         data,
-        attrs: _,
+        attrs,
         generics: _,
     } = input;
 
+    let extra_impl = ExtraImpl::try_from(attrs)?;
     match data {
         Data::Struct(strukt) => match strukt.fields {
-            Fields::Named(fields) => Ok(fields_struct(ident, vis, fields.named, FieldKind::Named)?),
+            Fields::Named(fields) => Ok(fields_struct(
+                ident,
+                vis,
+                fields.named,
+                FieldKind::Named,
+                extra_impl,
+            )?),
             Fields::Unnamed(fields) => Ok(fields_struct(
                 ident,
                 vis,
                 fields.unnamed,
                 FieldKind::Unnamed,
+                extra_impl,
             )?),
             Fields::Unit => Ok(zst_struct(ident, vis, ZstKind::Unit)),
         },
