@@ -155,6 +155,14 @@ pub fn fields_struct(
         #extra_plus_copy
         #[automatically_derived]
         #vis struct #item_ref<'a> #item_ref_def
+
+        impl<'a> ::soapy::AsSoaRef for #item_ref<'a> {
+            type Ref<'b> = #item_ref<'b> where Self: 'b;
+
+            fn as_soa_ref(&self) -> Self::Ref<'_> {
+                *self
+            }
+        }
     });
 
     let item_ref_mut_def = define(&|ty| quote! { &'a mut #ty });
@@ -162,6 +170,18 @@ pub fn fields_struct(
         #extra
         #[automatically_derived]
         #vis struct #item_ref_mut<'a> #item_ref_mut_def
+
+        impl<'a> ::soapy::AsSoaRef for #item_ref_mut<'a> {
+            type Ref<'b> = #item_ref<'b> where Self: 'b;
+
+            fn as_soa_ref(&self) -> Self::Ref<'_> {
+                #item_ref {
+                    #(
+                        #ident_all: self.#ident_all,
+                    )*
+                }
+            }
+        }
     });
 
     let slices_def = define(&|ty| quote! { &'a [#ty] });
@@ -562,6 +582,19 @@ pub fn fields_struct(
                 F: FnOnce(&#ident) -> R
             {
                 f(*self)
+            }
+        }
+
+        #[automatically_derived]
+        impl ::soapy::AsSoaRef for #ident {
+            type Ref<'a> = #item_ref<'a> where Self: 'a;
+
+            fn as_soa_ref(&self) -> Self::Ref<'_> {
+                #item_ref {
+                    #(
+                        #ident_all: &self.#ident_all,
+                    )*
+                }
             }
         }
     });

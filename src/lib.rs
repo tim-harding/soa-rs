@@ -170,6 +170,9 @@ mod iter_raw;
 mod soa_array;
 pub use soa_array::SoaArray;
 
+mod as_soa_ref;
+pub use as_soa_ref::AsSoaRef;
+
 /// Derive macro for the [`Soapy`] trait.
 ///
 /// Deriving Soapy for some struct `Foo` will create the following additional

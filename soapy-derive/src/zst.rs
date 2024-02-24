@@ -70,6 +70,15 @@ pub fn zst_struct(ident: Ident, vis: Visibility, kind: ZstKind) -> TokenStream {
         }
 
         #[automatically_derived]
+        impl ::soapy::AsSoaRef for #ident {
+            type Ref<'a> = #ident where Self: 'a;
+
+            fn as_soa_ref(&self) -> Self::Ref<'_> {
+                #ident #unit_construct
+            }
+        }
+
+        #[automatically_derived]
         #[derive(Copy, Clone)]
         #vis struct #raw;
 
@@ -127,13 +136,13 @@ pub fn zst_struct(ident: Ident, vis: Visibility, kind: ZstKind) -> TokenStream {
             unsafe fn offset(self, count: usize) -> Self { Self }
 
             #[inline]
-            unsafe fn slices<'a>(self, len: usize) -> <#ident as Soapy>::Slices<'a> { 
-                #ident #unit_construct 
+            unsafe fn slices<'a>(self, len: usize) -> <#ident as Soapy>::Slices<'a> {
+                #ident #unit_construct
             }
 
             #[inline]
             unsafe fn slices_mut<'a>(self, len: usize) -> <#ident as Soapy>::SlicesMut<'a> {
-                #ident #unit_construct 
+                #ident #unit_construct
             }
         }
     }
