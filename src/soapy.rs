@@ -33,7 +33,7 @@ pub unsafe trait Soapy: WithRef {
     where
         Self: 'a;
 
-    type Array<const N: usize>: SoaArray<Raw = Self::Raw>;
+    type Array<const N: usize>: SoaArray<Item = Self>;
 
     type Slices<'a>
     where

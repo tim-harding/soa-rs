@@ -28,10 +28,14 @@ pub fn zst_struct(ident: Ident, vis: Visibility, kind: ZstKind) -> TokenStream {
         #vis struct #array<const N: usize>;
 
         #[automatically_derived]
-        impl<const N: usize> ::soapy::SoaArray for #array<N> {
-            type Raw = #raw;
+        unsafe impl<const N: usize> ::soapy::SoaArray for #array<N> {
+            type Item = #ident;
 
-            fn as_raw(&self) -> Self::Raw {
+            fn len(&self) -> usize {
+                N
+            }
+
+            unsafe fn as_raw(&self) -> #raw {
                 #raw
             }
         }

@@ -224,10 +224,14 @@ pub fn fields_struct(
             }
         }
 
-        impl<const N: usize> ::soapy::SoaArray for #array<N> {
-            type Raw = #raw;
+        unsafe impl<const N: usize> ::soapy::SoaArray for #array<N> {
+            type Item = #ident;
 
-            fn as_raw(&self) -> Self::Raw {
+            fn len(&self) -> usize { 
+                N
+            }
+
+            unsafe fn as_raw(&self) -> #raw {
                 #raw {
                     #(
                         #ident_all: unsafe {
