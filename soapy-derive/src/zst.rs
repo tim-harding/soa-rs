@@ -28,15 +28,15 @@ pub fn zst_struct(ident: Ident, vis: Visibility, kind: ZstKind) -> TokenStream {
         #vis struct #array<const N: usize>;
 
         #[automatically_derived]
-        unsafe impl<const N: usize> ::soapy::SoaArray for #array<N> {
+        impl<const N: usize> ::soapy::SoaArray for #array<N> {
             type Item = #ident;
 
-            fn len(&self) -> usize {
-                N
+            fn as_slices(&self) -> #ident {
+                #ident #unit_construct
             }
 
-            unsafe fn as_raw(&self) -> #raw {
-                #raw
+            fn as_mut_slices(&mut self) -> #ident {
+                #ident #unit_construct
             }
         }
 

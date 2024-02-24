@@ -224,22 +224,22 @@ pub fn fields_struct(
             }
         }
 
-        unsafe impl<const N: usize> ::soapy::SoaArray for #array<N> {
+        impl<const N: usize> ::soapy::SoaArray for #array<N> {
             type Item = #ident;
 
-            fn len(&self) -> usize { 
-                N
+            fn as_slices(&self) -> #slices<'_> {
+                #slices {
+                    #(
+                        #ident_all: self.#ident_all.as_slice(),
+                    )*
+                }
             }
 
-            unsafe fn as_raw(&self) -> #raw {
-                #raw {
+            fn as_mut_slices(&mut self) -> #slices_mut<'_> {
+                #slices_mut {
                     #(
-                        #ident_all: unsafe {
-                            ::std::ptr::NonNull::new_unchecked(
-                                self.#ident_all.as_ptr() as *mut #ty_all
-                            )
-                        }
-                    ),*
+                        #ident_all: self.#ident_all.as_mut_slice(),
+                    )*
                 }
             }
         }
