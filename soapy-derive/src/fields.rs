@@ -1,9 +1,10 @@
-use crate::zst::{zst_struct, ZstKind};
+use crate::{
+    zst::{zst_struct, ZstKind},
+    ExtraImpl,
+};
 use proc_macro2::TokenStream;
 use quote::{format_ident, quote, ToTokens, TokenStreamExt};
-use syn::{
-    punctuated::Punctuated, token::Comma, Attribute, Field, Ident, Index, LitInt, Visibility,
-};
+use syn::{punctuated::Punctuated, token::Comma, Field, Ident, Index, LitInt, Visibility};
 
 pub fn fields_struct(
     ident: Ident,
@@ -486,50 +487,4 @@ impl std::fmt::Display for FieldIdent {
 pub enum FieldKind {
     Named,
     Unnamed,
-}
-
-#[derive(Debug, Copy, Clone, Default)]
-pub struct ExtraImpl {
-    pub debug: bool,
-    pub partial_eq: bool,
-    pub eq: bool,
-    pub partial_ord: bool,
-    pub ord: bool,
-    pub hash: bool,
-    pub default: bool,
-    pub clone: bool,
-    pub copy: bool,
-}
-
-impl TryFrom<Vec<Attribute>> for ExtraImpl {
-    type Error = syn::Error;
-
-    fn try_from(value: Vec<Attribute>) -> Result<Self, Self::Error> {
-        let mut out = Self::default();
-        for attr in value {
-            if attr.path().is_ident("extra_impl") {
-                attr.parse_nested_meta(|meta| {
-                    macro_rules! ident {
-                        ($i:ident, $s:expr) => {
-                            if meta.path.is_ident($s) {
-                                out.$i = true;
-                                return Ok(());
-                            }
-                        };
-                    }
-                    ident!(debug, "Debug");
-                    ident!(partial_eq, "PartialEq");
-                    ident!(eq, "Eq");
-                    ident!(partial_ord, "PartialOrd");
-                    ident!(ord, "Ord");
-                    ident!(hash, "Hash");
-                    ident!(default, "Default");
-                    ident!(clone, "Clone");
-                    ident!(copy, "Copy");
-                    Err(meta.error("unrecognized extra impl"))
-                })?;
-            }
-        }
-        Ok(out)
-    }
 }
