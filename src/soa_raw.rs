@@ -180,4 +180,8 @@ pub unsafe trait SoaRaw: Copy + Clone {
     /// [`RangeFrom`]: std::ops::RangeFrom
     #[must_use]
     unsafe fn offset(self, count: usize) -> Self;
+
+    unsafe fn slices<'a>(self, len: usize) -> <Self::Item as Soapy>::Slices<'a>;
+
+    unsafe fn slices_mut<'a>(self, len: usize) -> <Self::Item as Soapy>::SlicesMut<'a>;
 }

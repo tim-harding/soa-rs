@@ -125,6 +125,16 @@ pub fn zst_struct(ident: Ident, vis: Visibility, kind: ZstKind) -> TokenStream {
 
             #[inline]
             unsafe fn offset(self, count: usize) -> Self { Self }
+
+            #[inline]
+            unsafe fn slices<'a>(self, len: usize) -> <#ident as Soapy>::Slices<'a> { 
+                #ident #unit_construct 
+            }
+
+            #[inline]
+            unsafe fn slices_mut<'a>(self, len: usize) -> <#ident as Soapy>::SlicesMut<'a> {
+                #ident #unit_construct 
+            }
         }
     }
 }

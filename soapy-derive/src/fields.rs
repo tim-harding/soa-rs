@@ -505,6 +505,28 @@ pub fn fields_struct(
                     )*
                 }
             }
+
+            #[inline]
+            unsafe fn slices<'a>(self, len: usize) -> #slices<'a> {
+                #slices {
+                    #(
+                        #ident_all: unsafe {
+                            ::std::slice::from_raw_parts(self.#ident_all.as_ptr(), len)
+                        },
+                    )*
+                }
+            }
+
+            #[inline]
+            unsafe fn slices_mut<'a>(self, len: usize) -> #slices_mut<'a> {
+                #slices_mut {
+                    #(
+                        #ident_all: unsafe {
+                            ::std::slice::from_raw_parts_mut(self.#ident_all.as_ptr(), len)
+                        },
+                    )*
+                }
+            }
         }
 
         #[automatically_derived]
