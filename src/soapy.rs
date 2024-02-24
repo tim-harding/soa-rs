@@ -1,4 +1,4 @@
-use crate::{SoaArray, SoaDeref, SoaRaw, WithRef};
+use crate::{AsSoaRef, SoaArray, SoaDeref, SoaRaw, WithRef};
 
 /// Provides [`Soa`] compatibility.
 ///
@@ -9,7 +9,7 @@ use crate::{SoaArray, SoaDeref, SoaRaw, WithRef};
 ///
 /// [`Slice<Self::Raw>`]: crate::Slice
 /// [`Soa`]: crate::Soa
-pub unsafe trait Soapy: WithRef {
+pub unsafe trait Soapy: WithRef + AsSoaRef {
     /// Implements internal, unsafe, low-level routines used by [`Soa`]
     ///
     /// [`Soa`]: crate::Soa
