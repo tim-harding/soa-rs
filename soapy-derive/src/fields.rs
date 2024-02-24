@@ -79,6 +79,7 @@ pub fn fields_struct(
     let item_ref_mut = format_ident!("{ident}RefMut");
     let slices = format_ident!("{ident}Slices");
     let slices_mut = format_ident!("{ident}SlicesMut");
+    let array = format_ident!("{ident}Array");
     let raw = format_ident!("{ident}SoaRaw");
 
     let mut out = TokenStream::new();
@@ -152,25 +153,88 @@ pub fn fields_struct(
     let item_ref_def = define(&|ty| quote! { &'a #ty });
     out.append_all(quote! {
         #extra_plus_copy
+        #[automatically_derived]
         #vis struct #item_ref<'a> #item_ref_def
     });
 
     let item_ref_mut_def = define(&|ty| quote! { &'a mut #ty });
     out.append_all(quote! {
         #extra
+        #[automatically_derived]
         #vis struct #item_ref_mut<'a> #item_ref_mut_def
     });
 
     let slices_def = define(&|ty| quote! { &'a [#ty] });
     out.append_all(quote! {
         #extra_plus_copy
+        #[automatically_derived]
         #vis struct #slices<'a> #slices_def
     });
 
     let slices_mut_def = define(&|ty| quote! { &'a mut [#ty] });
     out.append_all(quote! {
         #extra
+        #[automatically_derived]
         #vis struct #slices_mut<'a> #slices_mut_def
+    });
+
+    let array_def = define(&|ty| quote! { [#ty; N] });
+    let uninit_def = define(&|ty| quote! { [::std::mem::MaybeUninit<#ty>; K] });
+    out.append_all(quote! {
+        #extra
+        #[automatically_derived]
+        #vis struct #array<const N: usize> #array_def
+
+        impl<const N: usize> #array<N> {
+            #vis const fn from_array(array: [#ident; N]) -> Self {
+                struct Uninit<const K: usize> #uninit_def;
+
+                let mut uninit: Uninit<N> = Uninit {
+                    #(
+                    // https://doc.rust-lang.org/std/mem/union.MaybeUninit.html#initializing-an-array-element-by-element
+                    //
+                    // TODO: Prefer when stablized:
+                    // https://doc.rust-lang.org/std/mem/union.MaybeUninit.html#method.uninit_array
+                    #ident_all: unsafe { ::std::mem::MaybeUninit::uninit().assume_init() },
+                    )*
+                };
+
+                let mut i = 0;
+                while i < N {
+                    #(
+                    let src = &array[i].#ident_all as *const #ty_all;
+                    unsafe {
+                        uninit.#ident_all[i] = ::std::mem::MaybeUninit::new(src.read());
+                    }
+                    )*
+
+                    i += 1;
+                }
+
+                ::std::mem::forget(array);
+                Self {
+                    #(
+                    // TODO: Prefer when stabilized:
+                    // https://doc.rust-lang.org/std/primitive.array.html#method.transpose
+                    #ident_all: unsafe {
+                        ::std::mem::transmute_copy(&::std::mem::ManuallyDrop::new(uninit.#ident_all))
+                    },
+                    )*
+                }
+            }
+
+            const fn as_raw(&self) -> #raw {
+                #raw {
+                    #(
+                        #ident_all: unsafe {
+                            ::std::ptr::NonNull::new_unchecked(
+                                self.#ident_all.as_ptr() as *mut #ty_all
+                            )
+                        }
+                    ),*
+                }
+            }
+        }
     });
 
     let with_ref_impl = |item| {
