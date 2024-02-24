@@ -6,7 +6,7 @@ mod zst;
 use fields::{fields_struct, FieldKind};
 use proc_macro::TokenStream;
 use proc_macro2::TokenStream as TokenStream2;
-use quote::quote_spanned;
+use quote::{quote, quote_spanned};
 use syn::{parse_macro_input, Attribute, Data, DeriveInput, Fields};
 use zst::{zst_struct, ZstKind};
 
@@ -81,6 +81,30 @@ struct ExtraImpl {
     pub default: bool,
     pub clone: bool,
     pub copy: bool,
+}
+
+impl ExtraImpl {
+    fn as_derive(&self) -> TokenStream2 {
+        let derives = [
+            self.debug.then(|| quote! { Debug }),
+            self.partial_eq.then(|| quote! { PartialEq }),
+            self.eq.then(|| quote! { Eq }),
+            self.partial_ord.then(|| quote! { PartialOrd }),
+            self.ord.then(|| quote! { Ord }),
+            self.hash.then(|| quote! { Hash }),
+            self.default.then(|| quote! { Default }),
+            self.clone.then(|| quote! { Clone }),
+            self.copy.then(|| quote! { Copy }),
+        ]
+        .into_iter()
+        .flatten();
+
+        quote! {
+            #[derive(
+                #(#derives),*
+            )]
+        }
+    }
 }
 
 impl TryFrom<Vec<Attribute>> for ExtraImpl {

@@ -11,7 +11,7 @@ pub fn fields_struct(
     vis: Visibility,
     fields: Punctuated<Field, Comma>,
     kind: FieldKind,
-    _extra_impl: ExtraImpl,
+    extra: ExtraImpl,
 ) -> Result<TokenStream, syn::Error> {
     let fields_len = fields.len();
     let (vis_all, (ty_all, (ident_all, attrs_all))): (Vec<_>, (Vec<_>, (Vec<_>, Vec<_>))) = fields
@@ -77,6 +77,8 @@ pub fn fields_struct(
     let deref = format_ident!("{ident}Deref");
     let item_ref = format_ident!("{ident}Ref");
     let item_ref_mut = format_ident!("{ident}RefMut");
+    let slices = format_ident!("{ident}Slices");
+    let slices_mut = format_ident!("{ident}SlicesMut");
     let raw = format_ident!("{ident}SoaRaw");
 
     let mut out = TokenStream::new();
@@ -141,14 +143,34 @@ pub fn fields_struct(
         }
     };
 
+    let mut extra_plus_copy = extra;
+    extra_plus_copy.copy = true;
+    extra_plus_copy.clone = true;
+    let extra_plus_copy = extra_plus_copy.as_derive();
+    let extra = extra.as_derive();
+
     let item_ref_def = define(&|ty| quote! { &'a #ty });
     out.append_all(quote! {
+        #extra_plus_copy
         #vis struct #item_ref<'a> #item_ref_def
     });
 
     let item_ref_mut_def = define(&|ty| quote! { &'a mut #ty });
     out.append_all(quote! {
+        #extra
         #vis struct #item_ref_mut<'a> #item_ref_mut_def
+    });
+
+    let slices_def = define(&|ty| quote! { &'a [#ty] });
+    out.append_all(quote! {
+        #extra_plus_copy
+        #vis struct #slices<'a> #slices_def
+    });
+
+    let slices_mut_def = define(&|ty| quote! { &'a mut [#ty] });
+    out.append_all(quote! {
+        #extra
+        #vis struct #slices_mut<'a> #slices_mut_def
     });
 
     let with_ref_impl = |item| {
