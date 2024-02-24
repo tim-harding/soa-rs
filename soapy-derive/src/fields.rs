@@ -222,8 +222,12 @@ pub fn fields_struct(
                     )*
                 }
             }
+        }
 
-            const fn as_raw(&self) -> #raw {
+        impl<const N: usize> ::soapy::SoaArray for #array<N> {
+            type Raw = #raw;
+
+            fn as_raw(&self) -> Self::Raw {
                 #raw {
                     #(
                         #ident_all: unsafe {
@@ -313,6 +317,9 @@ pub fn fields_struct(
             type Deref = #deref;
             type Ref<'a> = #item_ref<'a> where Self: 'a;
             type RefMut<'a> = #item_ref_mut<'a> where Self: 'a;
+            type Array<const N: usize> = #array<N>;
+            type Slices<'a> = #slices<'a> where Self: 'a;
+            type SlicesMut<'a> = #slices_mut<'a> where Self: 'a;
         }
 
         #[automatically_derived]

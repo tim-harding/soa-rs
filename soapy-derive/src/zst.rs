@@ -5,6 +5,7 @@ use syn::Visibility;
 pub fn zst_struct(ident: Ident, vis: Visibility, kind: ZstKind) -> TokenStream {
     let raw = format_ident!("{ident}SoaRaw");
     let deref = format_ident!("{ident}Deref");
+    let array = format_ident!("{ident}Array");
     let unit_construct = match kind {
         ZstKind::Unit => quote! {},
         ZstKind::Empty => quote! { {} },
@@ -18,6 +19,21 @@ pub fn zst_struct(ident: Ident, vis: Visibility, kind: ZstKind) -> TokenStream {
             type Deref = #deref;
             type Ref<'a> = #ident;
             type RefMut<'a> = #ident;
+            type Slices<'a> = #ident;
+            type SlicesMut<'a> = #ident;
+            type Array<const N: usize> = #array<N>;
+        }
+
+        #[automatically_derived]
+        #vis struct #array<const N: usize>;
+
+        #[automatically_derived]
+        impl<const N: usize> ::soapy::SoaArray for #array<N> {
+            type Raw = #raw;
+
+            fn as_raw(&self) -> Self::Raw {
+                #raw
+            }
         }
 
         // TODO: Consolidate duplication from fields

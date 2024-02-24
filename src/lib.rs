@@ -167,6 +167,9 @@ pub use chunks_exact::ChunksExact;
 mod eq_impl;
 mod iter_raw;
 
+mod soa_array;
+pub use soa_array::SoaArray;
+
 /// Derive macro for the [`Soapy`] trait.
 ///
 /// Deriving Soapy for some struct `Foo` will create the following additional

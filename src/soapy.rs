@@ -1,4 +1,4 @@
-use crate::{SoaDeref, SoaRaw, WithRef};
+use crate::{SoaArray, SoaDeref, SoaRaw, WithRef};
 
 /// Provides [`Soa`] compatibility.
 ///
@@ -30,6 +30,16 @@ pub unsafe trait Soapy: WithRef {
     /// For each field with type `F` in `T`, `RefMut` has a field with type
     /// `&mut F`
     type RefMut<'a>: WithRef<Item = Self>
+    where
+        Self: 'a;
+
+    type Array<const N: usize>: SoaArray<Raw = Self::Raw>;
+
+    type Slices<'a>
+    where
+        Self: 'a;
+
+    type SlicesMut<'a>
     where
         Self: 'a;
 }
