@@ -589,12 +589,19 @@ pub fn fields_struct(
         impl ::soapy::AsSoaRef for #ident {
             type Item = #ident;
 
-            fn as_soa_ref(&self) -> <Self::Item as Soapy>::Ref<'_> {
+            fn as_soa_ref(&self) -> <Self::Item as ::soapy::Soapy>::Ref<'_> {
                 #item_ref {
                     #(
                         #ident_all: &self.#ident_all,
                     )*
                 }
+            }
+        }
+
+        #[automatically_derived]
+        impl<'a> ::std::cmp::PartialEq<#ident> for #item_ref<'a> {
+            fn eq(&self, other: &#ident) -> bool {
+                self == &<#ident as ::soapy::AsSoaRef>::as_soa_ref(other)
             }
         }
     });

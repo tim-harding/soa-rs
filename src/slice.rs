@@ -99,6 +99,7 @@ where
     /// ```
     /// # use soapy::{Soa, Soapy, soa};
     /// # #[derive(Soapy)]
+    /// # #[extra_impl(Debug, PartialEq)]
     /// # struct Foo(usize);
     /// let soa = soa![Foo(1), Foo(2), Foo(3)];
     /// assert_eq!(soa.len(), 3);
@@ -114,6 +115,7 @@ where
     /// ```
     /// # use soapy::{Soa, Soapy};
     /// # #[derive(Soapy)]
+    /// # #[extra_impl(Debug, PartialEq)]
     /// # struct Foo(usize);
     /// let mut soa = Soa::<Foo>::new();
     /// assert!(soa.is_empty());
@@ -164,6 +166,7 @@ where
     /// # use soapy::{Soa, Soapy, soa, WithRef};
     /// # use std::fmt;
     /// # #[derive(Soapy, Debug, PartialEq)]
+    /// # #[extra_impl(Debug, PartialEq)]
     /// # struct Foo(usize);
     /// let mut soa = soa![Foo(1), Foo(2), Foo(4)];
     /// for mut elem in soa.iter_mut() {
@@ -225,6 +228,7 @@ where
     /// ```
     /// # use soapy::{Soa, Soapy, soa};
     /// # #[derive(Soapy, Debug, PartialEq)]
+    /// # #[extra_impl(Debug, PartialEq)]
     /// # struct Foo(usize);
     /// let mut soa = soa![Foo(1), Foo(2), Foo(3)];
     /// if let Some(mut elem) = soa.get_mut(1) {
@@ -321,6 +325,7 @@ where
     /// ```
     /// # use soapy::{Soa, Soapy, soa};
     /// # #[derive(Soapy, Debug, PartialEq)]
+    /// # #[extra_impl(Debug, PartialEq)]
     /// # struct Foo(usize);
     /// let mut soa = soa![Foo(0), Foo(1), Foo(2), Foo(3), Foo(4)];
     /// soa.swap(2, 4);
@@ -366,6 +371,7 @@ where
     /// ```
     /// # use soapy::{Soa, Soapy, soa};
     /// # #[derive(Soapy, Debug, PartialEq)]
+    /// # #[extra_impl(Debug, PartialEq)]
     /// # struct Foo(usize);
     /// let mut soa = soa![Foo(0), Foo(1), Foo(2)];
     /// if let Some(mut first) = soa.first_mut() {
@@ -403,6 +409,7 @@ where
     /// ```
     /// # use soapy::{Soa, Soapy, soa};
     /// # #[derive(Soapy, Debug, PartialEq)]
+    /// # #[extra_impl(Debug, PartialEq)]
     /// # struct Foo(usize);
     /// let mut soa = soa![Foo(0), Foo(1), Foo(2)];
     /// if let Some(mut last) = soa.last_mut() {
@@ -432,6 +439,7 @@ where
     /// ```
     /// # use soapy::{Soa, Soapy, soa};
     /// # #[derive(Soapy, Debug, PartialEq)]
+    /// # #[extra_impl(Debug, PartialEq)]
     /// # struct Foo(char);
     /// let soa = soa![Foo('l'), Foo('o'), Foo('r'), Foo('e'), Foo('m')];
     /// let mut iter = soa.chunks_exact(2);

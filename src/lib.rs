@@ -9,6 +9,7 @@
 //! ```
 //! # use soapy::{soa, Soapy};
 //! #[derive(Soapy, Debug, Clone, Copy, PartialEq)]
+//! # #[extra_impl(Debug, PartialEq)]
 //! struct Example {
 //!     foo: u8,
 //!     bar: u16,
@@ -19,6 +20,7 @@
 //! ```
 //! # use soapy::{soa, Soapy, Soa};
 //! # #[derive(Soapy, Debug, Clone, Copy, PartialEq)]
+//! # #[extra_impl(Debug, PartialEq)]
 //! # struct Example {
 //! #     foo: u8,
 //! #     bar: u16,
@@ -31,6 +33,7 @@
 //! ```
 //! # use soapy::{soa, Soapy};
 //! # #[derive(Soapy, Debug, Clone, Copy, PartialEq)]
+//! # #[extra_impl(Debug, PartialEq)]
 //! # struct Example {
 //! #     foo: u8,
 //! #     bar: u16,
@@ -43,6 +46,7 @@
 //! ```
 //! # use soapy::{soa, Soapy};
 //! # #[derive(Soapy, Debug, Clone, Copy, PartialEq)]
+//! # #[extra_impl(Debug, PartialEq)]
 //! # struct Example {
 //! #     foo: u8,
 //! #     bar: u16,
@@ -61,6 +65,7 @@
 //! ```
 //! # use soapy::{soa, Soapy, Soa};
 //! # #[derive(Soapy, Debug, Clone, Copy, PartialEq)]
+//! # #[extra_impl(Debug, PartialEq)]
 //! # struct Example {
 //! #     foo: u8,
 //! #     bar: u16,
@@ -82,6 +87,7 @@
 //! ```
 //! # use soapy::{soa, Soapy};
 //! # #[derive(Soapy, Debug, Clone, Copy, PartialEq)]
+//! # #[extra_impl(Debug, PartialEq)]
 //! # struct Example {
 //! #     foo: u8,
 //! #     bar: u16,
@@ -97,6 +103,7 @@
 //! ```
 //! # use soapy::{soa, Soapy};
 //! # #[derive(Soapy, Debug, Clone, Copy, PartialEq)]
+//! # #[extra_impl(Debug, PartialEq)]
 //! # struct Example {
 //! #     foo: u8,
 //! #     bar: u16,
@@ -115,6 +122,7 @@
 //! ```
 //! # use soapy::{soa, Soapy};
 //! #[derive(Soapy)]
+//! # #[extra_impl(Debug, PartialEq)]
 //! struct Example(u8);
 //! let soa = soa![Example(5), Example(10)];
 //! assert_eq!(soa.f0(), [5, 10]);
@@ -194,7 +202,8 @@ pub use as_soa_ref::AsSoaRef;
 ///
 /// ```
 /// # use soapy::{Soapy};
-/// #[derive(Soapy)]
+/// # #[derive(Soapy)]
+/// # #[extra_impl(Debug, PartialEq)]
 /// struct Foo(#[align(8)] u8);
 /// ```
 ///
@@ -210,7 +219,7 @@ pub use soapy_derive::Soapy;
 /// ```
 /// # use soapy::{Soapy, soa};
 /// # #[derive(Soapy, Debug, PartialEq, Copy, Clone)]
-/// # #[extra_impl(Debug)]
+/// # #[extra_impl(Debug, PartialEq, PartialOrd)]
 /// # struct Foo(u8, u16);
 /// let soa = soa![Foo(1, 2), Foo(3, 4)];
 /// assert_eq!(soa, [Foo(1, 2), Foo(3, 4)]);

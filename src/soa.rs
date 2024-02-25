@@ -49,6 +49,7 @@ where
     /// ```
     /// # use soapy::{Soa, Soapy};
     /// # #[derive(Soapy, Copy, Clone)]
+    /// # #[extra_impl(Debug, PartialEq)]
     /// # struct Foo;
     /// let mut soa = Soa::<Foo>::new();
     /// ```
@@ -73,6 +74,7 @@ where
     /// ```
     /// # use soapy::{Soa, Soapy};
     /// #[derive(Soapy)]
+    /// # #[extra_impl(Debug, PartialEq)]
     /// struct Foo(u8, u8);
     ///
     /// let mut soa = Soa::<Foo>::with_capacity(10);
@@ -92,6 +94,7 @@ where
     /// assert_eq!(soa.capacity(), 20);
     ///
     /// #[derive(Soapy, Copy, Clone)]
+    /// # #[extra_impl(Debug, PartialEq)]
     /// struct Bar;
     ///
     /// // A SOA of a zero-sized type always over-allocates
@@ -151,6 +154,7 @@ where
     /// ```
     /// # use soapy::{Soa, Soapy};
     /// # #[derive(Soapy)]
+    /// # #[extra_impl(Debug, PartialEq)]
     /// # struct Foo(usize);
     /// let mut soa = Soa::<Foo>::new();
     /// for i in 0..42 {
@@ -179,6 +183,7 @@ where
     /// ```
     /// # use soapy::{Soa, Soapy, soa};
     /// # #[derive(Soapy, Debug, PartialEq)]
+    /// # #[extra_impl(Debug, PartialEq)]
     /// # struct Foo(usize);
     /// let soa = soa![Foo(1), Foo(2)];
     /// let (ptr, len, cap) = soa.into_raw_parts();
@@ -214,6 +219,7 @@ where
     /// ```
     /// # use soapy::{Soa, Soapy, soa};
     /// # #[derive(Soapy, Debug, PartialEq)]
+    /// # #[extra_impl(Debug, PartialEq)]
     /// # struct Foo(usize);
     /// let mut soa = soa![Foo(1), Foo(2)];
     /// soa.push(Foo(3));
@@ -235,6 +241,7 @@ where
     /// ```
     /// # use soapy::{Soa, Soapy, soa};
     /// # #[derive(Soapy, Debug, PartialEq)]
+    /// # #[extra_impl(Debug, PartialEq)]
     /// # struct Foo(usize);
     /// let mut soa = soa![Foo(1), Foo(2), Foo(3)];
     /// assert_eq!(soa.pop(), Some(Foo(3)));
@@ -261,6 +268,7 @@ where
     /// ```
     /// # use soapy::{Soa, Soapy, soa};
     /// # #[derive(Soapy, Debug, PartialEq)]
+    /// # #[extra_impl(Debug, PartialEq)]
     /// # struct Foo(usize);
     /// let mut soa = soa![Foo(1), Foo(2), Foo(3)];
     /// soa.insert(1, Foo(4));
@@ -287,6 +295,7 @@ where
     /// ```
     /// # use soapy::{Soa, Soapy, soa};
     /// # #[derive(Soapy, Debug, PartialEq)]
+    /// # #[extra_impl(Debug, PartialEq)]
     /// # struct Foo(usize);
     /// let mut soa = soa![Foo(1), Foo(2), Foo(3)];
     /// assert_eq!(soa.remove(1), Foo(2));
@@ -314,6 +323,7 @@ where
     /// ```
     /// # use soapy::{Soa, Soapy, soa};
     /// # #[derive(Soapy, Debug, PartialEq)]
+    /// # #[extra_impl(Debug, PartialEq)]
     /// # struct Foo(usize);
     /// let mut soa = soa![Foo(1)];
     /// soa.reserve(10);
@@ -342,6 +352,7 @@ where
     /// ```
     /// # use soapy::{Soa, Soapy, soa};
     /// # #[derive(Soapy, Debug, PartialEq)]
+    /// # #[extra_impl(Debug, PartialEq)]
     /// # struct Foo(usize);
     /// let mut soa = soa![Foo(1)];
     /// soa.reserve(10);
@@ -362,6 +373,7 @@ where
     /// ```
     /// # use soapy::{Soa, Soapy, soa};
     /// # #[derive(Soapy, Debug, PartialEq)]
+    /// # #[extra_impl(Debug, PartialEq)]
     /// # struct Foo(usize);
     /// let mut soa = Soa::<Foo>::with_capacity(10);
     /// soa.extend([Foo(1), Foo(2), Foo(3)]);
@@ -384,6 +396,7 @@ where
     /// ```
     /// # use soapy::{Soa, Soapy, soa};
     /// # #[derive(Soapy, Debug, PartialEq)]
+    /// # #[extra_impl(Debug, PartialEq)]
     /// # struct Foo(usize);
     /// let mut soa = Soa::<Foo>::with_capacity(10);
     /// soa.extend([Foo(1), Foo(2), Foo(3)]);
@@ -411,6 +424,7 @@ where
     /// ```
     /// # use soapy::{Soa, Soapy, soa};
     /// # #[derive(Soapy, Debug, PartialEq)]
+    /// # #[extra_impl(Debug, PartialEq)]
     /// # struct Foo(usize);
     /// let mut soa = soa![Foo(1), Foo(2), Foo(3), Foo(4), Foo(5)];
     /// soa.truncate(2);
@@ -422,6 +436,7 @@ where
     /// ```
     /// # use soapy::{Soa, Soapy, soa};
     /// # #[derive(Soapy, Debug, PartialEq)]
+    /// # #[extra_impl(Debug, PartialEq)]
     /// # struct Foo(usize);
     /// let mut soa = soa![Foo(1), Foo(2), Foo(3)];
     /// soa.truncate(8);
@@ -432,6 +447,7 @@ where
     /// ```
     /// # use soapy::{Soa, Soapy, soa};
     /// # #[derive(Soapy, Debug, PartialEq)]
+    /// # #[extra_impl(Debug, PartialEq)]
     /// # struct Foo(usize);
     /// let mut soa = soa![Foo(1), Foo(2), Foo(3)];
     /// soa.truncate(0);
@@ -458,6 +474,7 @@ where
     /// ```
     /// # use soapy::{Soa, Soapy, soa};
     /// # #[derive(Soapy, Debug, PartialEq)]
+    /// # #[extra_impl(Debug, PartialEq)]
     /// # struct Foo(usize);
     /// let mut soa = soa![Foo(0), Foo(1), Foo(2), Foo(3)];
     ///
@@ -488,6 +505,7 @@ where
     /// ```
     /// # use soapy::{Soa, Soapy, soa};
     /// # #[derive(Soapy, Debug, PartialEq)]
+    /// # #[extra_impl(Debug, PartialEq)]
     /// # struct Foo(usize);
     /// let mut soa1  = soa![Foo(1), Foo(2), Foo(3)];
     /// let mut soa2 = soa![Foo(4), Foo(5), Foo(6)];
@@ -514,6 +532,7 @@ where
     /// ```
     /// # use soapy::{Soa, Soapy, soa};
     /// # #[derive(Soapy, Debug, PartialEq)]
+    /// # #[extra_impl(Debug, PartialEq)]
     /// # struct Foo(usize);
     /// let mut soa = soa![Foo(1), Foo(2)];
     /// soa.clear();
@@ -532,6 +551,7 @@ where
     /// ```
     /// # use soapy::{Soa, Soapy, soa};
     /// # #[derive(Soapy, Debug, PartialEq)]
+    /// # #[extra_impl(Debug, PartialEq)]
     /// # struct Foo(usize);
     /// let soa = soa![Foo(10), Foo(20)];
     /// assert_eq!(soa.as_slice(), soa.get(..).unwrap());
@@ -549,6 +569,7 @@ where
     /// ```
     /// # use soapy::{Soa, Soapy, soa};
     /// # #[derive(Soapy, Debug, PartialEq)]
+    /// # #[extra_impl(Debug, PartialEq)]
     /// # struct Foo(usize);
     /// let mut soa = soa![Foo(10), Foo(20)];
     /// soa.as_mut_slice().f0_mut()[0] = 30;

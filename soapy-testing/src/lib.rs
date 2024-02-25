@@ -64,22 +64,27 @@ const E: El = El {
 
 const ABCDE: [El; 5] = [A, B, C, D, E];
 
-#[derive(Soapy, Debug, Clone, Copy, PartialEq, Eq, Default)]
+#[derive(Soapy, Debug, Clone, Copy, PartialEq, Eq, Default, PartialOrd, Ord)]
+#[extra_impl(Debug, PartialEq, Eq, PartialOrd, Ord)]
 struct Unit;
 
 #[derive(Soapy, Debug, Clone, Copy, PartialEq, Eq, Default)]
+#[extra_impl(Debug, PartialEq, Eq, PartialOrd, Ord)]
 struct Empty {}
 
 #[derive(Soapy, Debug, Clone, Copy, PartialEq, Eq, Default)]
+#[extra_impl(Debug, PartialEq, Eq, PartialOrd, Ord)]
 struct EmptyTuple();
 
 #[derive(Soapy, Debug, Clone, Copy, PartialEq, Eq, Default)]
+#[extra_impl(Debug, PartialEq, Eq, PartialOrd, Ord)]
 struct ZstFields {
     a: Unit,
     b: (),
 }
 
 #[derive(Soapy, Debug, Clone, Copy, PartialEq, Eq, Default)]
+#[extra_impl(Debug, PartialEq, Eq, PartialOrd, Ord)]
 struct Tuple(u8, u16, u32);
 
 #[test]

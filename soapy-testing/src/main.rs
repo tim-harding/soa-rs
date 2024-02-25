@@ -1,6 +1,7 @@
 use soapy::Soapy;
 
 #[derive(Debug, Clone, Copy, PartialEq, Soapy)]
+#[extra_impl(Debug, PartialEq)]
 struct Alignment {
     #[align(64)]
     a: f32,
