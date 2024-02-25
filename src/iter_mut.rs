@@ -1,6 +1,5 @@
 use crate::{
     iter_raw::{iter_with_raw, IterRaw, IterRawAdapter},
-    soa_ref::RefMut,
     Slice, SliceMut, SoaRaw, Soapy,
 };
 use std::{
@@ -52,10 +51,10 @@ impl<'a, T> IterRawAdapter<T> for IterMut<'a, T>
 where
     T: Soapy,
 {
-    type Item = RefMut<'a, T>;
+    type Item = T::RefMut<'a>;
 
     fn item_from_raw(raw: <T as Soapy>::Raw) -> Self::Item {
-        RefMut(unsafe { raw.get_mut() })
+        unsafe { raw.get_mut() }
     }
 }
 

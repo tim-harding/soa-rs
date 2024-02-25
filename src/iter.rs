@@ -1,6 +1,6 @@
 use crate::{
     iter_raw::{iter_with_raw, IterRaw, IterRawAdapter},
-    Ref, Slice, SoaRaw, Soapy,
+    Slice, SoaRaw, Soapy,
 };
 use std::{
     fmt::{self, Debug, Formatter},
@@ -74,10 +74,10 @@ impl<'a, T> IterRawAdapter<T> for Iter<'a, T>
 where
     T: Soapy,
 {
-    type Item = Ref<'a, T>;
+    type Item = T::Ref<'a>;
 
     fn item_from_raw(raw: T::Raw) -> Self::Item {
-        Ref(unsafe { raw.get_ref() })
+        unsafe { raw.get_ref() }
     }
 }
 

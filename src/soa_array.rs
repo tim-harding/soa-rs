@@ -1,4 +1,4 @@
-use crate::{Slice, Soapy};
+use crate::Soapy;
 
 pub trait SoaArray {
     type Item: Soapy;

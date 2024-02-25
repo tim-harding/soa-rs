@@ -1,4 +1,4 @@
-use crate::{eq_impl, iter_raw::IterRaw, Iter, Ref, Slice, SliceMut, Soa, Soapy};
+use crate::{eq_impl, iter_raw::IterRaw, Iter, Slice, SliceMut, Soa, Soapy};
 use std::{
     cmp::Ordering,
     fmt::{self, Debug, Formatter},
@@ -56,7 +56,7 @@ impl<'a, T> IntoIterator for SliceRef<'a, T>
 where
     T: Soapy,
 {
-    type Item = Ref<'a, T>;
+    type Item = T::Ref<'a>;
     type IntoIter = Iter<'a, T>;
 
     fn into_iter(self) -> Self::IntoIter {
@@ -82,7 +82,8 @@ where
 
 impl<'a, T> PartialOrd for SliceRef<'a, T>
 where
-    T: Soapy + PartialOrd,
+    T: Soapy,
+    for<'b> T::Ref<'b>: PartialOrd,
 {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
         self.as_ref().partial_cmp(other.as_ref())
@@ -92,6 +93,7 @@ where
 impl<'a, T> Ord for SliceRef<'a, T>
 where
     T: Soapy + Ord,
+    for<'b> T::Ref<'b>: Ord,
 {
     fn cmp(&self, other: &Self) -> Ordering {
         self.as_ref().cmp(other.as_ref())

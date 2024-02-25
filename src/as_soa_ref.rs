@@ -1,7 +1,7 @@
-pub trait AsSoaRef<'r, 'i> {
-    type Item<'s>
-    where
-        Self: 's + 'r;
+use crate::Soapy;
 
-    fn as_soa_ref(&'r self) -> Self::Item<'i>;
+pub trait AsSoaRef {
+    type Item: Soapy;
+
+    fn as_soa_ref(&self) -> <Self::Item as Soapy>::Ref<'_>;
 }

@@ -1,4 +1,4 @@
-use crate::{soa_ref::RefMut, Ref, Slice, SliceMut, SliceRef, SoaRaw, Soapy};
+use crate::{Slice, SliceMut, SliceRef, SoaRaw, Soapy};
 use std::{
     marker::PhantomData,
     ops::{Range, RangeFrom, RangeFull, RangeInclusive, RangeTo, RangeToInclusive},
@@ -30,15 +30,15 @@ impl<T> SoaIndex<T> for usize
 where
     T: Soapy,
 {
-    type Output<'a> = Ref<'a, T> where T: 'a;
+    type Output<'a> = T::Ref<'a> where T: 'a;
 
-    type OutputMut<'a> = RefMut<'a, T>
+    type OutputMut<'a> = T::RefMut<'a>
     where
         T: 'a;
 
     fn get(self, slice: &Slice<T>) -> Option<Self::Output<'_>> {
         if self < slice.len() {
-            Some(Ref(unsafe { slice.raw().offset(self).get_ref() }))
+            Some(unsafe { slice.raw().offset(self).get_ref() })
         } else {
             None
         }
@@ -46,7 +46,7 @@ where
 
     fn get_mut(self, slice: &mut Slice<T>) -> Option<Self::OutputMut<'_>> {
         if self < slice.len() {
-            Some(RefMut(unsafe { slice.raw().offset(self).get_mut() }))
+            Some(unsafe { slice.raw().offset(self).get_mut() })
         } else {
             None
         }

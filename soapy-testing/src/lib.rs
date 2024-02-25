@@ -1,6 +1,6 @@
 #![cfg(test)]
 
-use soapy::{soa, Soa, Soapy};
+use soapy::{soa, AsSoaRef, Soa, Soapy};
 use std::fmt::Debug;
 
 #[derive(Soapy, Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -25,6 +25,7 @@ impl Drop for SingleDrop {
 }
 
 #[derive(Soapy, Debug, Clone, PartialEq, Eq, Hash)]
+#[extra_impl(Debug, PartialEq, Eq, PartialOrd, Ord)]
 struct El {
     foo: u64,
     bar: u8,
@@ -216,7 +217,7 @@ pub fn iter() {
 #[test]
 pub fn iter_mut() {
     let mut soa: Soa<_> = ABCDE.into();
-    for mut el in soa.iter_mut() {
+    for el in soa.iter_mut() {
         *el.foo += 1;
         *el.bar += 2;
     }
@@ -263,6 +264,7 @@ pub fn clone_from() {
 #[test]
 pub fn partial_ordering_and_equality() {
     #[derive(Soapy, Debug, PartialEq, PartialOrd, Clone, Copy)]
+    #[extra_impl(Debug, PartialEq, PartialOrd)]
     struct A(f32);
 
     let cases = [
@@ -295,6 +297,7 @@ pub fn partial_ordering_and_equality() {
 #[test]
 pub fn ordering() {
     #[derive(Soapy, PartialEq, Eq, PartialOrd, Ord, Clone, Copy)]
+    #[extra_impl(Debug, PartialEq, Eq, PartialOrd, Ord)]
     struct A(u8);
 
     let cases = [
@@ -384,6 +387,7 @@ pub fn field_getters() {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Soapy)]
+#[extra_impl(Debug, PartialEq, PartialOrd)]
 struct Alignment {
     #[align(64)]
     a: f32,
@@ -461,16 +465,15 @@ fn iterator_count() {
     assert_eq!(soa.iter().count(), 5);
 }
 
-fn assert_option_eq<U, V>(u: Option<U>, v: Option<V>)
-where
-    U: PartialEq<V> + Debug,
-    V: Debug,
-{
-    match (u, v) {
-        (Some(u), Some(v)) => assert_eq!(u, v),
-        (None, None) => {}
-        (u, v) => panic!("not equal: {u:?}, {v:?}"),
-    }
+macro_rules! assert_option_eq {
+    ($u:expr, $v:expr) => {
+        #[allow(clippy::iter_nth_zero)]
+        match ($u, $v) {
+            (Some(u), Some(v)) => assert_eq!(u.as_soa_ref(), v.as_soa_ref()),
+            (None, None) => {}
+            (u, v) => panic!("not equal: {u:?}, {v:?}"),
+        }
+    };
 }
 
 #[test]
@@ -486,11 +489,10 @@ fn iterator_nth() {
     let mut iter_soa = soa.iter();
     let mut iter_vec = vec.iter();
     for _ in 0..22 {
-        #[allow(clippy::iter_nth_zero)]
-        assert_option_eq(iter_soa.nth(0), iter_vec.nth(0));
+        assert_option_eq!(iter_vec.nth(0), iter_soa.nth(0));
     }
     for i in 0..10 {
-        assert_option_eq(iter_soa.nth(i), iter_vec.nth(i));
+        assert_option_eq!(iter_vec.nth(i), iter_soa.nth(i));
     }
 }
 
@@ -501,11 +503,10 @@ fn iterator_nth_back() {
     let mut iter_soa = soa.iter();
     let mut iter_vec = vec.iter();
     for _ in 0..22 {
-        #[allow(clippy::iter_nth_zero)]
-        assert_option_eq(iter_soa.nth_back(0), iter_vec.nth_back(0));
+        assert_option_eq!(iter_vec.nth_back(0), iter_soa.nth_back(0));
     }
     for i in 0..10 {
-        assert_option_eq(iter_soa.nth_back(i), iter_vec.nth_back(i));
+        assert_option_eq!(iter_vec.nth_back(i), iter_soa.nth_back(i));
     }
 }
 
@@ -516,7 +517,7 @@ fn iterator_next_back() {
     let mut soa_iter = soa.iter();
     let mut vec_iter = vec.iter();
     for _ in 0..6 {
-        assert_option_eq(soa_iter.next_back(), vec_iter.next_back());
+        assert_option_eq!(vec_iter.next_back(), soa_iter.next_back());
     }
 }
 
@@ -539,7 +540,11 @@ fn chunks_exact() {
     let mut soa_iter = soa.chunks_exact(4);
     let mut vec_iter = vec.chunks_exact(4);
     for _ in 0..(19 / 4) {
-        assert_option_eq(soa_iter.next(), vec_iter.next());
+        match (soa_iter.next(), vec_iter.next()) {
+            (Some(u), Some(v)) => assert_eq!(u, v),
+            (None, None) => {}
+            (u, v) => panic!("not equal: {u:?}, {v:?}"),
+        }
     }
     assert_eq!(soa_iter.remainder(), vec_iter.remainder());
 }

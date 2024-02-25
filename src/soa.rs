@@ -1,6 +1,6 @@
 use crate::{
-    eq_impl, iter_raw::IterRaw, soa_ref::RefMut, IntoIter, Iter, IterMut, Ref, Slice, SliceMut,
-    SliceRef, SoaRaw, Soapy, WithRef,
+    eq_impl, iter_raw::IterRaw, IntoIter, Iter, IterMut, Slice, SliceMut, SliceRef, SoaRaw, Soapy,
+    WithRef,
 };
 use std::{
     borrow::{Borrow, BorrowMut},
@@ -653,7 +653,7 @@ impl<'a, T> IntoIterator for &'a Soa<T>
 where
     T: Soapy,
 {
-    type Item = Ref<'a, T>;
+    type Item = T::Ref<'a>;
 
     type IntoIter = Iter<'a, T>;
 
@@ -666,7 +666,7 @@ impl<'a, T> IntoIterator for &'a mut Soa<T>
 where
     T: Soapy,
 {
-    type Item = RefMut<'a, T>;
+    type Item = T::RefMut<'a>;
 
     type IntoIter = IterMut<'a, T>;
 
@@ -784,22 +784,23 @@ where
     }
 }
 
-impl<T, U> PartialOrd<Soa<U>> for Soa<T>
+impl<T> PartialOrd for Soa<T>
 where
-    T: Soapy + PartialOrd<U>,
-    U: Soapy,
+    T: Soapy,
+    for<'a> T::Ref<'a>: PartialOrd,
 {
-    fn partial_cmp(&self, other: &Soa<U>) -> Option<Ordering> {
-        self.as_slice().partial_cmp(other)
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        self.as_slice().partial_cmp(other.as_slice())
     }
 }
 
 impl<T> Ord for Soa<T>
 where
-    T: Soapy + Ord,
+    T: Soapy,
+    for<'a> T::Ref<'a>: Ord,
 {
     fn cmp(&self, other: &Self) -> Ordering {
-        self.as_slice().cmp(other)
+        self.as_slice().cmp(other.as_slice())
     }
 }
 

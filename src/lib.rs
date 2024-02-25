@@ -158,9 +158,6 @@ mod soa_raw;
 #[doc(hidden)]
 pub use soa_raw::SoaRaw;
 
-mod soa_ref;
-pub use soa_ref::{Ref, RefMut};
-
 mod chunks_exact;
 pub use chunks_exact::ChunksExact;
 

@@ -70,10 +70,10 @@ pub fn zst_struct(ident: Ident, vis: Visibility, kind: ZstKind) -> TokenStream {
         }
 
         #[automatically_derived]
-        impl<'r> ::soapy::AsSoaRef<'r, 'r> for #ident {
-            type Item<'s> = #ident where Self: 's + 'r;
+        impl ::soapy::AsSoaRef for #ident {
+            type Item = #ident;
 
-            fn as_soa_ref(&'r self) -> Self::Item<'r> {
+            fn as_soa_ref(&self) -> Self::Item {
                 #ident #unit_construct
             }
         }
