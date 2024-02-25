@@ -1,4 +1,4 @@
-use crate::{Soapy, WithRef};
+use crate::{AsSoaRef, Soapy, WithRef};
 use std::{
     fmt::Debug,
     hash::{Hash, Hasher},
@@ -88,6 +88,30 @@ where
 {
     fn as_mut(&mut self) -> &mut T::RefMut<'a> {
         &mut self.0
+    }
+}
+
+impl<'a, 'r, T> AsSoaRef<'r, 'a> for Ref<'a, T>
+where
+    T: Soapy,
+    for<'s> T::Ref<'s>: 's + 'r + AsSoaRef<'r, 'a, Item<'s> = T::Ref<'s>>,
+{
+    type Item<'s> = T::Ref<'s> where Self: 's + 'r;
+
+    fn as_soa_ref(&'r self) -> Self::Item<'a> {
+        self.0.as_soa_ref()
+    }
+}
+
+impl<'a, 'r: 'a, T> AsSoaRef<'r, 'r> for RefMut<'a, T>
+where
+    T: Soapy,
+    for<'s> T::RefMut<'s>: 's + 'r + AsSoaRef<'r, 'r, Item<'s> = T::Ref<'s>>,
+{
+    type Item<'s> = T::Ref<'s> where Self: 's + 'r;
+
+    fn as_soa_ref(&'r self) -> Self::Item<'r> {
+        self.0.as_soa_ref()
     }
 }
 

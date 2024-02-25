@@ -156,10 +156,10 @@ pub fn fields_struct(
         #[automatically_derived]
         #vis struct #item_ref<'a> #item_ref_def
 
-        impl<'a> ::soapy::AsSoaRef for #item_ref<'a> {
-            type Item<'b> = #item_ref<'b> where Self: 'b;
+        impl<'a, 'r> ::soapy::AsSoaRef<'r, 'a> for #item_ref<'a> {
+            type Item<'s> = #item_ref<'s> where Self: 's + 'r;
 
-            fn as_soa_ref(&self) -> Self::Item<'_> {
+            fn as_soa_ref(&'r self) -> Self::Item<'a> {
                 *self
             }
         }
@@ -171,10 +171,10 @@ pub fn fields_struct(
         #[automatically_derived]
         #vis struct #item_ref_mut<'a> #item_ref_mut_def
 
-        impl<'a> ::soapy::AsSoaRef for #item_ref_mut<'a> {
-            type Item<'b> = #item_ref<'b> where Self: 'b;
+        impl<'a, 'r> ::soapy::AsSoaRef<'r, 'r> for #item_ref_mut<'a> {
+            type Item<'s> = #item_ref<'s> where Self: 's + 'r;
 
-            fn as_soa_ref(&self) -> Self::Item<'_> {
+            fn as_soa_ref(&'r self) -> Self::Item<'r> {
                 #item_ref {
                     #(
                         #ident_all: self.#ident_all,
@@ -586,10 +586,10 @@ pub fn fields_struct(
         }
 
         #[automatically_derived]
-        impl ::soapy::AsSoaRef for #ident {
-            type Item<'a> = #item_ref<'a> where Self: 'a;
+        impl<'r> ::soapy::AsSoaRef<'r, 'r> for #ident {
+            type Item<'s> = #item_ref<'s> where Self: 's + 'r;
 
-            fn as_soa_ref(&self) -> Self::Item<'_> {
+            fn as_soa_ref(&'r self) -> Self::Item<'r> {
                 #item_ref {
                     #(
                         #ident_all: &self.#ident_all,

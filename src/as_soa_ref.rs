@@ -1,7 +1,7 @@
-pub trait AsSoaRef {
-    type Item<'a>
+pub trait AsSoaRef<'r, 'i> {
+    type Item<'s>
     where
-        Self: 'a;
+        Self: 's + 'r;
 
-    fn as_soa_ref(&self) -> Self::Item<'_>;
+    fn as_soa_ref(&'r self) -> Self::Item<'i>;
 }

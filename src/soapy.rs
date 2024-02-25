@@ -9,7 +9,7 @@ use crate::{AsSoaRef, SoaArray, SoaDeref, SoaRaw, WithRef};
 ///
 /// [`Slice<Self::Raw>`]: crate::Slice
 /// [`Soa`]: crate::Soa
-pub unsafe trait Soapy: WithRef + AsSoaRef {
+pub unsafe trait Soapy: WithRef {
     /// Implements internal, unsafe, low-level routines used by [`Soa`]
     ///
     /// [`Soa`]: crate::Soa
@@ -23,7 +23,7 @@ pub unsafe trait Soapy: WithRef + AsSoaRef {
 
     /// For each field with type `F` in `T`, `Ref` has a field with type
     /// `&F`
-    type Ref<'a>: WithRef<Item = Self>
+    type Ref<'a>: WithRef<Item = Self> + Copy + Clone
     where
         Self: 'a;
 

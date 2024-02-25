@@ -48,7 +48,7 @@ where
     /// # Examples
     /// ```
     /// # use soapy::{Soa, Soapy};
-    /// # #[derive(Soapy)]
+    /// # #[derive(Soapy, Copy, Clone)]
     /// # struct Foo;
     /// let mut soa = Soa::<Foo>::new();
     /// ```
@@ -91,7 +91,7 @@ where
     /// assert_eq!(soa.len(), 11);
     /// assert_eq!(soa.capacity(), 20);
     ///
-    /// #[derive(Soapy)]
+    /// #[derive(Soapy, Copy, Clone)]
     /// struct Bar;
     ///
     /// // A SOA of a zero-sized type always over-allocates
