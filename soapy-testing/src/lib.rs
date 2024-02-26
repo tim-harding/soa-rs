@@ -25,7 +25,7 @@ impl Drop for SingleDrop {
 }
 
 #[derive(Soapy, Debug, Clone, PartialEq, Eq, Hash)]
-#[extra_impl(Debug, PartialEq, Eq, PartialOrd, Ord)]
+#[extra_impl(Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 struct El {
     foo: u64,
     bar: u8,
@@ -253,15 +253,15 @@ pub fn extend() {
 
 #[test]
 pub fn clone() {
-    let expected: Soa<_> = ABCDE.into();
+    let expected: Soa<_> = [Tuple(1, 2, 3), Tuple(4, 5, 6), Tuple(7, 8, 9)].into();
     let actual = expected.clone();
     assert_eq!(expected, actual);
 }
 
 #[test]
 pub fn clone_from() {
-    let mut dst: Soa<_> = ABCDE.into();
-    let src: Soa<_> = [A, A, A].into();
+    let mut dst: Soa<_> = std::iter::repeat(Tuple(100, 100, 100)).take(7).collect();
+    let src: Soa<_> = [Tuple(1, 2, 3), Tuple(4, 5, 6), Tuple(7, 8, 9)].into();
     dst.clone_from(&src);
     assert_eq!(dst, src);
 }
@@ -322,13 +322,6 @@ pub fn ordering() {
         let actual = l.cmp(&r);
         assert_eq!(actual, expected);
     }
-}
-
-#[test]
-pub fn debug() {
-    let slice = format!("{:?}", ABCDE);
-    let soa = format!("{:?}", Soa::from(ABCDE));
-    assert_eq!(slice, soa);
 }
 
 #[test]

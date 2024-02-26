@@ -1,11 +1,10 @@
 use crate::{
     eq_impl, iter_raw::IterRaw, IntoIter, Iter, IterMut, Slice, SliceMut, SliceRef, SoaRaw, Soapy,
-    WithRef,
 };
 use std::{
     borrow::{Borrow, BorrowMut},
     cmp::Ordering,
-    fmt::{self, Formatter},
+    fmt::{self, Debug, Formatter},
     hash::{Hash, Hasher},
     marker::PhantomData,
     mem::{size_of, ManuallyDrop},
@@ -330,14 +329,14 @@ where
     /// assert!(soa.capacity() >= 11);
     /// ```
     pub fn reserve(&mut self, additional: usize) {
-        if additional == 0 {
-            return;
+        let new_len = self.len + additional;
+        if new_len > self.cap {
+            let new_cap = new_len
+                // Ensure exponential growth
+                .max(self.cap * 2)
+                .max(Self::SMALL_CAPACITY);
+            self.grow(new_cap);
         }
-        let new_cap = (self.len + additional)
-            // Ensure exponential growth
-            .max(self.cap * 2)
-            .max(Self::SMALL_CAPACITY);
-        self.grow(new_cap);
     }
 
     /// Reserves the minimum capacity for at least additional more elements to
@@ -359,11 +358,10 @@ where
     /// assert!(soa.capacity() == 11);
     /// ```
     pub fn reserve_exact(&mut self, additional: usize) {
-        if additional == 0 {
-            return;
+        let new_len = additional + self.len;
+        if new_len > self.cap {
+            self.grow(new_len);
         }
-        let new_cap = (additional + self.len).max(self.cap);
-        self.grow(new_cap);
     }
 
     /// Shrinks the capacity of the container as much as possible.
@@ -696,25 +694,28 @@ where
     }
 }
 
+// NOTE: Copy is the required bound because calling Clone::clone on a
+// stack-allocated element is unsound in the presence of interior mutability
+// unless the fields are written back, which we also can't do because of &self.
 impl<T> Clone for Soa<T>
 where
-    T: Soapy + Clone,
+    T: Soapy + Copy,
 {
     fn clone(&self) -> Self {
         let mut out = Self::with_capacity(self.len);
-        for el in self {
-            out.push(el.cloned());
+        for i in 0..self.len {
+            let el = unsafe { self.raw.offset(i).get() };
+            out.push(el);
         }
         out
     }
 
     fn clone_from(&mut self, source: &Self) {
         self.clear();
-        if self.cap < source.len {
-            self.reserve_exact(source.len);
-        }
-        for el in source {
-            self.push(el.cloned());
+        self.reserve_exact(source.len);
+        for i in 0..source.len {
+            let el = unsafe { source.raw.offset(i).get() };
+            self.push(el);
         }
     }
 }
@@ -796,9 +797,10 @@ where
     }
 }
 
-impl<T> fmt::Debug for Soa<T>
+impl<T> Debug for Soa<T>
 where
-    T: Soapy + fmt::Debug,
+    T: Soapy,
+    for<'a> T::Ref<'a>: Debug,
 {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         self.as_slice().fmt(f)
@@ -827,7 +829,8 @@ where
 
 impl<T> Hash for Soa<T>
 where
-    T: Soapy + Hash,
+    T: Soapy,
+    for<'a> T::Ref<'a>: Hash,
 {
     fn hash<H: Hasher>(&self, state: &mut H) {
         self.as_slice().hash(state)

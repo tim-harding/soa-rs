@@ -52,8 +52,9 @@ where
 
 impl<T, A> Debug for IterRaw<T, A>
 where
-    T: Soapy + Debug,
+    T: Soapy,
     A: IterRawAdapter<T>,
+    for<'a> T::Ref<'a>: Debug,
 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         unsafe { self.slice.as_unsized(self.len).fmt(f) }

@@ -24,7 +24,8 @@ where
 
 impl<'a, T> Debug for Iter<'a, T>
 where
-    T: Soapy + Debug,
+    T: Soapy,
+    for<'b> T::Ref<'b>: Debug,
 {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         write!(f, "{:?}", self.as_slice())

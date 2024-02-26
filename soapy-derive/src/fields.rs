@@ -265,27 +265,6 @@ pub fn fields_struct(
         }
     });
 
-    let with_ref_impl = |item| {
-        quote! {
-            impl<'a> ::soapy::WithRef for #item<'a> {
-                type Item = #ident;
-
-                fn with_ref<F, R>(&self, f: F) -> R
-                where
-                    F: FnOnce(&Self::Item) -> R,
-                {
-                    let t = ::std::mem::ManuallyDrop::new(#ident {
-                        #(#ident_all: unsafe { (self.#ident_all as *const #ty_all).read() },)*
-                    });
-                    f(&t)
-                }
-            }
-        }
-    };
-
-    out.append_all(with_ref_impl(item_ref.clone()));
-    out.append_all(with_ref_impl(item_ref_mut.clone()));
-
     let indices = std::iter::repeat(()).enumerate().map(|(i, ())| i);
     let offsets_len = fields_len - 1;
     let raw_body = define(&|ty| quote! { ::std::ptr::NonNull<#ty> });
@@ -546,42 +525,6 @@ pub fn fields_struct(
                         },
                     )*
                 }
-            }
-        }
-
-        #[automatically_derived]
-        impl ::soapy::WithRef for #ident {
-            type Item = Self;
-
-            fn with_ref<F, R>(&self, f: F) -> R
-            where
-                F: FnOnce(&Self) -> R
-            {
-                f(self)
-            }
-        }
-
-        #[automatically_derived]
-        impl ::soapy::WithRef for &#ident {
-            type Item = #ident;
-
-            fn with_ref<F, R>(&self, f: F) -> R
-            where
-                F: FnOnce(&#ident) -> R
-            {
-                f(*self)
-            }
-        }
-
-        #[automatically_derived]
-        impl ::soapy::WithRef for &mut #ident {
-            type Item = #ident;
-
-            fn with_ref<F, R>(&self, f: F) -> R
-            where
-                F: FnOnce(&#ident) -> R
-            {
-                f(*self)
             }
         }
 

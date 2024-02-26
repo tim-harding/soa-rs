@@ -1,4 +1,4 @@
-use crate::{AsSoaRef, SoaArray, SoaDeref, SoaRaw, WithRef};
+use crate::{AsSoaRef, SoaArray, SoaDeref, SoaRaw};
 
 /// Provides [`Soa`] compatibility.
 ///
@@ -9,7 +9,7 @@ use crate::{AsSoaRef, SoaArray, SoaDeref, SoaRaw, WithRef};
 ///
 /// [`Slice<Self::Raw>`]: crate::Slice
 /// [`Soa`]: crate::Soa
-pub unsafe trait Soapy: WithRef + AsSoaRef<Item = Self> {
+pub unsafe trait Soapy: AsSoaRef<Item = Self> {
     /// Implements internal, unsafe, low-level routines used by [`Soa`]
     ///
     /// [`Soa`]: crate::Soa
@@ -23,13 +23,13 @@ pub unsafe trait Soapy: WithRef + AsSoaRef<Item = Self> {
 
     /// For each field with type `F` in `T`, `Ref` has a field with type
     /// `&F`
-    type Ref<'a>: WithRef<Item = Self> + Copy + Clone + AsSoaRef<Item = Self>
+    type Ref<'a>: Copy + Clone + AsSoaRef<Item = Self>
     where
         Self: 'a;
 
     /// For each field with type `F` in `T`, `RefMut` has a field with type
     /// `&mut F`
-    type RefMut<'a>: WithRef<Item = Self> + AsSoaRef<Item = Self>
+    type RefMut<'a>: AsSoaRef<Item = Self>
     where
         Self: 'a;
 

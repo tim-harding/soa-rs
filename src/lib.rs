@@ -159,9 +159,6 @@ pub use soa_deref::SoaDeref;
 mod soapy;
 pub use soapy::Soapy;
 
-mod with_ref;
-pub use with_ref::WithRef;
-
 mod soa_raw;
 #[doc(hidden)]
 pub use soa_raw::SoaRaw;
@@ -261,14 +258,15 @@ macro_rules! soa {
 
     ($elem:expr; $n:expr) => {
         {
-            let mut out = $crate::Soa::with($elem);
-            for _ in 1..$n {
-                let first = out.first();
-                // SAFETY: We already added the first element in Soa::with
-                let first = unsafe { first.unwrap_unchecked() };
-                let clone = $crate::WithRef::with_ref(&first, |first| first.clone());
-                out.push(clone);
+            let elem = $elem;
+            let mut out = $crate::Soa::with(elem.clone());
+
+            let mut i = 2;
+            while i < $n {
+                out.push(elem.clone());
             }
+
+            out.push(elem);
             out
         }
     };

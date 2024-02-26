@@ -42,7 +42,8 @@ where
 
 impl<T> Debug for IntoIter<T>
 where
-    T: Soapy + Debug,
+    T: Soapy,
+    for<'a> T::Ref<'a>: Debug,
 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{:?}", self.as_slice())

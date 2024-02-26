@@ -73,7 +73,8 @@ where
 
 impl<'a, T> Debug for SliceRef<'a, T>
 where
-    T: Soapy + Debug,
+    T: Soapy,
+    for<'b> T::Ref<'b>: Debug,
 {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         self.as_ref().fmt(f)
@@ -102,7 +103,8 @@ where
 
 impl<'a, T> Hash for SliceRef<'a, T>
 where
-    T: Soapy + Hash,
+    T: Soapy,
+    for<'b> T::Ref<'b>: Hash,
 {
     fn hash<H: Hasher>(&self, state: &mut H) {
         self.as_ref().hash(state)

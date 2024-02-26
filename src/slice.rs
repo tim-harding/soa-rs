@@ -1,6 +1,6 @@
 use crate::{
     chunks_exact::ChunksExact, index::SoaIndex, iter_raw::IterRaw, AsSoaRef, Iter, IterMut,
-    SliceMut, SliceRef, Soa, SoaDeref, SoaRaw, Soapy, WithRef,
+    SliceMut, SliceRef, Soa, SoaDeref, SoaRaw, Soapy,
 };
 use std::{
     cmp::Ordering,
@@ -133,7 +133,7 @@ where
     /// # Examples
     ///
     /// ```
-    /// # use soapy::{Soa, Soapy, soa, WithRef};
+    /// # use soapy::{Soa, Soapy, soa};
     /// # use std::fmt;
     /// # #[derive(Soapy, Debug, PartialEq)]
     /// # #[extra_impl(Debug, PartialEq)]
@@ -163,7 +163,7 @@ where
     /// # Examples
     ///
     /// ```
-    /// # use soapy::{Soa, Soapy, soa, WithRef};
+    /// # use soapy::{Soa, Soapy, soa};
     /// # use std::fmt;
     /// # #[derive(Soapy, Debug, PartialEq)]
     /// # #[extra_impl(Debug, PartialEq)]
@@ -198,7 +198,7 @@ where
     ///
     /// ```
     /// # use std::fmt;
-    /// # use soapy::{Soa, Soapy, soa, WithRef, Slice};
+    /// # use soapy::{Soa, Soapy, soa, Slice};
     /// # #[derive(Soapy, Debug, PartialEq)]
     /// # #[extra_impl(PartialEq, Debug)]
     /// # struct Foo(usize);
@@ -259,7 +259,7 @@ where
     ///
     /// ```
     /// # use std::fmt;
-    /// # use soapy::{Soa, Soapy, soa, WithRef};
+    /// # use soapy::{Soa, Soapy, soa};
     /// # #[derive(Soapy, Debug, PartialEq)]
     /// # #[extra_impl(Debug, PartialEq)]
     /// # struct Foo(usize);
@@ -291,7 +291,7 @@ where
     ///
     /// ```
     /// # use std::fmt;
-    /// # use soapy::{Soa, Soapy, soa, WithRef};
+    /// # use soapy::{Soa, Soapy, soa};
     /// # #[derive(Soapy, Debug, PartialEq)]
     /// # #[extra_impl(Debug, PartialEq)]
     /// # struct Foo(usize);
@@ -635,12 +635,13 @@ eq_for_slice_ref!(&mut Slice<T>);
 
 impl<T> Debug for Slice<T>
 where
-    T: Soapy + Debug,
+    T: Soapy,
+    for<'a> T::Ref<'a>: Debug,
 {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         let mut list = f.debug_list();
         self.iter().for_each(|item| {
-            item.with_ref(|item| list.entry(&item));
+            list.entry(&item);
         });
         list.finish()
     }
@@ -685,12 +686,13 @@ where
 
 impl<T> Hash for Slice<T>
 where
-    T: Soapy + Hash,
+    T: Soapy,
+    for<'a> T::Ref<'a>: Hash,
 {
     fn hash<H: Hasher>(&self, state: &mut H) {
         self.len().hash(state);
-        for el in self.iter() {
-            el.with_ref(|el| el.hash(state))
+        for item in self {
+            item.hash(state);
         }
     }
 }
