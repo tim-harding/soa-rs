@@ -242,10 +242,27 @@ pub fn fields_struct(
                     )*
                 }
             }
+
+            fn as_raw(&self) -> #raw {
+                #raw {
+                    #(
+                        #ident_all: {
+                            let ptr = self.#ident_all.as_slice().as_ptr();
+                            unsafe { ::std::ptr::NonNull::from(&*ptr) }
+                        },
+                    )*
+                }
+            }
         }
 
         impl<const N: usize> ::soapy::SoaArray for #array<N> {
             type Item = #ident;
+
+            fn as_slice(&self) -> ::soapy::SliceRef<'_, Self::Item> {
+                let raw = unsafe { self.as_raw() };
+                let slice = ::soapy::Slice::with_raw(raw);
+                unsafe { ::soapy::SliceRef::from_slice(slice, N) }
+            }
 
             fn as_slices(&self) -> #slices<'_> {
                 #slices {

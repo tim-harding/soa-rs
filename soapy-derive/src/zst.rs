@@ -31,6 +31,12 @@ pub fn zst_struct(ident: Ident, vis: Visibility, kind: ZstKind) -> TokenStream {
         impl<const N: usize> ::soapy::SoaArray for #array<N> {
             type Item = #ident;
 
+            fn as_slice(&self) -> ::soapy::SliceRef<'_, Self::Item> {
+                let raw = #raw;
+                let slice = ::soapy::Slice::with_raw(raw);
+                unsafe { ::soapy::SliceRef::from_slice(slice, N) }
+            }
+
             fn as_slices(&self) -> #ident {
                 #ident #unit_construct
             }

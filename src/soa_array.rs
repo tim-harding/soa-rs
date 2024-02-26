@@ -1,7 +1,9 @@
-use crate::Soapy;
+use crate::{SliceRef, Soapy};
 
 pub trait SoaArray {
     type Item: Soapy;
+
+    fn as_slice(&self) -> SliceRef<'_, Self::Item>;
 
     fn as_slices(&self) -> <Self::Item as Soapy>::Slices<'_>;
 

@@ -46,7 +46,10 @@ where
         Self::with_raw(<T::Raw as SoaRaw>::dangling())
     }
 
-    pub(crate) fn with_raw(raw: T::Raw) -> Self {
+    /// Creates a new slice with the given [`SoaRaw`]. This is intended for use
+    /// in proc macro code, not user code.
+    #[doc(hidden)]
+    pub fn with_raw(raw: T::Raw) -> Self {
         Self { raw, dst: () }
     }
 

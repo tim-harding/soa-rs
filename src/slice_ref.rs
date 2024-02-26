@@ -21,6 +21,28 @@ where
     pub(crate) marker: PhantomData<&'a T>,
 }
 
+impl<'a, T> SliceRef<'a, T>
+where
+    T: Soapy,
+{
+    /// Creates a new [`SliceRef`] from the given slice and length. Intended for
+    /// use in proc macro code, not user code.
+    ///
+    /// # Safety
+    ///
+    /// The provided slice and its length must be compatible. Since the slice
+    /// passed in has no intrinsic lifetime, care must be taken to ensure that
+    /// the lifetime of [`SliceRef`] is valid.
+    #[doc(hidden)]
+    pub unsafe fn from_slice(slice: Slice<T, ()>, len: usize) -> Self {
+        Self {
+            slice,
+            len,
+            marker: PhantomData,
+        }
+    }
+}
+
 impl<'a, T> Clone for SliceRef<'a, T>
 where
     T: Soapy,
