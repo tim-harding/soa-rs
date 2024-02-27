@@ -571,3 +571,30 @@ fn array_slice_mut() {
     });
     assert_eq!(slice, expected);
 }
+
+#[test]
+fn slices() {
+    let soa = Soa::from(ABCDE);
+    let slices = soa.slices();
+    assert_eq!(slices.foo, soa.foo());
+    assert_eq!(slices.bar, soa.bar());
+    assert_eq!(slices.baz, soa.baz());
+}
+
+#[test]
+fn slices_mut() {
+    let mut soa = Soa::from(ABCDE);
+    let slices = soa.slices_mut();
+    for foo in slices.foo {
+        *foo += 10;
+    }
+    for bar in slices.bar {
+        *bar += 10;
+    }
+
+    let expected = ABCDE.map(|el| el.foo+10);
+    assert_eq!(soa.foo(), expected);
+
+    let expected = ABCDE.map(|el| el.bar+10);
+    assert_eq!(soa.bar(), expected);
+}

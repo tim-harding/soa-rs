@@ -459,6 +459,14 @@ where
         ChunksExact::new(self, chunk_size)
     }
 
+    pub fn slices(&self) -> T::Slices<'_> {
+        unsafe { self.raw.slices(self.len()) }
+    }
+
+    pub fn slices_mut(&mut self) -> T::SlicesMut<'_> {
+        unsafe { self.raw.slices_mut(self.len()) }
+    }
+
     /// Converts from an unsized variant to sized variant
     ///
     /// # Safety
