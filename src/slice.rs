@@ -459,10 +459,53 @@ where
         ChunksExact::new(self, chunk_size)
     }
 
+    /// Returns a collection of slices for each field of the slice.
+    ///
+    /// For convenience, slices can also be aquired using the getter methods for
+    /// individual fields.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use soapy::{Soa, Soapy, soa};
+    /// # #[derive(Soapy, Debug, PartialEq)]
+    /// # #[extra_impl(Debug, PartialEq)]
+    /// # struct Foo {
+    /// #     foo: u8,
+    /// #     bar: u8,
+    /// # }
+    /// let soa = soa![Foo { foo: 1, bar: 2 }, Foo { foo: 3, bar: 4 }];
+    /// let slices = soa.slices();
+    /// assert_eq!(slices.foo, soa.foo());
+    /// assert_eq!(slices.bar, soa.bar());
+    /// ```
     pub fn slices(&self) -> T::Slices<'_> {
         unsafe { self.raw.slices(self.len()) }
     }
 
+    /// Returns a collection of mutable slices for each field of the slice.
+    ///
+    /// For convenience, individual mutable slices can also be aquired using the
+    /// getter methods for individual fields. This method is necessary to be
+    /// able to mutably borrow multiple SoA fields simultaneously.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use soapy::{Soa, Soapy, soa};
+    /// # #[derive(Soapy, Debug, PartialEq)]
+    /// # #[extra_impl(Debug, PartialEq)]
+    /// # struct Foo {
+    /// #     foo: u8,
+    /// #     bar: u8,
+    /// # }
+    /// let mut soa = soa![Foo { foo: 1, bar: 0 }, Foo { foo: 2, bar: 0 }];
+    /// let slices = soa.slices_mut();
+    /// for (foo, bar) in slices.foo.iter().zip(slices.bar) {
+    ///     *bar = foo * 2;
+    /// }
+    /// assert_eq!(soa.bar(), [2, 4]);
+    /// ```
     pub fn slices_mut(&mut self) -> T::SlicesMut<'_> {
         unsafe { self.raw.slices_mut(self.len()) }
     }
