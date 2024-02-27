@@ -1,6 +1,6 @@
 #![cfg(test)]
 
-use soapy::{soa, AsSoaRef, Soa, Soapy};
+use soapy::{soa, AsSoaRef, Soa, SoaArray, Soapy};
 use std::fmt::Debug;
 
 #[derive(Soapy, Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -545,4 +545,12 @@ fn chunks_exact() {
         }
     }
     assert_eq!(soa_iter.remainder(), vec_iter.remainder());
+}
+
+#[test]
+fn array() {
+    const ARRAY: ElArray<5> = ElArray::from_array(ABCDE);
+    let array = ARRAY;
+    let slice = array.as_slice();
+    assert_eq!(slice, ABCDE);
 }
