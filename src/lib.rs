@@ -180,15 +180,18 @@ pub use as_soa_ref::AsSoaRef;
 /// Deriving Soapy for some struct `Foo` will create the following additional
 /// structs:
 ///
-/// | Struct      | Field type | Use                                          |
-/// |-------------|------------|----------------------------------------------|
-/// | `FooSoaRaw` | `*mut F`   | Low-level, unsafe memory handling for SoA    |
-/// | `FooRef`    | `&F`       | Immutable SoA element reference              |
-/// | `FooRefMut` | `&mut F`   | Mutable SoA element reference                |
-/// | `FooDeref`  |            | SoA [`Deref`] target, provides slice getters |
+/// | Struct         | Field type | Use                                          |
+/// |----------------|------------|----------------------------------------------|
+/// | `FooSoaRaw`    | `*mut T`   | Low-level, unsafe memory handling for SoA    |
+/// | `FooRef`       | `&T`       | SoA element reference                        |
+/// | `FooRefMut`    | `&mut T`   | Mutable SoA element reference                |
+/// | `FooSlices`    | `&[T]`     | SoA fields                                   |
+/// | `FooSlicesMut` | `&mut [T]` | Mutable SoA fields                           |
+/// | `FooArray`     | `[T; N]`   | `const`-compatible SoA                       |
+/// | `FooDeref`     |            | SoA [`Deref`] target, provides slice getters |
 ///
 /// The [`Soapy`] trait implementation for `Foo` references these as associated
-/// types. [`WithRef`] is also implemented for `Foo`, `FooRef`, and `FooRefMut`.
+/// types. [`AsSoaRef`] is also implemented for `Foo`, `FooRef`, and `FooRefMut`.
 ///
 /// # Alignment
 ///
