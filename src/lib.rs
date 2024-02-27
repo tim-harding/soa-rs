@@ -9,7 +9,7 @@
 //! ```
 //! # use soapy::{soa, Soapy};
 //! #[derive(Soapy, Debug, Clone, Copy, PartialEq)]
-//! # #[soa_derive(Debug, PartialEq)]
+//! #[soa_derive(Debug, PartialEq)]
 //! struct Example {
 //!     foo: u8,
 //!     bar: u16,
@@ -127,6 +127,8 @@
 //! let soa = soa![Example(5), Example(10)];
 //! assert_eq!(soa.f0(), [5, 10]);
 //! ```
+//!
+//! [`Soapy`]: soapy_derive::Soapy
 #![warn(missing_docs)]
 
 mod soa;
