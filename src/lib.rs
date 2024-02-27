@@ -193,6 +193,20 @@ pub use as_soa_ref::AsSoaRef;
 /// The [`Soapy`] trait implementation for `Foo` references these as associated
 /// types. [`AsSoaRef`] is also implemented for `Foo`, `FooRef`, and `FooRefMut`.
 ///
+/// # Derive for generated types
+///
+/// The `soa_derive` attribute can be used to derive traits for the generated
+/// types. In the example, `Debug` and `PartialEq` will be implemented for
+/// `FooRef`, `FooRefMut`, `FooSlices`, `FooSlicesMut`, and `FooArray`.
+///
+/// ```
+/// # use soapy::{Soapy};
+/// #[derive(Soapy)]
+/// #[soa_derive(Debug, PartialEq)]
+/// struct Foo(u8);
+/// assert_eq!(FooRef(&10), FooRef(&10));
+/// ```
+///
 /// # Alignment
 ///
 /// Individual fields can be tagged with the `align` attribute to raise their
