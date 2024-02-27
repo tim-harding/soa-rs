@@ -1,9 +1,9 @@
-use crate::{Slice, SoaRaw, Soapy};
+use crate::{Slice, SoaRaw, Soars};
 use std::{fmt::Debug, iter::FusedIterator, marker::PhantomData};
 
 pub trait IterRawAdapter<T>
 where
-    T: Soapy,
+    T: Soars,
 {
     type Item;
     fn item_from_raw(raw: T::Raw) -> Self::Item;
@@ -11,7 +11,7 @@ where
 
 pub struct IterRaw<T, A>
 where
-    T: Soapy,
+    T: Soars,
     A: IterRawAdapter<T>,
 {
     pub(crate) slice: Slice<T, ()>,
@@ -21,7 +21,7 @@ where
 
 impl<T, A> IterRaw<T, A>
 where
-    T: Soapy,
+    T: Soars,
     A: IterRawAdapter<T>,
 {
     pub(crate) unsafe fn as_slice<'a>(&self) -> &'a Slice<T> {
@@ -35,7 +35,7 @@ where
 
 impl<T, A> Clone for IterRaw<T, A>
 where
-    T: Soapy,
+    T: Soars,
     A: IterRawAdapter<T>,
 {
     fn clone(&self) -> Self {
@@ -45,14 +45,14 @@ where
 
 impl<T, A> Copy for IterRaw<T, A>
 where
-    T: Soapy,
+    T: Soars,
     A: IterRawAdapter<T>,
 {
 }
 
 impl<T, A> Debug for IterRaw<T, A>
 where
-    T: Soapy,
+    T: Soars,
     A: IterRawAdapter<T>,
     for<'a> T::Ref<'a>: Debug,
 {
@@ -63,7 +63,7 @@ where
 
 impl<T, A> Iterator for IterRaw<T, A>
 where
-    T: Soapy,
+    T: Soars,
     A: IterRawAdapter<T>,
 {
     type Item = A::Item;
@@ -143,7 +143,7 @@ where
 
 impl<T, A> DoubleEndedIterator for IterRaw<T, A>
 where
-    T: Soapy,
+    T: Soars,
     A: IterRawAdapter<T>,
 {
     fn next_back(&mut self) -> Option<Self::Item> {
@@ -172,14 +172,14 @@ where
 
 impl<T, A> FusedIterator for IterRaw<T, A>
 where
-    T: Soapy,
+    T: Soars,
     A: IterRawAdapter<T>,
 {
 }
 
 impl<T, A> ExactSizeIterator for IterRaw<T, A>
 where
-    T: Soapy,
+    T: Soars,
     A: IterRawAdapter<T>,
 {
 }
@@ -188,7 +188,7 @@ macro_rules! iter_with_raw {
     ($t:ty $(,$lifetime:tt)?) => {
         impl<$($lifetime,)? T> Iterator for $t
         where
-            T: $($lifetime +)? Soapy,
+            T: $($lifetime +)? Soars,
         {
             type Item = <$t as IterRawAdapter<T>>::Item;
 
@@ -229,17 +229,17 @@ macro_rules! iter_with_raw {
 
         impl<$($lifetime,)? T> DoubleEndedIterator for $t
         where
-            T: $($lifetime +)? Soapy,
+            T: $($lifetime +)? Soars,
         {
             fn next_back(&mut self) -> Option<Self::Item> {
                 self.iter_raw.next_back()
             }
         }
 
-        impl<$($lifetime,)? T> FusedIterator for $t where T: $($lifetime +)? Soapy {}
-        impl<$($lifetime,)? T> ExactSizeIterator for $t where T: $($lifetime +)? Soapy {}
+        impl<$($lifetime,)? T> FusedIterator for $t where T: $($lifetime +)? Soars {}
+        impl<$($lifetime,)? T> ExactSizeIterator for $t where T: $($lifetime +)? Soars {}
 
-        impl<$($lifetime,)? T> AsRef<Slice<T>> for $t where T: $($lifetime +)? Soapy {
+        impl<$($lifetime,)? T> AsRef<Slice<T>> for $t where T: $($lifetime +)? Soars {
             fn as_ref(&self) -> &Slice<T> {
                 unsafe { self.iter_raw.as_slice() }
            }

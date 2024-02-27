@@ -1,6 +1,6 @@
 use criterion::{criterion_group, criterion_main, Criterion};
 use rand::{rngs::StdRng, RngCore, SeedableRng};
-use soapy::{Soa, Soapy};
+use soa_rs::{Soa, Soars};
 
 struct Rng(StdRng);
 
@@ -23,7 +23,7 @@ impl Rng {
     }
 }
 
-#[derive(Soapy, Debug, Clone, Copy, PartialEq, PartialOrd)]
+#[derive(Soars, Debug, Clone, Copy, PartialEq, PartialOrd)]
 #[extra_impl(Debug, PartialEq, PartialOrd)]
 struct Vec4(
     #[align(64)] f32,

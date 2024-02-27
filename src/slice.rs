@@ -1,6 +1,6 @@
 use crate::{
     chunks_exact::ChunksExact, index::SoaIndex, iter_raw::IterRaw, AsSoaRef, Iter, IterMut,
-    SliceMut, SliceRef, Soa, SoaDeref, SoaRaw, Soapy,
+    SliceMut, SliceRef, Soa, SoaDeref, SoaRaw, Soars,
 };
 use std::{
     cmp::Ordering,
@@ -32,14 +32,14 @@ use std::{
 /// [`Soa`]: crate::Soa
 /// [`SliceRef`]: crate::SliceRef
 /// [`SliceMut`]: crate::SliceMut
-pub struct Slice<T: Soapy, D: ?Sized = [()]> {
+pub struct Slice<T: Soars, D: ?Sized = [()]> {
     pub(crate) raw: T::Raw,
     pub(crate) dst: D,
 }
 
 impl<T> Slice<T, ()>
 where
-    T: Soapy,
+    T: Soars,
 {
     /// Constructs a new, empty `Slice<T>`.
     pub(crate) fn empty() -> Self {
@@ -78,11 +78,11 @@ where
 
 impl<T, D: ?Sized> Slice<T, D>
 where
-    T: Soapy,
+    T: Soars,
 {
     /// Gets the [`SoaRaw`] the slice uses.
     ///
-    /// Used by the [`Soapy`] derive macro, but generally not intended for use
+    /// Used by the [`Soars`] derive macro, but generally not intended for use
     /// by end users.
     #[doc(hidden)]
     pub const fn raw(&self) -> T::Raw {
@@ -92,7 +92,7 @@ where
 
 impl<T> Slice<T>
 where
-    T: Soapy,
+    T: Soars,
 {
     /// Returns the number of elements in the slice, also referred to as its
     /// length.
@@ -100,8 +100,8 @@ where
     /// # Examples
     ///
     /// ```
-    /// # use soapy::{Soa, Soapy, soa};
-    /// # #[derive(Soapy)]
+    /// # use soa_rs::{Soa, Soars, soa};
+    /// # #[derive(Soars)]
     /// # #[soa_derive(Debug, PartialEq)]
     /// # struct Foo(usize);
     /// let soa = soa![Foo(1), Foo(2), Foo(3)];
@@ -116,8 +116,8 @@ where
     /// # Examples
     ///
     /// ```
-    /// # use soapy::{Soa, Soapy};
-    /// # #[derive(Soapy)]
+    /// # use soa_rs::{Soa, Soars};
+    /// # #[derive(Soars)]
     /// # #[soa_derive(Debug, PartialEq)]
     /// # struct Foo(usize);
     /// let mut soa = Soa::<Foo>::new();
@@ -136,9 +136,9 @@ where
     /// # Examples
     ///
     /// ```
-    /// # use soapy::{Soa, Soapy, soa};
+    /// # use soa_rs::{Soa, Soars, soa};
     /// # use std::fmt;
-    /// # #[derive(Soapy, Debug, PartialEq)]
+    /// # #[derive(Soars, Debug, PartialEq)]
     /// # #[soa_derive(Debug, PartialEq)]
     /// # struct Foo(usize);
     /// let soa = soa![Foo(1), Foo(2), Foo(4)];
@@ -166,9 +166,9 @@ where
     /// # Examples
     ///
     /// ```
-    /// # use soapy::{Soa, Soapy, soa};
+    /// # use soa_rs::{Soa, Soars, soa};
     /// # use std::fmt;
-    /// # #[derive(Soapy, Debug, PartialEq)]
+    /// # #[derive(Soars, Debug, PartialEq)]
     /// # #[soa_derive(Debug, PartialEq)]
     /// # struct Foo(usize);
     /// let mut soa = soa![Foo(1), Foo(2), Foo(4)];
@@ -201,8 +201,8 @@ where
     ///
     /// ```
     /// # use std::fmt;
-    /// # use soapy::{Soa, Soapy, soa, Slice};
-    /// # #[derive(Soapy, Debug, PartialEq)]
+    /// # use soa_rs::{Soa, Soars, soa, Slice};
+    /// # #[derive(Soars, Debug, PartialEq)]
     /// # #[soa_derive(PartialEq, Debug)]
     /// # struct Foo(usize);
     /// let soa = soa![Foo(10), Foo(40), Foo(30), Foo(20)];
@@ -229,8 +229,8 @@ where
     /// # Examples
     ///
     /// ```
-    /// # use soapy::{Soa, Soapy, soa};
-    /// # #[derive(Soapy, Debug, PartialEq)]
+    /// # use soa_rs::{Soa, Soars, soa};
+    /// # #[derive(Soars, Debug, PartialEq)]
     /// # #[soa_derive(Debug, PartialEq)]
     /// # struct Foo(usize);
     /// let mut soa = soa![Foo(1), Foo(2), Foo(3)];
@@ -262,8 +262,8 @@ where
     ///
     /// ```
     /// # use std::fmt;
-    /// # use soapy::{Soa, Soapy, soa};
-    /// # #[derive(Soapy, Debug, PartialEq)]
+    /// # use soa_rs::{Soa, Soars, soa};
+    /// # #[derive(Soars, Debug, PartialEq)]
     /// # #[soa_derive(Debug, PartialEq)]
     /// # struct Foo(usize);
     /// let soa = soa![Foo(10), Foo(40), Foo(30), Foo(90)];
@@ -294,8 +294,8 @@ where
     ///
     /// ```
     /// # use std::fmt;
-    /// # use soapy::{Soa, Soapy, soa};
-    /// # #[derive(Soapy, Debug, PartialEq)]
+    /// # use soa_rs::{Soa, Soars, soa};
+    /// # #[derive(Soars, Debug, PartialEq)]
     /// # #[soa_derive(Debug, PartialEq)]
     /// # struct Foo(usize);
     /// let mut soa = soa![Foo(10), Foo(20), Foo(30)];
@@ -326,8 +326,8 @@ where
     /// # Examples
     ///
     /// ```
-    /// # use soapy::{Soa, Soapy, soa};
-    /// # #[derive(Soapy, Debug, PartialEq)]
+    /// # use soa_rs::{Soa, Soars, soa};
+    /// # #[derive(Soars, Debug, PartialEq)]
     /// # #[soa_derive(Debug, PartialEq)]
     /// # struct Foo(usize);
     /// let mut soa = soa![Foo(0), Foo(1), Foo(2), Foo(3), Foo(4)];
@@ -353,8 +353,8 @@ where
     /// # Examples
     ///
     /// ```
-    /// # use soapy::{Soa, Soapy, soa};
-    /// # #[derive(Soapy, Debug, PartialEq)]
+    /// # use soa_rs::{Soa, Soars, soa};
+    /// # #[derive(Soars, Debug, PartialEq)]
     /// # #[soa_derive(Debug, PartialEq)]
     /// # struct Foo(usize);
     /// let soa = soa![Foo(10), Foo(40), Foo(30)];
@@ -372,8 +372,8 @@ where
     /// # Examples
     ///
     /// ```
-    /// # use soapy::{Soa, Soapy, soa};
-    /// # #[derive(Soapy, Debug, PartialEq)]
+    /// # use soa_rs::{Soa, Soars, soa};
+    /// # #[derive(Soars, Debug, PartialEq)]
     /// # #[soa_derive(Debug, PartialEq)]
     /// # struct Foo(usize);
     /// let mut soa = soa![Foo(0), Foo(1), Foo(2)];
@@ -391,8 +391,8 @@ where
     /// # Examples
     ///
     /// ```
-    /// # use soapy::{Soa, Soapy, soa};
-    /// # #[derive(Soapy, Debug, PartialEq)]
+    /// # use soa_rs::{Soa, Soars, soa};
+    /// # #[derive(Soars, Debug, PartialEq)]
     /// # #[soa_derive(Debug, PartialEq)]
     /// # struct Foo(usize);
     /// let soa = soa![Foo(10), Foo(40), Foo(30)];
@@ -410,8 +410,8 @@ where
     /// # Examples
     ///
     /// ```
-    /// # use soapy::{Soa, Soapy, soa};
-    /// # #[derive(Soapy, Debug, PartialEq)]
+    /// # use soa_rs::{Soa, Soars, soa};
+    /// # #[derive(Soars, Debug, PartialEq)]
     /// # #[soa_derive(Debug, PartialEq)]
     /// # struct Foo(usize);
     /// let mut soa = soa![Foo(0), Foo(1), Foo(2)];
@@ -440,8 +440,8 @@ where
     /// # Examples
     ///
     /// ```
-    /// # use soapy::{Soa, Soapy, soa};
-    /// # #[derive(Soapy, Debug, PartialEq)]
+    /// # use soa_rs::{Soa, Soars, soa};
+    /// # #[derive(Soars, Debug, PartialEq)]
     /// # #[soa_derive(Debug, PartialEq)]
     /// # struct Foo(char);
     /// let soa = soa![Foo('l'), Foo('o'), Foo('r'), Foo('e'), Foo('m')];
@@ -467,8 +467,8 @@ where
     /// # Examples
     ///
     /// ```
-    /// # use soapy::{Soa, Soapy, soa};
-    /// # #[derive(Soapy, Debug, PartialEq)]
+    /// # use soa_rs::{Soa, Soars, soa};
+    /// # #[derive(Soars, Debug, PartialEq)]
     /// # #[soa_derive(Debug, PartialEq)]
     /// # struct Foo {
     /// #     foo: u8,
@@ -492,8 +492,8 @@ where
     /// # Examples
     ///
     /// ```
-    /// # use soapy::{Soa, Soapy, soa};
-    /// # #[derive(Soapy, Debug, PartialEq)]
+    /// # use soa_rs::{Soa, Soars, soa};
+    /// # #[derive(Soars, Debug, PartialEq)]
     /// # #[soa_derive(Debug, PartialEq)]
     /// # struct Foo {
     /// #     foo: u8,
@@ -526,18 +526,18 @@ where
 
 impl<T> Clone for Slice<T, ()>
 where
-    T: Soapy,
+    T: Soars,
 {
     fn clone(&self) -> Self {
         *self
     }
 }
 
-impl<T> Copy for Slice<T, ()> where T: Soapy {}
+impl<T> Copy for Slice<T, ()> where T: Soars {}
 
 impl<'a, T> IntoIterator for &'a Slice<T>
 where
-    T: Soapy,
+    T: Soars,
 {
     type Item = T::Ref<'a>;
     type IntoIter = Iter<'a, T>;
@@ -549,7 +549,7 @@ where
 
 impl<'a, T> IntoIterator for &'a mut Slice<T>
 where
-    T: Soapy,
+    T: Soars,
 {
     type Item = T::RefMut<'a>;
     type IntoIter = IterMut<'a, T>;
@@ -561,7 +561,7 @@ where
 
 impl<T> PartialEq for Slice<T>
 where
-    T: Soapy,
+    T: Soars,
     for<'a> T::Ref<'a>: PartialEq,
 {
     fn eq(&self, other: &Self) -> bool {
@@ -571,14 +571,14 @@ where
 
 impl<T> Eq for Slice<T>
 where
-    T: Soapy,
+    T: Soars,
     for<'a> T::Ref<'a>: Eq,
 {
 }
 
 impl<T> PartialEq<Slice<T>> for [T]
 where
-    T: Soapy,
+    T: Soars,
     for<'a> T::Ref<'a>: PartialEq,
 {
     fn eq(&self, other: &Slice<T>) -> bool {
@@ -592,7 +592,7 @@ where
 
 impl<T> PartialEq<[T]> for Slice<T>
 where
-    T: Soapy,
+    T: Soars,
     for<'a> T::Ref<'a>: PartialEq,
 {
     fn eq(&self, other: &[T]) -> bool {
@@ -608,7 +608,7 @@ macro_rules! as_slice_eq {
     ($t:ty $(,$N:tt)?) => {
         impl<T $(,const $N: usize)?> PartialEq<$t> for Slice<T>
         where
-            T: Soapy,
+            T: Soars,
             for<'a> T::Ref<'a>: PartialEq,
         {
             fn eq(&self, other: &$t) -> bool {
@@ -618,7 +618,7 @@ macro_rules! as_slice_eq {
 
         impl<T $(,const $N: usize)?> PartialEq<Slice<T>> for $t
         where
-            T: Soapy,
+            T: Soars,
             for<'a> T::Ref<'a>: PartialEq,
         {
             fn eq(&self, other: &Slice<T>) -> bool {
@@ -635,7 +635,7 @@ macro_rules! trivial_ref_eq {
     ($t:ty $(,$N:tt)?) => {
         impl<T $(,const $N: usize)?> PartialEq<$t> for Slice<T>
         where
-            T: Soapy ,
+            T: Soars ,
             for<'a> T::Ref<'a>: PartialEq,
         {
             fn eq(&self, other: &$t) -> bool {
@@ -645,7 +645,7 @@ macro_rules! trivial_ref_eq {
 
         impl<T $(,const $N: usize)?> PartialEq<Slice<T>> for $t
         where
-            T: Soapy,
+            T: Soars,
             for<'a> T::Ref<'a>: PartialEq,
         {
             fn eq(&self, other: &Slice<T>) -> bool {
@@ -674,7 +674,7 @@ macro_rules! eq_for_slice_ref {
     ($t:ty, $s:ty $(,$($b:tt)+)?) => {
         impl<T $(,$($b)+)?> PartialEq<$s> for $t
         where
-            T: Soapy ,
+            T: Soars ,
             for<'a> T::Ref<'a>: PartialEq,
         {
             fn eq(&self, other: &$s) -> bool {
@@ -689,7 +689,7 @@ eq_for_slice_ref!(&mut Slice<T>);
 
 impl<T> Debug for Slice<T>
 where
-    T: Soapy,
+    T: Soars,
     for<'a> T::Ref<'a>: Debug,
 {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
@@ -703,7 +703,7 @@ where
 
 impl<T> PartialOrd for Slice<T>
 where
-    T: Soapy,
+    T: Soars,
     for<'a> T::Ref<'a>: PartialOrd,
 {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
@@ -722,7 +722,7 @@ where
 
 impl<T> Ord for Slice<T>
 where
-    T: Soapy,
+    T: Soars,
     for<'a> T::Ref<'a>: Ord,
 {
     fn cmp(&self, other: &Self) -> Ordering {
@@ -740,7 +740,7 @@ where
 
 impl<T> Hash for Slice<T>
 where
-    T: Soapy,
+    T: Soars,
     for<'a> T::Ref<'a>: Hash,
 {
     fn hash<H: Hasher>(&self, state: &mut H) {
@@ -753,7 +753,7 @@ where
 
 impl<T> Deref for Slice<T>
 where
-    T: Soapy,
+    T: Soars,
 {
     type Target = T::Deref;
 
@@ -764,7 +764,7 @@ where
 
 impl<T> DerefMut for Slice<T>
 where
-    T: Soapy,
+    T: Soars,
 {
     fn deref_mut(&mut self) -> &mut Self::Target {
         <T::Deref as SoaDeref>::from_slice_mut(self)
@@ -773,7 +773,7 @@ where
 
 impl<T> AsRef<Slice<T>> for Slice<T>
 where
-    T: Soapy,
+    T: Soars,
 {
     fn as_ref(&self) -> &Self {
         self
@@ -782,7 +782,7 @@ where
 
 impl<T> AsMut<Slice<T>> for Slice<T>
 where
-    T: Soapy,
+    T: Soars,
 {
     fn as_mut(&mut self) -> &mut Self {
         self

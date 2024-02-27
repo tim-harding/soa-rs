@@ -1,11 +1,11 @@
-use crate::{SliceMut, SliceRef, Soapy};
+use crate::{SliceMut, SliceRef, Soars};
 
 /// A compile-time, fixed-size SoA array.
 ///
 /// What [`Slice`] is to `[T]`, SoA arrays are to `[T; N]`. They are useful
 /// whenever you have `const` data you want to structure in SoA form.
 ///
-/// When deriving [`Soapy`] for some type `Foo`, a struct `FooArray` is also
+/// When deriving [`Soars`] for some type `Foo`, a struct `FooArray` is also
 /// created which implements this trait. The primary way to create a SoA array
 /// is to use the `FooArray::from_array` method for that type, which cannot be
 /// included in this trait because it is `const`.
@@ -14,12 +14,12 @@ use crate::{SliceMut, SliceRef, Soapy};
 pub trait SoaArray {
     /// The type that the SoA array stores.
     ///
-    /// When using the [`Soapy`] derive macro, this is the type that was derived
+    /// When using the [`Soars`] derive macro, this is the type that was derived
     /// from and which is the generic parameter of [`Slice`] and [`Soa`].
     ///
     /// [`Slice`]: crate::Slice
     /// [`Soa`]: crate::Soa
-    type Item: Soapy;
+    type Item: Soars;
 
     /// Returns a [`Slice`] containing the entire array.
     ///

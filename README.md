@@ -1,20 +1,20 @@
-[![docs.rs](https://img.shields.io/docsrs/soapy?link=https%3A%2F%2Fdocs.rs%2Fsoapy%2Flatest%2Fsoapy%2F)](https://docs.rs/soapy/latest/soapy/)
-[![Crates.io Version](https://img.shields.io/crates/v/soapy?link=https%3A%2F%2Fcrates.io%2Fcrates%2Fsoapy)](https://crates.io/crates/soapy)
-[![GitHub License](https://img.shields.io/github/license/tim-harding/soapy?link=https%3A%2F%2Fgithub.com%2Ftim-harding%2Fsoapy%2Fblob%2Fmain%2FLICENSE)](https://choosealicense.com/licenses/mit/)
+[![docs.rs](https://img.shields.io/docsrs/soa-rs?link=https%3A%2F%2Fdocs.rs%2Fsoa-rs%2Flatest%2Fsoa-rs%2F)](https://docs.rs/soa-rs/latest/soa-rs/)
+[![Crates.io Version](https://img.shields.io/crates/v/soa-rs?link=https%3A%2F%2Fcrates.io%2Fcrates%2Fsoa-rs)](https://crates.io/crates/soa-rs)
+[![GitHub License](https://img.shields.io/github/license/tim-harding/soa-rs?link=https%3A%2F%2Fgithub.com%2Ftim-harding%2Fsoa-rs%2Fblob%2Fmain%2FLICENSE)](https://choosealicense.com/licenses/mit/)
 
-# Soapy
+# soa-rs
 
-Soapy makes it simple to work with the structure-of-arrays memory layout. What
+soa-rs makes it simple to work with the structure-of-arrays memory layout. What
 `Vec<T>` is to array-of-structures (AoS), `Soa<T>` is to structure-of-arrays
 (SoA).
 
 ## Example
 
 ```rust
-use soapy::{Soapy, soa};
+use soa_rs::{Soars, soa};
 
-// Derive Soapy for your type
-#[derive(Soapy, PartialEq, Debug)]
+// Derive soa-rs for your type
+#[derive(Soars, PartialEq, Debug)]
 #[soa_derive(Debug, PartialEq)]
 struct Baz {
     foo: u16,
@@ -32,7 +32,7 @@ assert_eq!(soa.foo(), [1, 3]);
 assert_eq!(soa.bar(), [2, 4]);
 
 // Tuple structs work too
-#[derive(Soapy, PartialEq, Debug)]
+#[derive(Soars, PartialEq, Debug)]
 #[soa_derive(Debug, PartialEq)]
 struct Tuple(u16, u8);
 let tuple = soa![Tuple(1, 2), Tuple(3, 4), Tuple(5, 6), Tuple(7, 8)];
@@ -122,8 +122,8 @@ in the Zig compiler.
 
 #### Benchmark
 
-`soapy-testing` contains a
-[benchmark](https://github.com/tim-harding/soapy/blob/92c12415d1fb8b9f2a015b35ff02a23b0e3aaa96/soapy-testing/benches/benchmark.rs#L82-L88)
+`soa-rs-testing` contains a
+[benchmark](https://github.com/tim-harding/soa-rs/blob/92c12415d1fb8b9f2a015b35ff02a23b0e3aaa96/soa-rs-testing/benches/benchmark.rs#L82-L88)
 comparison that sums the dot products of 2¹⁶ 4D vectors. The `Vec` version runs
 in 132µs and the `Soa` version runs in 22µs, a 6x improvement. 
 
@@ -132,14 +132,14 @@ in 132µs and the `Soa` version runs in 22µs, a 6x improvement.
 ### [`soa_derive`](https://docs.rs/soa_derive/latest/soa_derive/)
 
 `soa_derive` makes each field its own `Vec`. Because of this, each field's
-length, capacity, and allocation are managed separately. In contrast, Soapy
+length, capacity, and allocation are managed separately. In contrast, soa-rs
 manages a single allocation for each `Soa`. `soa_derive` also generates a new
-collection type for every struct, whereas Soapy generates a minimal, low-level
+collection type for every struct, whereas soa-rs generates a minimal, low-level
 interface that the generic `Soa` type uses for its implementation. This provides
 more type system flexibility, less code generation, and better documentation.
 
 ### [`soa-vec`](https://docs.rs/soa-vec/latest/soa_vec/)
 
-Whereas `soa-vec` only compiles on nightly, Soapy also compiles on stable.
+Whereas `soa-vec` only compiles on nightly, soa-rs also compiles on stable.
 Rather than using derive macros, `soa-vec` instead uses macros to generate
 eight static copies of their SoA type with fixed tuple sizes.

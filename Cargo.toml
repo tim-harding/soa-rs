@@ -1,11 +1,11 @@
 [package]
-name = "soapy"
-version = "0.2.9"
+name = "soa-rs"
+version = "0.3.0"
 edition = "2021"
 license = "MIT"
-description = "Structure-of-arrays derive macro"
-homepage = "https://github.com/tim-harding/soapy"
-repository = "https://github.com/tim-harding/soapy"
+description = "A Vec-like structure-of-arrays container"
+homepage = "https://github.com/tim-harding/soa-rs"
+repository = "https://github.com/tim-harding/soa-rs"
 readme = "README.md"
 
 [profile.bench]
@@ -13,7 +13,7 @@ readme = "README.md"
 debug = true 
 
 [workspace]
-members = ["soapy-derive", "soapy-testing"]
+members = ["soa-rs-derive", "soa-rs-testing"]
 
 [dependencies]
-soapy-derive = { path = "soapy-derive", version = "0.2.8" }
+soa-rs-derive = { path = "soa-rs-derive", version = "0.3.0" }

@@ -1,4 +1,4 @@
-use crate::{eq_impl, iter_raw::IterRaw, Iter, Slice, SliceMut, Soa, Soapy};
+use crate::{eq_impl, iter_raw::IterRaw, Iter, Slice, SliceMut, Soa, Soars};
 use std::{
     cmp::Ordering,
     fmt::{self, Debug, Formatter},
@@ -14,7 +14,7 @@ use std::{
 /// `&Slice`.
 pub struct SliceRef<'a, T>
 where
-    T: 'a + Soapy,
+    T: 'a + Soars,
 {
     pub(crate) slice: Slice<T, ()>,
     pub(crate) len: usize,
@@ -23,7 +23,7 @@ where
 
 impl<'a, T> SliceRef<'a, T>
 where
-    T: Soapy,
+    T: Soars,
 {
     /// Creates a new [`SliceRef`] from the given slice and length. Intended for
     /// use in proc macro code, not user code.
@@ -45,18 +45,18 @@ where
 
 impl<'a, T> Clone for SliceRef<'a, T>
 where
-    T: Soapy,
+    T: Soars,
 {
     fn clone(&self) -> Self {
         *self
     }
 }
 
-impl<'a, T> Copy for SliceRef<'a, T> where T: 'a + Soapy {}
+impl<'a, T> Copy for SliceRef<'a, T> where T: 'a + Soars {}
 
 impl<'a, T> AsRef<Slice<T>> for SliceRef<'a, T>
 where
-    T: Soapy,
+    T: Soars,
 {
     fn as_ref(&self) -> &Slice<T> {
         unsafe { self.slice.as_unsized(self.len) }
@@ -65,7 +65,7 @@ where
 
 impl<'a, T> Deref for SliceRef<'a, T>
 where
-    T: Soapy,
+    T: Soars,
 {
     type Target = Slice<T>;
 
@@ -76,7 +76,7 @@ where
 
 impl<'a, T> IntoIterator for SliceRef<'a, T>
 where
-    T: Soapy,
+    T: Soars,
 {
     type Item = T::Ref<'a>;
     type IntoIter = Iter<'a, T>;
@@ -95,7 +95,7 @@ where
 
 impl<'a, T> Debug for SliceRef<'a, T>
 where
-    T: Soapy,
+    T: Soars,
     for<'b> T::Ref<'b>: Debug,
 {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
@@ -105,7 +105,7 @@ where
 
 impl<'a, T> PartialOrd for SliceRef<'a, T>
 where
-    T: Soapy,
+    T: Soars,
     for<'b> T::Ref<'b>: PartialOrd,
 {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
@@ -115,7 +115,7 @@ where
 
 impl<'a, T> Ord for SliceRef<'a, T>
 where
-    T: Soapy + Ord,
+    T: Soars + Ord,
     for<'b> T::Ref<'b>: Ord,
 {
     fn cmp(&self, other: &Self) -> Ordering {
@@ -125,7 +125,7 @@ where
 
 impl<'a, T> Hash for SliceRef<'a, T>
 where
-    T: Soapy,
+    T: Soars,
     for<'b> T::Ref<'b>: Hash,
 {
     fn hash<H: Hasher>(&self, state: &mut H) {

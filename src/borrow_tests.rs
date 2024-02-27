@@ -1,6 +1,6 @@
 /// ```
-/// use soapy::{Soa, Soapy, soa, Slice};
-/// #[derive(Soapy, PartialEq, Debug)]
+/// use soa_rs::{Soa, Soars, soa, Slice};
+/// #[derive(Soars, PartialEq, Debug)]
 /// #[soa_derive(Debug, PartialEq)]
 /// struct Foo(usize);
 /// let mut soa = soa![Foo(10), Foo(20)];
@@ -9,8 +9,8 @@
 /// ```
 mod simultaneous_mutable_and_immutable {
     /// ```compile_fail
-    /// use soapy::{Soa, Soapy, soa, Slice};
-    /// #[derive(Soapy, PartialEq, Debug)]
+    /// use soa_rs::{Soa, Soars, soa, Slice};
+    /// #[derive(Soars, PartialEq, Debug)]
     /// #[soa_derive(Debug, PartialEq)]
     /// struct Foo(usize);
     /// let mut soa = soa![Foo(10), Foo(20)];
@@ -22,8 +22,8 @@ mod simultaneous_mutable_and_immutable {
 }
 
 /// ```
-/// use soapy::{Soa, Soapy, soa, Slice};
-/// #[derive(Soapy, PartialEq, Debug)]
+/// use soa_rs::{Soa, Soars, soa, Slice};
+/// #[derive(Soars, PartialEq, Debug)]
 /// #[soa_derive(Debug, PartialEq)]
 /// struct Foo(usize);
 /// let mut soa = soa![Foo(10), Foo(20)];
@@ -33,8 +33,8 @@ mod simultaneous_mutable_and_immutable {
 /// ```
 mod multiple_mutable_borrows {
     /// ```compile_fail
-    /// use soapy::{Soa, Soapy, soa, Slice};
-    /// #[derive(Soapy, PartialEq, Debug)]
+    /// use soa_rs::{Soa, Soars, soa, Slice};
+    /// #[derive(Soars, PartialEq, Debug)]
     /// #[soa_derive(Debug, PartialEq)]
     /// struct Foo(usize);
     /// let mut soa = soa![Foo(10), Foo(20)];
@@ -46,12 +46,12 @@ mod multiple_mutable_borrows {
     mod fail {}
 }
 
-/// Regression test for <https://github.com/tim-harding/soapy/issues/2>
+/// Regression test for <https://github.com/tim-harding/soa_rs/issues/2>
 ///
 /// ```
-/// use soapy::{Soa, Soapy};
+/// use soa_rs::{Soa, Soars};
 ///
-/// #[derive(Soapy)]
+/// #[derive(Soars)]
 /// #[soa_derive(Debug, PartialEq)]
 /// struct Foo(u8);
 ///
@@ -61,9 +61,9 @@ mod multiple_mutable_borrows {
 /// ```
 mod swap_slices_by_mut_ref {
     /// ```compile_fail
-    /// use soapy::{Soa, Soapy};
+    /// use soa_rs::{Soa, Soars};
     ///
-    /// #[derive(Soapy)]
+    /// #[derive(Soars)]
     /// #[soa_derive(Debug, PartialEq)]
     /// struct Foo(u8);
     ///
@@ -75,9 +75,9 @@ mod swap_slices_by_mut_ref {
     mod deref_mut {}
 
     /// ```compile_fail
-    /// use soapy::{Soa, Soapy};
+    /// use soa_rs::{Soa, Soars};
     ///
-    /// #[derive(Soapy)]
+    /// #[derive(Soars)]
     /// #[soa_derive(Debug, PartialEq)]
     /// struct Foo(u8);
     ///
@@ -89,9 +89,9 @@ mod swap_slices_by_mut_ref {
     mod as_mut {}
 
     /// ```compile_fail
-    /// use soapy::{Soa, Soapy};
+    /// use soa_rs::{Soa, Soars};
     ///
-    /// #[derive(Soapy)]
+    /// #[derive(Soars)]
     /// #[soa_derive(Debug, PartialEq)]
     /// struct Foo(u8);
     ///

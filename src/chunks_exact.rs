@@ -1,4 +1,4 @@
-use crate::{Slice, SliceRef, SoaRaw, Soapy};
+use crate::{Slice, SliceRef, SoaRaw, Soars};
 use std::marker::PhantomData;
 
 /// An iterator over a [`Slice`] in (non-overlapping) chunks of `chunk_size`
@@ -14,7 +14,7 @@ use std::marker::PhantomData;
 /// [`chunks_exact`]: Slice::chunks_exact
 pub struct ChunksExact<'a, T>
 where
-    T: 'a + Soapy,
+    T: 'a + Soars,
 {
     slice: Slice<T, ()>,
     remainder: SliceRef<'a, T>,
@@ -24,7 +24,7 @@ where
 
 impl<'a, T> ChunksExact<'a, T>
 where
-    T: Soapy,
+    T: Soars,
 {
     pub(crate) fn new(slice: &'a Slice<T>, chunk_size: usize) -> Self {
         let len = slice.len();
@@ -49,7 +49,7 @@ where
 
 impl<'a, T> Iterator for ChunksExact<'a, T>
 where
-    T: Soapy,
+    T: Soars,
 {
     type Item = SliceRef<'a, T>;
 

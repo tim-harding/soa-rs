@@ -1,6 +1,6 @@
 use crate::{
     iter_raw::{iter_with_raw, IterRaw, IterRawAdapter},
-    Slice, SliceMut, SoaRaw, Soapy,
+    Slice, SliceMut, SoaRaw, Soars,
 };
 use std::{
     fmt::{self, Debug, Formatter},
@@ -16,7 +16,7 @@ use std::{
 /// [`iter_mut`]: crate::Slice::iter_mut
 pub struct IterMut<'a, T>
 where
-    T: 'a + Soapy,
+    T: 'a + Soars,
 {
     pub(crate) iter_raw: IterRaw<T, Self>,
     pub(crate) _marker: PhantomData<&'a mut T>,
@@ -24,7 +24,7 @@ where
 
 impl<'a, T> Debug for IterMut<'a, T>
 where
-    T: Soapy,
+    T: Soars,
     for<'b> T::Ref<'b>: Debug,
 {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
@@ -34,7 +34,7 @@ where
 
 impl<'a, T> Default for IterMut<'a, T>
 where
-    T: Soapy,
+    T: Soars,
 {
     fn default() -> Self {
         Self {
@@ -50,18 +50,18 @@ where
 
 impl<'a, T> IterRawAdapter<T> for IterMut<'a, T>
 where
-    T: Soapy,
+    T: Soars,
 {
     type Item = T::RefMut<'a>;
 
-    fn item_from_raw(raw: <T as Soapy>::Raw) -> Self::Item {
+    fn item_from_raw(raw: <T as Soars>::Raw) -> Self::Item {
         unsafe { raw.get_mut() }
     }
 }
 
 impl<'a, T> IterMut<'a, T>
 where
-    T: Soapy,
+    T: Soars,
 {
     /// Returns an immutable slice of all elements that have not been yielded
     /// yet.

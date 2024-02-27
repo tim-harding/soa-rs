@@ -1,11 +1,11 @@
 [package]
-name = "soapy-derive"
-version = "0.2.8"
+name = "soa-rs-derive"
+version = "0.3.0"
 edition = "2021"
 license = "MIT"
-description = "Proc macro derive for soapy"
-homepage = "https://github.com/tim-harding/soapy"
-repository = "https://github.com/tim-harding/soapy"
+description = "Proc macro derive for soa-rs"
+homepage = "https://github.com/tim-harding/soa-rs"
+repository = "https://github.com/tim-harding/soa-rs"
 readme = "../README.md"
 
 [lib]

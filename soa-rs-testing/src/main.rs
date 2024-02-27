@@ -1,6 +1,6 @@
-use soapy::Soapy;
+use soa_rs::Soars;
 
-#[derive(Debug, Clone, Copy, PartialEq, Soapy)]
+#[derive(Debug, Clone, Copy, PartialEq, Soars)]
 #[soa_derive(Debug, PartialEq)]
 struct Alignment {
     #[align(64)]

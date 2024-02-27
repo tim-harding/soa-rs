@@ -1,6 +1,6 @@
 use crate::{
     iter_raw::{iter_with_raw, IterRaw, IterRawAdapter},
-    Slice, Soa, SoaRaw, Soapy,
+    Slice, Soa, SoaRaw, Soars,
 };
 use std::{fmt::Debug, iter::FusedIterator, mem::size_of};
 
@@ -13,7 +13,7 @@ use std::{fmt::Debug, iter::FusedIterator, mem::size_of};
 /// [`into_iter`]: crate::Soa::into_iter
 pub struct IntoIter<T>
 where
-    T: Soapy,
+    T: Soars,
 {
     pub(crate) iter_raw: IterRaw<T, Self>,
     pub(crate) ptr: *mut u8,
@@ -22,7 +22,7 @@ where
 
 impl<T> IterRawAdapter<T> for IntoIter<T>
 where
-    T: Soapy,
+    T: Soars,
 {
     type Item = T;
 
@@ -33,7 +33,7 @@ where
 
 impl<T> Default for IntoIter<T>
 where
-    T: Soapy,
+    T: Soars,
 {
     fn default() -> Self {
         Soa::<T>::new().into_iter()
@@ -42,7 +42,7 @@ where
 
 impl<T> Debug for IntoIter<T>
 where
-    T: Soapy,
+    T: Soars,
     for<'a> T::Ref<'a>: Debug,
 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -52,7 +52,7 @@ where
 
 impl<T> IntoIter<T>
 where
-    T: Soapy,
+    T: Soars,
 {
     /// Returns an immutable slice of all elements that have not been yielded
     /// yet.
@@ -68,7 +68,7 @@ where
 
 impl<T> Drop for IntoIter<T>
 where
-    T: Soapy,
+    T: Soars,
 {
     fn drop(&mut self) {
         for _ in self.by_ref() {}

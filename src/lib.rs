@@ -1,14 +1,14 @@
-//! # Soapy
+//! # Soars
 //!
-//! Soapy makes it simple to work with the structure-of-arrays memory layout.
+//! Soars makes it simple to work with the structure-of-arrays memory layout.
 //! What [`Vec`] is to array-of-structures, [`Soa`] is to structure-of-arrays.
 //!
 //! # Examples
 //!
-//! First, derive [`Soapy`] for your type:
+//! First, derive [`Soars`] for your type:
 //! ```
-//! # use soapy::{soa, Soapy};
-//! #[derive(Soapy, Debug, Clone, Copy, PartialEq)]
+//! # use soa_rs::{soa, Soars};
+//! #[derive(Soars, Debug, Clone, Copy, PartialEq)]
 //! #[soa_derive(Debug, PartialEq)]
 //! struct Example {
 //!     foo: u8,
@@ -18,8 +18,8 @@
 //!
 //! You can create an [`Soa`] explicitly:
 //! ```
-//! # use soapy::{soa, Soapy, Soa};
-//! # #[derive(Soapy, Debug, Clone, Copy, PartialEq)]
+//! # use soa_rs::{soa, Soars, Soa};
+//! # #[derive(Soars, Debug, Clone, Copy, PartialEq)]
 //! # #[soa_derive(Debug, PartialEq)]
 //! # struct Example {
 //! #     foo: u8,
@@ -31,8 +31,8 @@
 //!
 //! ...or by using the [`soa!`] macro.
 //! ```
-//! # use soapy::{soa, Soapy};
-//! # #[derive(Soapy, Debug, Clone, Copy, PartialEq)]
+//! # use soa_rs::{soa, Soars};
+//! # #[derive(Soars, Debug, Clone, Copy, PartialEq)]
 //! # #[soa_derive(Debug, PartialEq)]
 //! # struct Example {
 //! #     foo: u8,
@@ -44,8 +44,8 @@
 //! An SoA can be indexed and sliced just like a `&[T]`. Use `idx` in lieu of
 //! the index operator.
 //! ```
-//! # use soapy::{soa, Soapy};
-//! # #[derive(Soapy, Debug, Clone, Copy, PartialEq)]
+//! # use soa_rs::{soa, Soars};
+//! # #[derive(Soars, Debug, Clone, Copy, PartialEq)]
 //! # #[soa_derive(Debug, PartialEq)]
 //! # struct Example {
 //! #     foo: u8,
@@ -63,8 +63,8 @@
 //!
 //! The usual [`Vec`] APIs work normally.
 //! ```
-//! # use soapy::{soa, Soapy, Soa};
-//! # #[derive(Soapy, Debug, Clone, Copy, PartialEq)]
+//! # use soa_rs::{soa, Soars, Soa};
+//! # #[derive(Soars, Debug, Clone, Copy, PartialEq)]
 //! # #[soa_derive(Debug, PartialEq)]
 //! # struct Example {
 //! #     foo: u8,
@@ -85,8 +85,8 @@
 //!
 //! You can access the fields as slices.
 //! ```
-//! # use soapy::{soa, Soapy};
-//! # #[derive(Soapy, Debug, Clone, Copy, PartialEq)]
+//! # use soa_rs::{soa, Soars};
+//! # #[derive(Soars, Debug, Clone, Copy, PartialEq)]
 //! # #[soa_derive(Debug, PartialEq)]
 //! # struct Example {
 //! #     foo: u8,
@@ -101,8 +101,8 @@
 //!
 //! Postpend `_mut` for mutable slices.
 //! ```
-//! # use soapy::{soa, Soapy};
-//! # #[derive(Soapy, Debug, Clone, Copy, PartialEq)]
+//! # use soa_rs::{soa, Soars};
+//! # #[derive(Soars, Debug, Clone, Copy, PartialEq)]
 //! # #[soa_derive(Debug, PartialEq)]
 //! # struct Example {
 //! #     foo: u8,
@@ -120,15 +120,15 @@
 //!
 //! For tuple structs, prepend the field number with `f`:
 //! ```
-//! # use soapy::{soa, Soapy};
-//! #[derive(Soapy)]
+//! # use soa_rs::{soa, Soars};
+//! #[derive(Soars)]
 //! # #[soa_derive(Debug, PartialEq)]
 //! struct Example(u8);
 //! let soa = soa![Example(5), Example(10)];
 //! assert_eq!(soa.f0(), [5, 10]);
 //! ```
 //!
-//! [`Soapy`]: soapy_derive::Soapy
+//! [`Soars`]: soa_rs_derive::Soars
 #![warn(missing_docs)]
 
 mod soa;
@@ -158,8 +158,8 @@ pub use slice_ref::SliceRef;
 mod soa_deref;
 pub use soa_deref::SoaDeref;
 
-mod soapy;
-pub use soapy::Soapy;
+mod soars;
+pub use soars::Soars;
 
 mod soa_raw;
 #[doc(hidden)]
@@ -177,9 +177,9 @@ pub use soa_array::SoaArray;
 mod as_soa_ref;
 pub use as_soa_ref::AsSoaRef;
 
-/// Derive macro for the [`Soapy`] trait.
+/// Derive macro for the [`Soars`] trait.
 ///
-/// Deriving Soapy for some struct `Foo` will create the following additional
+/// Deriving Soars for some struct `Foo` will create the following additional
 /// structs:
 ///
 /// | Struct         | Field type | Use                                          |
@@ -192,7 +192,7 @@ pub use as_soa_ref::AsSoaRef;
 /// | `FooArray`     | `[T; N]`   | `const`-compatible SoA                       |
 /// | `FooDeref`     |            | SoA [`Deref`] target, provides slice getters |
 ///
-/// The [`Soapy`] trait implementation for `Foo` references these as associated
+/// The [`Soars`] trait implementation for `Foo` references these as associated
 /// types. [`AsSoaRef`] is also implemented for `Foo`, `FooRef`, and `FooRefMut`.
 ///
 /// # Derive for generated types
@@ -202,8 +202,8 @@ pub use as_soa_ref::AsSoaRef;
 /// `FooRef`, `FooRefMut`, `FooSlices`, `FooSlicesMut`, and `FooArray`.
 ///
 /// ```
-/// # use soapy::{Soapy};
-/// #[derive(Soapy)]
+/// # use soa_rs::{Soars};
+/// #[derive(Soars)]
 /// #[soa_derive(Debug, PartialEq)]
 /// struct Foo(u8);
 /// assert_eq!(FooRef(&10), FooRef(&10));
@@ -217,14 +217,14 @@ pub use as_soa_ref::AsSoaRef;
 /// field's type. This can be useful for vector operations.
 ///
 /// ```
-/// # use soapy::{Soapy};
-/// # #[derive(Soapy)]
+/// # use soa_rs::{Soars};
+/// # #[derive(Soars)]
 /// # #[soa_derive(Debug, PartialEq)]
 /// struct Foo(#[align(8)] u8);
 /// ```
 ///
 /// [`Deref`]: std::ops::Deref
-pub use soapy_derive::Soapy;
+pub use soa_rs_derive::Soars;
 
 /// Creates a [`Soa`] containing the arguments.
 ///
@@ -233,8 +233,8 @@ pub use soapy_derive::Soapy;
 ///
 /// - Create a [`Soa`] containing a given list of elements:
 /// ```
-/// # use soapy::{Soapy, soa};
-/// # #[derive(Soapy, Debug, PartialEq, Copy, Clone)]
+/// # use soa_rs::{Soars, soa};
+/// # #[derive(Soars, Debug, PartialEq, Copy, Clone)]
 /// # #[soa_derive(Debug, PartialEq, PartialOrd)]
 /// # struct Foo(u8, u16);
 /// let soa = soa![Foo(1, 2), Foo(3, 4)];
@@ -244,8 +244,8 @@ pub use soapy_derive::Soapy;
 /// - Create a [`Soa`] from a given element and size:
 ///
 /// ```
-/// # use soapy::{Soapy, soa};
-/// # #[derive(Soapy, Debug, PartialEq, Copy, Clone)]
+/// # use soa_rs::{Soars, soa};
+/// # #[derive(Soars, Debug, PartialEq, Copy, Clone)]
 /// # #[soa_derive(Debug, PartialEq)]
 /// # struct Foo(u8, u16);
 /// let soa = soa![Foo(1, 2); 2];

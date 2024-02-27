@@ -1,4 +1,4 @@
-use crate::{eq_impl, iter_raw::IterRaw, IterMut, Slice, SliceRef, Soa, Soapy};
+use crate::{eq_impl, iter_raw::IterRaw, IterMut, Slice, SliceRef, Soa, Soars};
 use std::{
     cmp::Ordering,
     fmt::{self, Debug, Formatter},
@@ -14,7 +14,7 @@ use std::{
 /// `&mut Slice`.
 pub struct SliceMut<'a, T>
 where
-    T: 'a + Soapy,
+    T: 'a + Soars,
 {
     pub(crate) slice: Slice<T, ()>,
     pub(crate) len: usize,
@@ -23,7 +23,7 @@ where
 
 impl<'a, T> SliceMut<'a, T>
 where
-    T: Soapy,
+    T: Soars,
 {
     /// Creates a new [`SliceMut`] from the given slice and length. Intended for
     /// use in proc macro code, not user code.
@@ -45,7 +45,7 @@ where
 
 impl<'a, T> AsRef<Slice<T>> for SliceMut<'a, T>
 where
-    T: Soapy,
+    T: Soars,
 {
     fn as_ref(&self) -> &Slice<T> {
         self.deref()
@@ -54,7 +54,7 @@ where
 
 impl<'a, T> AsMut<Slice<T>> for SliceMut<'a, T>
 where
-    T: Soapy,
+    T: Soars,
 {
     fn as_mut(&mut self) -> &mut Slice<T> {
         self.deref_mut()
@@ -63,7 +63,7 @@ where
 
 impl<'a, T> Deref for SliceMut<'a, T>
 where
-    T: Soapy,
+    T: Soars,
 {
     type Target = Slice<T>;
 
@@ -74,7 +74,7 @@ where
 
 impl<'a, T> DerefMut for SliceMut<'a, T>
 where
-    T: Soapy,
+    T: Soars,
 {
     fn deref_mut(&mut self) -> &mut Self::Target {
         unsafe { self.slice.as_unsized_mut(self.len) }
@@ -83,7 +83,7 @@ where
 
 impl<'a, T> IntoIterator for SliceMut<'a, T>
 where
-    T: Soapy,
+    T: Soars,
 {
     type Item = T::RefMut<'a>;
     type IntoIter = IterMut<'a, T>;
@@ -104,7 +104,7 @@ eq_impl::impl_for!(SliceMut<'_, T>);
 
 impl<'a, T> Debug for SliceMut<'a, T>
 where
-    T: Soapy,
+    T: Soars,
     for<'b> T::Ref<'b>: Debug,
 {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
@@ -114,7 +114,7 @@ where
 
 impl<'a, T> PartialOrd for SliceMut<'a, T>
 where
-    T: Soapy,
+    T: Soars,
     for<'b> T::Ref<'b>: PartialOrd,
 {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
@@ -124,7 +124,7 @@ where
 
 impl<'a, T> Ord for SliceMut<'a, T>
 where
-    T: Soapy,
+    T: Soars,
     for<'b> T::Ref<'b>: Ord,
 {
     fn cmp(&self, other: &Self) -> Ordering {
@@ -134,7 +134,7 @@ where
 
 impl<'a, T> Hash for SliceMut<'a, T>
 where
-    T: Soapy,
+    T: Soars,
     for<'b> T::Ref<'b>: Hash,
 {
     fn hash<H: Hasher>(&self, state: &mut H) {

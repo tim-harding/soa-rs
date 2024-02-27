@@ -1,4 +1,4 @@
-use crate::Soapy;
+use crate::Soars;
 
 /// A low-level utility providing fundamental operations needed by [`Soa`].
 ///
@@ -28,7 +28,7 @@ pub unsafe trait SoaRaw: Copy + Clone {
     ///
     /// This is also the type for which the trait implementation is derived when
     /// using the derive macro.
-    type Item: Soapy;
+    type Item: Soars;
 
     /// Creates a [`SoaRaw`] with dangling pointers for all its fields and without
     /// allocating memory.
@@ -156,7 +156,7 @@ pub unsafe trait SoaRaw: Copy + Clone {
     /// The caller must ensure that
     ///
     /// - `index < PREV_CAP`
-    unsafe fn get_ref<'a>(self) -> <Self::Item as Soapy>::Ref<'a>;
+    unsafe fn get_ref<'a>(self) -> <Self::Item as Soars>::Ref<'a>;
 
     /// Gets a mutable reference to the element at `index`.
     ///
@@ -165,7 +165,7 @@ pub unsafe trait SoaRaw: Copy + Clone {
     /// The caller must ensure that
     ///
     /// - `index < PREV_CAP`
-    unsafe fn get_mut<'a>(self) -> <Self::Item as Soapy>::RefMut<'a>;
+    unsafe fn get_mut<'a>(self) -> <Self::Item as Soars>::RefMut<'a>;
 
     /// Create a new [`SoaRaw`] starting at index `count`.
     ///
@@ -181,7 +181,7 @@ pub unsafe trait SoaRaw: Copy + Clone {
     #[must_use]
     unsafe fn offset(self, count: usize) -> Self;
 
-    unsafe fn slices<'a>(self, len: usize) -> <Self::Item as Soapy>::Slices<'a>;
+    unsafe fn slices<'a>(self, len: usize) -> <Self::Item as Soars>::Slices<'a>;
 
-    unsafe fn slices_mut<'a>(self, len: usize) -> <Self::Item as Soapy>::SlicesMut<'a>;
+    unsafe fn slices_mut<'a>(self, len: usize) -> <Self::Item as Soars>::SlicesMut<'a>;
 }

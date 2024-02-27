@@ -1,12 +1,12 @@
-use crate::{Slice, Soapy};
+use crate::{Slice, Soars};
 
 /// [`Slice`] dereferences to this type to provide getters for the individual
 /// fields as slices.
 ///
-/// See [`Soapy::Deref`]
+/// See [`Soars::Deref`]
 pub trait SoaDeref {
     /// The [`Slice`] generic parameter
-    type Item: Soapy;
+    type Item: Soars;
 
     /// Creates a new deref target from the given slice
     fn from_slice(slice: &Slice<Self::Item>) -> &Self;

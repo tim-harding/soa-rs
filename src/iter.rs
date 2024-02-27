@@ -1,6 +1,6 @@
 use crate::{
     iter_raw::{iter_with_raw, IterRaw, IterRawAdapter},
-    Slice, SoaRaw, Soapy,
+    Slice, SoaRaw, Soars,
 };
 use std::{
     fmt::{self, Debug, Formatter},
@@ -16,7 +16,7 @@ use std::{
 /// [`iter`]: crate::Slice::iter
 pub struct Iter<'a, T>
 where
-    T: 'a + Soapy,
+    T: 'a + Soars,
 {
     pub(crate) iter_raw: IterRaw<T, Self>,
     pub(crate) _marker: PhantomData<&'a T>,
@@ -24,7 +24,7 @@ where
 
 impl<'a, T> Debug for Iter<'a, T>
 where
-    T: Soapy,
+    T: Soars,
     for<'b> T::Ref<'b>: Debug,
 {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
@@ -34,7 +34,7 @@ where
 
 impl<'a, T> Default for Iter<'a, T>
 where
-    T: Soapy,
+    T: Soars,
 {
     fn default() -> Self {
         Self {
@@ -50,7 +50,7 @@ where
 
 impl<'a, T> Clone for Iter<'a, T>
 where
-    T: Soapy,
+    T: Soars,
 {
     fn clone(&self) -> Self {
         Self {
@@ -62,7 +62,7 @@ where
 
 impl<'a, T> Iter<'a, T>
 where
-    T: Soapy,
+    T: Soars,
 {
     /// Returns an immutable slice of all elements that have not been yielded
     /// yet.
@@ -73,7 +73,7 @@ where
 
 impl<'a, T> IterRawAdapter<T> for Iter<'a, T>
 where
-    T: Soapy,
+    T: Soars,
 {
     type Item = T::Ref<'a>;
 

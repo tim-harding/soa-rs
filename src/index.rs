@@ -1,4 +1,4 @@
-use crate::{Slice, SliceMut, SliceRef, SoaRaw, Soapy};
+use crate::{Slice, SliceMut, SliceRef, SoaRaw, Soars};
 use std::{
     marker::PhantomData,
     ops::{Range, RangeFrom, RangeFull, RangeInclusive, RangeTo, RangeToInclusive},
@@ -7,7 +7,7 @@ use std::{
 /// A helper trait for indexing operations.
 pub trait SoaIndex<T>
 where
-    T: Soapy,
+    T: Soars,
 {
     /// The output type returned by non-`mut` methods.
     type Output<'a>
@@ -28,7 +28,7 @@ where
 
 impl<T> SoaIndex<T> for usize
 where
-    T: Soapy,
+    T: Soars,
 {
     type Output<'a> = T::Ref<'a> where T: 'a;
 
@@ -55,7 +55,7 @@ where
 
 impl<T> SoaIndex<T> for RangeFull
 where
-    T: Soapy,
+    T: Soars,
 {
     type Output<'a> = SliceRef<'a, T>
     where
@@ -84,7 +84,7 @@ where
 
 impl<T> SoaIndex<T> for Range<usize>
 where
-    T: Soapy,
+    T: Soars,
 {
     type Output<'a> = SliceRef<'a, T>
     where
@@ -114,7 +114,7 @@ where
 
 impl<T> SoaIndex<T> for RangeTo<usize>
 where
-    T: Soapy,
+    T: Soars,
 {
     type Output<'a> = SliceRef<'a, T>
     where
@@ -135,7 +135,7 @@ where
 
 impl<T> SoaIndex<T> for RangeToInclusive<usize>
 where
-    T: Soapy,
+    T: Soars,
 {
     type Output<'a> = SliceRef<'a, T>
     where
@@ -156,7 +156,7 @@ where
 
 impl<T> SoaIndex<T> for RangeFrom<usize>
 where
-    T: Soapy,
+    T: Soars,
 {
     type Output<'a> = SliceRef<'a, T>
     where
@@ -177,7 +177,7 @@ where
 
 impl<T> SoaIndex<T> for RangeInclusive<usize>
 where
-    T: Soapy,
+    T: Soars,
 {
     type Output<'a> = SliceRef<'a, T>
     where

@@ -4,12 +4,12 @@ use crate::{AsSoaRef, SoaArray, SoaDeref, SoaRaw};
 ///
 /// # Safety
 ///
-/// [`Soapy::Deref`] mut be `#[repr(transparent)]` with [`Slice<Self::Raw>`].
+/// [`Soars::Deref`] mut be `#[repr(transparent)]` with [`Slice<Self::Raw>`].
 /// This trait should be derived using the derive macro.
 ///
 /// [`Slice<Self::Raw>`]: crate::Slice
 /// [`Soa`]: crate::Soa
-pub unsafe trait Soapy: AsSoaRef<Item = Self> {
+pub unsafe trait Soars: AsSoaRef<Item = Self> {
     /// Implements internal, unsafe, low-level routines used by [`Soa`]
     ///
     /// [`Soa`]: crate::Soa

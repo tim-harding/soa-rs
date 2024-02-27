@@ -1,34 +1,33 @@
-//! This crate provides the derive macro for Soapy.
+//! This crate provides the derive macro for Soars.
 
 mod fields;
 mod zst;
-
-use std::collections::HashSet;
 
 use fields::{fields_struct, FieldKind};
 use proc_macro::TokenStream;
 use proc_macro2::{Ident, Span, TokenStream as TokenStream2};
 use quote::{quote, quote_spanned};
+use std::collections::HashSet;
 use syn::{parse_macro_input, Attribute, Data, DeriveInput, Fields};
 use zst::{zst_struct, ZstKind};
 
-#[proc_macro_derive(Soapy, attributes(align, soa_derive))]
+#[proc_macro_derive(Soars, attributes(align, soa_derive))]
 pub fn soa(input: TokenStream) -> TokenStream {
     let input: DeriveInput = parse_macro_input!(input);
     let span = input.ident.span();
     match soa_inner(input) {
         Ok(tokens) => tokens,
         Err(e) => match e {
-            SoapyError::NotAStruct => quote_spanned! {
-                span => compile_error!("Soapy only applies to structs");
+            SoarsError::NotAStruct => quote_spanned! {
+                span => compile_error!("Soars only applies to structs");
             },
-            SoapyError::Syn(e) => e.into_compile_error(),
+            SoarsError::Syn(e) => e.into_compile_error(),
         },
     }
     .into()
 }
 
-fn soa_inner(input: DeriveInput) -> Result<TokenStream2, SoapyError> {
+fn soa_inner(input: DeriveInput) -> Result<TokenStream2, SoarsError> {
     let DeriveInput {
         ident,
         vis,
@@ -56,17 +55,17 @@ fn soa_inner(input: DeriveInput) -> Result<TokenStream2, SoapyError> {
             )?),
             Fields::Unit => Ok(zst_struct(ident, vis, ZstKind::Unit)),
         },
-        Data::Enum(_) | Data::Union(_) => Err(SoapyError::NotAStruct),
+        Data::Enum(_) | Data::Union(_) => Err(SoarsError::NotAStruct),
     }
 }
 
 #[derive(Debug, Clone)]
-enum SoapyError {
+enum SoarsError {
     NotAStruct,
     Syn(syn::Error),
 }
 
-impl From<syn::Error> for SoapyError {
+impl From<syn::Error> for SoarsError {
     fn from(value: syn::Error) -> Self {
         Self::Syn(value)
     }

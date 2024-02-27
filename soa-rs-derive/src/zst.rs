@@ -14,7 +14,7 @@ pub fn zst_struct(ident: Ident, vis: Visibility, kind: ZstKind) -> TokenStream {
 
     quote! {
         #[automatically_derived]
-        unsafe impl ::soapy::Soapy for #ident {
+        unsafe impl ::soa_rs::Soars for #ident {
             type Raw = #raw;
             type Deref = #deref;
             type Ref<'a> = #ident;
@@ -28,41 +28,41 @@ pub fn zst_struct(ident: Ident, vis: Visibility, kind: ZstKind) -> TokenStream {
         #vis struct #array<const N: usize>;
 
         #[automatically_derived]
-        impl<const N: usize> ::soapy::SoaArray for #array<N> {
+        impl<const N: usize> ::soa_rs::SoaArray for #array<N> {
             type Item = #ident;
 
-            fn as_slice(&self) -> ::soapy::SliceRef<'_, Self::Item> {
+            fn as_slice(&self) -> ::soa_rs::SliceRef<'_, Self::Item> {
                 let raw = #raw;
-                let slice = ::soapy::Slice::with_raw(raw);
-                unsafe { ::soapy::SliceRef::from_slice(slice, N) }
+                let slice = ::soa_rs::Slice::with_raw(raw);
+                unsafe { ::soa_rs::SliceRef::from_slice(slice, N) }
             }
 
-            fn as_mut_slice(&mut self) -> ::soapy::SliceMut<'_, Self::Item> {
+            fn as_mut_slice(&mut self) -> ::soa_rs::SliceMut<'_, Self::Item> {
                 let raw = #raw;
-                let slice = ::soapy::Slice::with_raw(raw);
-                unsafe { ::soapy::SliceMut::from_slice(slice, N) }
+                let slice = ::soa_rs::Slice::with_raw(raw);
+                unsafe { ::soa_rs::SliceMut::from_slice(slice, N) }
             }
         }
 
         // TODO: Consolidate duplication from fields
         #[automatically_derived]
         #[repr(transparent)]
-        #vis struct #deref(::soapy::Slice<#ident>);
+        #vis struct #deref(::soa_rs::Slice<#ident>);
 
-        impl ::soapy::SoaDeref for #deref {
+        impl ::soa_rs::SoaDeref for #deref {
             type Item = #ident;
 
-            fn from_slice(slice: &::soapy::Slice<Self::Item>) -> &Self {
+            fn from_slice(slice: &::soa_rs::Slice<Self::Item>) -> &Self {
                 unsafe { ::std::mem::transmute(slice) }
             }
 
-            fn from_slice_mut(slice: &mut ::soapy::Slice<Self::Item>) -> &mut Self {
+            fn from_slice_mut(slice: &mut ::soa_rs::Slice<Self::Item>) -> &mut Self {
                 unsafe { ::std::mem::transmute(slice) }
             }
         }
 
         #[automatically_derived]
-        impl ::soapy::AsSoaRef for #ident {
+        impl ::soa_rs::AsSoaRef for #ident {
             type Item = #ident;
 
             fn as_soa_ref(&self) -> Self::Item {
@@ -75,7 +75,7 @@ pub fn zst_struct(ident: Ident, vis: Visibility, kind: ZstKind) -> TokenStream {
         #vis struct #raw;
 
         #[automatically_derived]
-        unsafe impl ::soapy::SoaRaw for #raw {
+        unsafe impl ::soa_rs::SoaRaw for #raw {
             type Item = #ident;
 
             #[inline]
@@ -119,21 +119,21 @@ pub fn zst_struct(ident: Ident, vis: Visibility, kind: ZstKind) -> TokenStream {
             unsafe fn get(self) -> #ident { #ident #unit_construct }
 
             #[inline]
-            unsafe fn get_ref<'a>(self) -> <#ident as Soapy>::Ref<'a> { #ident #unit_construct }
+            unsafe fn get_ref<'a>(self) -> <#ident as Soars>::Ref<'a> { #ident #unit_construct }
 
             #[inline]
-            unsafe fn get_mut<'a>(self) -> <#ident as Soapy>::RefMut<'a> { #ident #unit_construct }
+            unsafe fn get_mut<'a>(self) -> <#ident as Soars>::RefMut<'a> { #ident #unit_construct }
 
             #[inline]
             unsafe fn offset(self, count: usize) -> Self { Self }
 
             #[inline]
-            unsafe fn slices<'a>(self, len: usize) -> <#ident as Soapy>::Slices<'a> {
+            unsafe fn slices<'a>(self, len: usize) -> <#ident as Soars>::Slices<'a> {
                 #ident #unit_construct
             }
 
             #[inline]
-            unsafe fn slices_mut<'a>(self, len: usize) -> <#ident as Soapy>::SlicesMut<'a> {
+            unsafe fn slices_mut<'a>(self, len: usize) -> <#ident as Soars>::SlicesMut<'a> {
                 #ident #unit_construct
             }
         }
