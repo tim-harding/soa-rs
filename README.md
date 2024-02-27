@@ -1,6 +1,6 @@
-[![docs.rs](https://img.shields.io/docsrs/soa-rs?link=https%3A%2F%2Fdocs.rs%2Fsoa-rs%2Flatest%2Fsoa-rs%2F)](https://docs.rs/soa-rs/latest/soa-rs/)
-[![Crates.io Version](https://img.shields.io/crates/v/soa-rs?link=https%3A%2F%2Fcrates.io%2Fcrates%2Fsoa-rs)](https://crates.io/crates/soa-rs)
-[![GitHub License](https://img.shields.io/github/license/tim-harding/soa-rs?link=https%3A%2F%2Fgithub.com%2Ftim-harding%2Fsoa-rs%2Fblob%2Fmain%2FLICENSE)](https://choosealicense.com/licenses/mit/)
+[![docs.rs](https://img.shields.io/docsrs/soa-rs)](https://docs.rs/soa-rs/latest/)
+[![Crates.io Version](https://img.shields.io/crates/v/soa-rs)](https://crates.io/crates/soa-rs/)
+[![GitHub License](https://img.shields.io/github/license/tim-harding/soa-rs)](https://choosealicense.com/licenses/mit/)
 
 # soa-rs
 
