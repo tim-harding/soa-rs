@@ -1,6 +1,6 @@
 use crate::{
     zst::{zst_struct, ZstKind},
-    ExtraImpl,
+    SoaDerive,
 };
 use proc_macro2::TokenStream;
 use quote::{format_ident, quote, ToTokens, TokenStreamExt};
@@ -11,7 +11,7 @@ pub fn fields_struct(
     vis: Visibility,
     fields: Punctuated<Field, Comma>,
     kind: FieldKind,
-    extra: ExtraImpl,
+    soa_derive: SoaDerive,
 ) -> Result<TokenStream, syn::Error> {
     let fields_len = fields.len();
     let (vis_all, (ty_all, (ident_all, attrs_all))): (Vec<_>, (Vec<_>, (Vec<_>, Vec<_>))) = fields
@@ -144,11 +144,11 @@ pub fn fields_struct(
         }
     };
 
-    let mut extra_plus_copy = extra;
-    extra_plus_copy.copy = true;
-    extra_plus_copy.clone = true;
-    let extra_plus_copy = extra_plus_copy.as_derive();
-    let extra = extra.as_derive();
+    let mut extra_plus_copy = soa_derive.clone();
+    extra_plus_copy.insert("Copy");
+    extra_plus_copy.insert("Clone");
+    let extra_plus_copy = extra_plus_copy.into_derive();
+    let extra = soa_derive.into_derive();
 
     let item_ref_def = define(&|ty| quote! { &'a #ty });
     out.append_all(quote! {

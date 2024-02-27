@@ -4,7 +4,7 @@ use soapy::{soa, AsSoaRef, Soa, SoaArray, Soapy};
 use std::fmt::Debug;
 
 #[derive(Soapy, Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-#[extra_impl(Debug, PartialEq, Eq, PartialOrd, Ord)]
+#[soa_derive(Debug, PartialEq, Eq, PartialOrd, Ord)]
 struct ExtraImplTester {
     things: u8,
     stuff: u8,
@@ -25,7 +25,7 @@ impl Drop for SingleDrop {
 }
 
 #[derive(Soapy, Debug, Clone, PartialEq, Eq, Hash)]
-#[extra_impl(Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[soa_derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 struct El {
     foo: u64,
     bar: u8,
@@ -65,26 +65,26 @@ const E: El = El {
 const ABCDE: [El; 5] = [A, B, C, D, E];
 
 #[derive(Soapy, Debug, Clone, Copy, PartialEq, Eq, Default, PartialOrd, Ord)]
-#[extra_impl(Debug, PartialEq, Eq, PartialOrd, Ord)]
+#[soa_derive(Debug, PartialEq, Eq, PartialOrd, Ord)]
 struct Unit;
 
 #[derive(Soapy, Debug, Clone, Copy, PartialEq, Eq, Default)]
-#[extra_impl(Debug, PartialEq, Eq, PartialOrd, Ord)]
+#[soa_derive(Debug, PartialEq, Eq, PartialOrd, Ord)]
 struct Empty {}
 
 #[derive(Soapy, Debug, Clone, Copy, PartialEq, Eq, Default)]
-#[extra_impl(Debug, PartialEq, Eq, PartialOrd, Ord)]
+#[soa_derive(Debug, PartialEq, Eq, PartialOrd, Ord)]
 struct EmptyTuple();
 
 #[derive(Soapy, Debug, Clone, Copy, PartialEq, Eq, Default)]
-#[extra_impl(Debug, PartialEq, Eq, PartialOrd, Ord)]
+#[soa_derive(Debug, PartialEq, Eq, PartialOrd, Ord)]
 struct ZstFields {
     a: Unit,
     b: (),
 }
 
 #[derive(Soapy, Debug, Clone, Copy, PartialEq, Eq, Default)]
-#[extra_impl(Debug, PartialEq, Eq, PartialOrd, Ord)]
+#[soa_derive(Debug, PartialEq, Eq, PartialOrd, Ord)]
 struct Tuple(u8, u16, u32);
 
 #[test]
@@ -269,7 +269,7 @@ pub fn clone_from() {
 #[test]
 pub fn partial_ordering_and_equality() {
     #[derive(Soapy, Debug, PartialEq, PartialOrd, Clone, Copy)]
-    #[extra_impl(Debug, PartialEq, PartialOrd)]
+    #[soa_derive(Debug, PartialEq, PartialOrd)]
     struct A(f32);
 
     let cases = [
@@ -302,7 +302,7 @@ pub fn partial_ordering_and_equality() {
 #[test]
 pub fn ordering() {
     #[derive(Soapy, PartialEq, Eq, PartialOrd, Ord, Clone, Copy)]
-    #[extra_impl(Debug, PartialEq, Eq, PartialOrd, Ord)]
+    #[soa_derive(Debug, PartialEq, Eq, PartialOrd, Ord)]
     struct A(u8);
 
     let cases = [
@@ -385,7 +385,7 @@ pub fn field_getters() {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Soapy)]
-#[extra_impl(Debug, PartialEq, PartialOrd)]
+#[soa_derive(Debug, PartialEq, PartialOrd)]
 struct Alignment {
     #[align(64)]
     a: f32,
@@ -592,9 +592,9 @@ fn slices_mut() {
         *bar += 10;
     }
 
-    let expected = ABCDE.map(|el| el.foo+10);
+    let expected = ABCDE.map(|el| el.foo + 10);
     assert_eq!(soa.foo(), expected);
 
-    let expected = ABCDE.map(|el| el.bar+10);
+    let expected = ABCDE.map(|el| el.bar + 10);
     assert_eq!(soa.bar(), expected);
 }

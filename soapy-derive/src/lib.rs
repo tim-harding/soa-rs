@@ -3,14 +3,16 @@
 mod fields;
 mod zst;
 
+use std::collections::HashSet;
+
 use fields::{fields_struct, FieldKind};
 use proc_macro::TokenStream;
-use proc_macro2::TokenStream as TokenStream2;
+use proc_macro2::{Ident, Span, TokenStream as TokenStream2};
 use quote::{quote, quote_spanned};
 use syn::{parse_macro_input, Attribute, Data, DeriveInput, Fields};
 use zst::{zst_struct, ZstKind};
 
-#[proc_macro_derive(Soapy, attributes(align, extra_impl))]
+#[proc_macro_derive(Soapy, attributes(align, soa_derive))]
 pub fn soa(input: TokenStream) -> TokenStream {
     let input: DeriveInput = parse_macro_input!(input);
     let span = input.ident.span();
@@ -35,7 +37,7 @@ fn soa_inner(input: DeriveInput) -> Result<TokenStream2, SoapyError> {
         generics: _,
     } = input;
 
-    let extra_impl = ExtraImpl::try_from(attrs)?;
+    let soa_derive = SoaDerive::try_from(attrs)?;
     match data {
         Data::Struct(strukt) => match strukt.fields {
             Fields::Named(fields) => Ok(fields_struct(
@@ -43,14 +45,14 @@ fn soa_inner(input: DeriveInput) -> Result<TokenStream2, SoapyError> {
                 vis,
                 fields.named,
                 FieldKind::Named,
-                extra_impl,
+                soa_derive,
             )?),
             Fields::Unnamed(fields) => Ok(fields_struct(
                 ident,
                 vis,
                 fields.unnamed,
                 FieldKind::Unnamed,
-                extra_impl,
+                soa_derive,
             )?),
             Fields::Unit => Ok(zst_struct(ident, vis, ZstKind::Unit)),
         },
@@ -70,70 +72,39 @@ impl From<syn::Error> for SoapyError {
     }
 }
 
-#[derive(Debug, Copy, Clone, Default)]
-struct ExtraImpl {
-    pub debug: bool,
-    pub partial_eq: bool,
-    pub eq: bool,
-    pub partial_ord: bool,
-    pub ord: bool,
-    pub hash: bool,
-    pub default: bool,
-    pub clone: bool,
-    pub copy: bool,
+#[derive(Debug, Clone, Default)]
+struct SoaDerive {
+    derives: HashSet<syn::Path>,
 }
 
-impl ExtraImpl {
-    fn as_derive(&self) -> TokenStream2 {
-        let derives = [
-            self.debug.then(|| quote! { Debug }),
-            self.partial_eq.then(|| quote! { PartialEq }),
-            self.eq.then(|| quote! { Eq }),
-            self.partial_ord.then(|| quote! { PartialOrd }),
-            self.ord.then(|| quote! { Ord }),
-            self.hash.then(|| quote! { Hash }),
-            self.default.then(|| quote! { Default }),
-            self.clone.then(|| quote! { Clone }),
-            self.copy.then(|| quote! { Copy }),
-        ]
-        .into_iter()
-        .flatten();
-
+impl SoaDerive {
+    fn into_derive(self) -> TokenStream2 {
+        let Self { derives } = self;
+        let derives = derives.into_iter();
         quote! {
-            #[derive(
-                #(#derives),*
-            )]
+            #[derive(#(#derives),*)]
         }
+    }
+
+    fn insert(&mut self, derive: &str) {
+        self.derives.insert(syn::Path::from(syn::PathSegment {
+            ident: Ident::new(derive, Span::call_site()),
+            arguments: syn::PathArguments::None,
+        }));
     }
 }
 
-impl TryFrom<Vec<Attribute>> for ExtraImpl {
+impl TryFrom<Vec<Attribute>> for SoaDerive {
     type Error = syn::Error;
 
     fn try_from(value: Vec<Attribute>) -> Result<Self, Self::Error> {
         let mut out = Self::default();
         for attr in value {
-            if attr.path().is_ident("extra_impl") {
-                attr.parse_nested_meta(|meta| {
-                    macro_rules! ident {
-                        ($i:ident, $s:expr) => {
-                            if meta.path.is_ident($s) {
-                                out.$i = true;
-                                return Ok(());
-                            }
-                        };
-                    }
-                    ident!(debug, "Debug");
-                    ident!(partial_eq, "PartialEq");
-                    ident!(eq, "Eq");
-                    ident!(partial_ord, "PartialOrd");
-                    ident!(ord, "Ord");
-                    ident!(hash, "Hash");
-                    ident!(default, "Default");
-                    ident!(clone, "Clone");
-                    ident!(copy, "Copy");
-                    Err(meta.error("unrecognized extra impl"))
-                })?;
+            if attr.path().is_ident("soa_derive") {
+                let _ = attr.parse_nested_meta(|meta| {
+                    out.derives.insert(meta.path);
+                    Ok(())
+                });
             }
         }
         Ok(out)

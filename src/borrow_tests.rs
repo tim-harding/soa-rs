@@ -1,7 +1,7 @@
 /// ```
 /// use soapy::{Soa, Soapy, soa, Slice};
 /// #[derive(Soapy, PartialEq, Debug)]
-/// #[extra_impl(Debug, PartialEq)]
+/// #[soa_derive(Debug, PartialEq)]
 /// struct Foo(usize);
 /// let mut soa = soa![Foo(10), Foo(20)];
 /// let slice: &Slice<_> = soa.as_slice();
@@ -11,7 +11,7 @@ mod simultaneous_mutable_and_immutable {
     /// ```compile_fail
     /// use soapy::{Soa, Soapy, soa, Slice};
     /// #[derive(Soapy, PartialEq, Debug)]
-    /// #[extra_impl(Debug, PartialEq)]
+    /// #[soa_derive(Debug, PartialEq)]
     /// struct Foo(usize);
     /// let mut soa = soa![Foo(10), Foo(20)];
     /// let slice: &Slice<_> = soa.as_slice();
@@ -24,7 +24,7 @@ mod simultaneous_mutable_and_immutable {
 /// ```
 /// use soapy::{Soa, Soapy, soa, Slice};
 /// #[derive(Soapy, PartialEq, Debug)]
-/// #[extra_impl(Debug, PartialEq)]
+/// #[soa_derive(Debug, PartialEq)]
 /// struct Foo(usize);
 /// let mut soa = soa![Foo(10), Foo(20)];
 /// let slice: &Slice<_> = soa.as_slice();
@@ -35,7 +35,7 @@ mod multiple_mutable_borrows {
     /// ```compile_fail
     /// use soapy::{Soa, Soapy, soa, Slice};
     /// #[derive(Soapy, PartialEq, Debug)]
-    /// #[extra_impl(Debug, PartialEq)]
+    /// #[soa_derive(Debug, PartialEq)]
     /// struct Foo(usize);
     /// let mut soa = soa![Foo(10), Foo(20)];
     /// let slice: &Slice<_> = soa.as_slice();
@@ -52,7 +52,7 @@ mod multiple_mutable_borrows {
 /// use soapy::{Soa, Soapy};
 ///
 /// #[derive(Soapy)]
-/// #[extra_impl(Debug, PartialEq)]
+/// #[soa_derive(Debug, PartialEq)]
 /// struct Foo(u8);
 ///
 /// let mut x = Soa::<Foo>::new();
@@ -64,7 +64,7 @@ mod swap_slices_by_mut_ref {
     /// use soapy::{Soa, Soapy};
     ///
     /// #[derive(Soapy)]
-    /// #[extra_impl(Debug, PartialEq)]
+    /// #[soa_derive(Debug, PartialEq)]
     /// struct Foo(u8);
     ///
     /// let mut x = Soa::<Foo>::new();
@@ -78,7 +78,7 @@ mod swap_slices_by_mut_ref {
     /// use soapy::{Soa, Soapy};
     ///
     /// #[derive(Soapy)]
-    /// #[extra_impl(Debug, PartialEq)]
+    /// #[soa_derive(Debug, PartialEq)]
     /// struct Foo(u8);
     ///
     /// let mut x = Soa::<Foo>::new();
@@ -92,7 +92,7 @@ mod swap_slices_by_mut_ref {
     /// use soapy::{Soa, Soapy};
     ///
     /// #[derive(Soapy)]
-    /// #[extra_impl(Debug, PartialEq)]
+    /// #[soa_derive(Debug, PartialEq)]
     /// struct Foo(u8);
     ///
     /// let mut x = Soa::<Foo>::new();

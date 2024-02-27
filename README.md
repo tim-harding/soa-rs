@@ -15,7 +15,7 @@ use soapy::{Soapy, soa};
 
 // Derive Soapy for your type
 #[derive(Soapy, PartialEq, Debug)]
-#[extra_impl(Debug, PartialEq)]
+#[soa_derive(Debug, PartialEq)]
 struct Baz {
     foo: u16,
     bar: u8,
@@ -33,7 +33,7 @@ assert_eq!(soa.bar(), [2, 4]);
 
 // Tuple structs work too
 #[derive(Soapy, PartialEq, Debug)]
-#[extra_impl(Debug, PartialEq)]
+#[soa_derive(Debug, PartialEq)]
 struct Tuple(u16, u8);
 let tuple = soa![Tuple(1, 2), Tuple(3, 4), Tuple(5, 6), Tuple(7, 8)];
 
