@@ -42,14 +42,6 @@ pub fn zst_struct(ident: Ident, vis: Visibility, kind: ZstKind) -> TokenStream {
                 let slice = ::soapy::Slice::with_raw(raw);
                 unsafe { ::soapy::SliceMut::from_slice(slice, N) }
             }
-
-            fn as_slices(&self) -> #ident {
-                #ident #unit_construct
-            }
-
-            fn as_mut_slices(&mut self) -> #ident {
-                #ident #unit_construct
-            }
         }
 
         // TODO: Consolidate duplication from fields

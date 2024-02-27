@@ -272,22 +272,6 @@ pub fn fields_struct(
                 let slice = ::soapy::Slice::with_raw(raw);
                 unsafe { ::soapy::SliceMut::from_slice(slice, N) }
             }
-
-            fn as_slices(&self) -> #slices<'_> {
-                #slices {
-                    #(
-                        #ident_all: self.#ident_all.as_slice(),
-                    )*
-                }
-            }
-
-            fn as_mut_slices(&mut self) -> #slices_mut<'_> {
-                #slices_mut {
-                    #(
-                        #ident_all: self.#ident_all.as_mut_slice(),
-                    )*
-                }
-            }
         }
     });
 
