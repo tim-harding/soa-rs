@@ -37,6 +37,12 @@ pub fn zst_struct(ident: Ident, vis: Visibility, kind: ZstKind) -> TokenStream {
                 unsafe { ::soapy::SliceRef::from_slice(slice, N) }
             }
 
+            fn as_mut_slice(&mut self) -> ::soapy::SliceMut<'_, Self::Item> {
+                let raw = #raw;
+                let slice = ::soapy::Slice::with_raw(raw);
+                unsafe { ::soapy::SliceMut::from_slice(slice, N) }
+            }
+
             fn as_slices(&self) -> #ident {
                 #ident #unit_construct
             }

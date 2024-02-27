@@ -547,10 +547,27 @@ fn chunks_exact() {
     assert_eq!(soa_iter.remainder(), vec_iter.remainder());
 }
 
+const ARRAY: ElArray<5> = ElArray::from_array(ABCDE);
+
 #[test]
-fn array() {
-    const ARRAY: ElArray<5> = ElArray::from_array(ABCDE);
+fn array_slice_eq() {
     let array = ARRAY;
     let slice = array.as_slice();
     assert_eq!(slice, ABCDE);
+}
+
+#[test]
+fn array_slice_mut() {
+    let mut array = ARRAY;
+    let mut slice = array.as_mut_slice();
+    for item in slice.iter_mut() {
+        *item.foo += 10;
+        *item.bar += 10;
+    }
+    let expected = ABCDE.map(|el| El {
+        foo: el.foo + 10,
+        bar: el.bar + 10,
+        baz: el.baz,
+    });
+    assert_eq!(slice, expected);
 }

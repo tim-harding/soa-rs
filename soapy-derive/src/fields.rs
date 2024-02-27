@@ -251,13 +251,26 @@ pub fn fields_struct(
                 let raw = #raw {
                     #(
                         #ident_all: {
-                        let ptr = self.#ident_all.as_slice().as_ptr() as *mut #ty_all;
+                            let ptr = self.#ident_all.as_slice().as_ptr().cast_mut();
                             unsafe { ::std::ptr::NonNull::new_unchecked(ptr) }
                         },
                     )*
                 };
                 let slice = ::soapy::Slice::with_raw(raw);
                 unsafe { ::soapy::SliceRef::from_slice(slice, N) }
+            }
+
+            fn as_mut_slice(&mut self) -> ::soapy::SliceMut<'_, Self::Item> {
+                let raw = #raw {
+                    #(
+                        #ident_all: {
+                            let ptr = self.#ident_all.as_mut_slice().as_mut_ptr();
+                            unsafe { ::std::ptr::NonNull::new_unchecked(ptr) }
+                        },
+                    )*
+                };
+                let slice = ::soapy::Slice::with_raw(raw);
+                unsafe { ::soapy::SliceMut::from_slice(slice, N) }
             }
 
             fn as_slices(&self) -> #slices<'_> {
