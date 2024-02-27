@@ -21,24 +21,43 @@ pub unsafe trait Soapy: AsSoaRef<Item = Self> {
     /// [`Slice`]: crate::Slice
     type Deref: ?Sized + SoaDeref<Item = Self>;
 
-    /// For each field with type `F` in `T`, `Ref` has a field with type
-    /// `&F`
+    /// A reference to an element of a [`Slice`].
+    ///
+    /// For each field with type `T`, this type has a field with type `&T`.
+    ///
+    /// [`Slice`]: crate::Slice
     type Ref<'a>: Copy + Clone + AsSoaRef<Item = Self>
     where
         Self: 'a;
 
-    /// For each field with type `F` in `T`, `RefMut` has a field with type
-    /// `&mut F`
+    /// A reference to an element of a [`Slice`].
+    ///
+    /// For each field with type `T`, this type has a field with type `&mut T`.
+    ///
+    /// [`Slice`]: crate::Slice
     type RefMut<'a>: AsSoaRef<Item = Self>
     where
         Self: 'a;
 
+    /// The SoA array type.
+    ///
+    /// For each field with type `T`, this type has a field with type `[T; N]`.
     type Array<const N: usize>: SoaArray<Item = Self>;
 
+    /// The slices that make up a [`Slice`].
+    ///
+    /// For each field with type `T`, this type has a field with type `&[T]`.
+    ///
+    /// [`Slice`]: crate::Slice
     type Slices<'a>
     where
         Self: 'a;
 
+    /// The mutable slices that make up a [`Slice`].
+    ///
+    /// For each field with type `T`, this type has a field with type `&mut [T]`.
+    ///
+    /// [`Slice`]: crate::Slice
     type SlicesMut<'a>
     where
         Self: 'a;
