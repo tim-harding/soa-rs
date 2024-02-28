@@ -2,7 +2,11 @@ use crate::{
     iter_raw::{iter_with_raw, IterRaw, IterRawAdapter},
     Slice, Soa, SoaRaw, Soars,
 };
-use std::{fmt::Debug, iter::FusedIterator, mem::size_of};
+use std::{
+    fmt::Debug,
+    iter::FusedIterator,
+    mem::{needs_drop, size_of},
+};
 
 /// An iterator that moves out of a [`Soa`].
 ///
@@ -71,7 +75,10 @@ where
     T: Soars,
 {
     fn drop(&mut self) {
-        for _ in self.by_ref() {}
+        if needs_drop::<T>() {
+            for _ in self.by_ref() {}
+        }
+
         if size_of::<T>() > 0 && self.cap > 0 {
             unsafe { <T::Raw as SoaRaw>::from_parts(self.ptr, self.cap).dealloc(self.cap) }
         }

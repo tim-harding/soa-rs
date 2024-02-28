@@ -7,7 +7,7 @@ use std::{
     fmt::{self, Debug, Formatter},
     hash::{Hash, Hasher},
     marker::PhantomData,
-    mem::{size_of, ManuallyDrop},
+    mem::{needs_drop, size_of, ManuallyDrop},
     ops::{Deref, DerefMut},
 };
 
@@ -637,7 +637,10 @@ where
     T: Soars,
 {
     fn drop(&mut self) {
-        while self.pop().is_some() {}
+        if needs_drop::<T>() {
+            while self.pop().is_some() {}
+        }
+
         if size_of::<T>() > 0 && self.cap > 0 {
             unsafe {
                 self.raw().dealloc(self.cap);
