@@ -24,7 +24,7 @@ impl Rng {
 }
 
 #[derive(Soars, Debug, Clone, Copy, PartialEq, PartialOrd)]
-#[extra_impl(Debug, PartialEq, PartialOrd)]
+#[soa_derive(Debug, PartialEq, PartialOrd)]
 struct Vec4(
     #[align(64)] f32,
     #[align(64)] f32,

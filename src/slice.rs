@@ -520,7 +520,7 @@ where
     ///
     /// [`PhantomData`]: std::marker::PhantomData
     pub(crate) const unsafe fn as_sized(&self) -> Slice<T, ()> {
-        *(self as *const _ as *const Slice<T, ()>)
+        *(std::ptr::from_ref(self).cast())
     }
 }
 

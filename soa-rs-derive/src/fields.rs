@@ -222,7 +222,7 @@ pub fn fields_struct(
                 let mut i = 0;
                 while i < N {
                     #(
-                    let src = &array[i].#ident_all as *const #ty_all;
+                    let src = ::std::ptr::from_ref(&array[i].#ident_all);
                     unsafe {
                         uninit.#ident_all[i] = ::std::mem::MaybeUninit::new(src.read());
                     }
@@ -356,10 +356,10 @@ pub fn fields_struct(
             #[inline]
             unsafe fn with_offsets(ptr: *mut u8, offsets: [usize; #offsets_len]) -> Self {
                 Self {
-                    #ident_head: ::std::ptr::NonNull::new_unchecked(ptr as *mut #ty_head),
+                    #ident_head: ::std::ptr::NonNull::new_unchecked(ptr.cast()),
                     #(
                     #ident_tail: ::std::ptr::NonNull::new_unchecked(
-                        ptr.add(offsets[#indices]) as *mut #ty_tail,
+                        ptr.add(offsets[#indices]).cast(),
                     )
                     ),*
                 }
@@ -386,7 +386,7 @@ pub fn fields_struct(
 
             #[inline]
             fn into_parts(self) -> *mut u8 {
-                self.#ident_head.as_ptr() as *mut _
+                self.#ident_head.as_ptr().cast()
             }
 
             #[inline]
@@ -415,7 +415,7 @@ pub fn fields_struct(
                     .expect("capacity overflow");
 
                 // Grow allocation first
-                let ptr = self.#ident_head.as_ptr() as *mut u8;
+                let ptr = self.#ident_head.as_ptr().cast();
                 let ptr = ::std::alloc::realloc(ptr, old_layout, new_layout.size());
                 if ptr.is_null() {
                     ::std::alloc::handle_alloc_error(new_layout);
@@ -449,7 +449,7 @@ pub fn fields_struct(
                 // Move data before reallocating as some data
                 // may be past the end of the new allocation.
                 // Copy from front to back to avoid overwriting data.
-                let ptr = self.#ident_head.as_ptr() as *mut u8;
+                let ptr = self.#ident_head.as_ptr().cast();
                 let dst = Self::with_offsets(ptr, new_offsets);
                 #(
                     ::std::ptr::copy(self.#ident_all.as_ptr(), dst.#ident_all.as_ptr(), length);
@@ -468,7 +468,7 @@ pub fn fields_struct(
             unsafe fn dealloc(self, old_capacity: usize) {
                 // SAFETY: We already constructed this layout for a previous allocation
                 let (layout, _) = Self::layout_and_offsets_unchecked(old_capacity);
-                ::std::alloc::dealloc(self.#ident_head.as_ptr() as *mut _, layout);
+                ::std::alloc::dealloc(self.#ident_head.as_ptr().cast(), layout);
             }
 
             #[inline]
