@@ -207,6 +207,11 @@ pub fn fields_struct(
 
         impl<const N: usize> #array<N> {
             #vis const fn from_array(array: [#ident; N]) -> Self {
+                let array = ::std::mem::ManuallyDrop::new(array);
+                let array = ::std::ptr::from_ref::<::std::mem::ManuallyDrop<[#ident; N]>>(&array);
+                let array = array.cast::<[#ident; N]>();
+                let array = unsafe { &*array };
+
                 struct Uninit<const K: usize> #uninit_def;
 
                 let mut uninit: Uninit<N> = Uninit {
@@ -231,7 +236,6 @@ pub fn fields_struct(
                     i += 1;
                 }
 
-                ::std::mem::forget(array);
                 Self {
                     #(
                     // TODO: Prefer when stabilized:

@@ -598,3 +598,17 @@ fn slices_mut() {
     let expected = ABCDE.map(|el| el.bar + 10);
     assert_eq!(soa.bar(), expected);
 }
+
+#[test]
+fn array_with_box() {
+    #[derive(Soars)]
+    #[soa_derive(PartialEq)]
+    struct Example {
+        foo: Box<u8>,
+    }
+    let foo = Box::new(42_u8);
+    let x = ExampleArray::from_array([Example { foo }]);
+    let s = x.as_slice();
+    let v: &Box<u8> = s.get(0).unwrap().foo;
+    dbg!(v);
+}
