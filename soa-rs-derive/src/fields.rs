@@ -144,6 +144,29 @@ pub fn fields_struct(
         }
     };
 
+    let partial_eq_impl = soa_derive
+        .derives
+        .iter()
+        .any(|path| {
+            path.segments
+                .last()
+                .filter(|segment| segment.ident == "PartialEq")
+                .is_some()
+        })
+        .then(|| {
+            quote! {
+                // TODO: Implement PartialEq with trivial constraints
+                // https://github.com/rust-lang/rust/issues/48214
+                #[automatically_derived]
+                impl<'a> ::std::cmp::PartialEq<#ident> for #item_ref<'a>
+                {
+                    fn eq(&self, other: &#ident) -> bool {
+                        self == &<#ident as ::soa_rs::AsSoaRef>::as_soa_ref(other)
+                    }
+                }
+            }
+        });
+
     let mut extra_plus_copy = soa_derive.clone();
     extra_plus_copy.insert("Copy");
     extra_plus_copy.insert("Clone");
@@ -555,12 +578,7 @@ pub fn fields_struct(
             }
         }
 
-        #[automatically_derived]
-        impl<'a> ::std::cmp::PartialEq<#ident> for #item_ref<'a> {
-            fn eq(&self, other: &#ident) -> bool {
-                self == &<#ident as ::soa_rs::AsSoaRef>::as_soa_ref(other)
-            }
-        }
+        #partial_eq_impl
     });
 
     Ok(out)
