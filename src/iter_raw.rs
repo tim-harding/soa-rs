@@ -68,6 +68,7 @@ where
 {
     type Item = A::Item;
 
+    #[inline]
     fn next(&mut self) -> Option<Self::Item> {
         if self.len == 0 {
             None
@@ -90,6 +91,7 @@ where
         self.len
     }
 
+    #[inline]
     fn nth(&mut self, n: usize) -> Option<Self::Item> {
         if n >= self.len {
             self.len = 0;
@@ -146,6 +148,7 @@ where
     T: Soars,
     A: IterRawAdapter<T>,
 {
+    #[inline]
     fn next_back(&mut self) -> Option<Self::Item> {
         if self.len == 0 {
             None
@@ -157,6 +160,7 @@ where
         }
     }
 
+    #[inline]
     fn nth_back(&mut self, n: usize) -> Option<Self::Item> {
         if n >= self.len {
             self.len = 0;
@@ -192,6 +196,7 @@ macro_rules! iter_with_raw {
         {
             type Item = <$t as IterRawAdapter<T>>::Item;
 
+            #[inline]
             fn next(&mut self) -> Option<Self::Item> {
                 self.iter_raw.next()
             }
@@ -231,6 +236,7 @@ macro_rules! iter_with_raw {
         where
             T: $($lifetime +)? Soars,
         {
+            #[inline]
             fn next_back(&mut self) -> Option<Self::Item> {
                 self.iter_raw.next_back()
             }
