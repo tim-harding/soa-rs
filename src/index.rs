@@ -36,6 +36,7 @@ where
     where
         T: 'a;
 
+    #[inline]
     fn get(self, slice: &Slice<T>) -> Option<Self::Output<'_>> {
         if self < slice.len() {
             Some(unsafe { slice.raw().offset(self).get_ref() })
@@ -44,6 +45,7 @@ where
         }
     }
 
+    #[inline]
     fn get_mut(self, slice: &mut Slice<T>) -> Option<Self::OutputMut<'_>> {
         if self < slice.len() {
             Some(unsafe { slice.raw().offset(self).get_mut() })
@@ -65,6 +67,7 @@ where
     where
         T: 'a;
 
+    #[inline]
     fn get(self, slice: &Slice<T>) -> Option<Self::Output<'_>> {
         Some(SliceRef {
             slice: unsafe { slice.as_sized() },
@@ -73,6 +76,7 @@ where
         })
     }
 
+    #[inline]
     fn get_mut(self, slice: &mut Slice<T>) -> Option<Self::OutputMut<'_>> {
         Some(SliceMut {
             slice: unsafe { slice.as_sized() },
@@ -94,6 +98,7 @@ where
     where
         T: 'a;
 
+    #[inline]
     fn get(self, slice: &Slice<T>) -> Option<Self::Output<'_>> {
         let len = self.len();
         (len + self.start <= slice.len()).then(|| SliceRef {
@@ -103,6 +108,7 @@ where
         })
     }
 
+    #[inline]
     fn get_mut(self, slice: &mut Slice<T>) -> Option<Self::OutputMut<'_>> {
         self.get(slice).map(|s| SliceMut {
             slice: unsafe { s.as_sized() },
@@ -124,10 +130,12 @@ where
     where
         T: 'a;
 
+    #[inline]
     fn get(self, slice: &Slice<T>) -> Option<Self::Output<'_>> {
         (0..self.end).get(slice)
     }
 
+    #[inline]
     fn get_mut(self, slice: &mut Slice<T>) -> Option<Self::OutputMut<'_>> {
         (0..self.end).get_mut(slice)
     }
@@ -145,10 +153,12 @@ where
     where
         T: 'a;
 
+    #[inline]
     fn get(self, slice: &Slice<T>) -> Option<Self::Output<'_>> {
         (0..self.end + 1).get(slice)
     }
 
+    #[inline]
     fn get_mut(self, slice: &mut Slice<T>) -> Option<Self::OutputMut<'_>> {
         (0..self.end + 1).get_mut(slice)
     }
@@ -166,10 +176,12 @@ where
     where
         T: 'a;
 
+    #[inline]
     fn get(self, slice: &Slice<T>) -> Option<Self::Output<'_>> {
         (self.start..slice.len()).get(slice)
     }
 
+    #[inline]
     fn get_mut(self, slice: &mut Slice<T>) -> Option<Self::OutputMut<'_>> {
         (self.start..slice.len()).get_mut(slice)
     }
@@ -187,10 +199,12 @@ where
     where
         T: 'a;
 
+    #[inline]
     fn get(self, slice: &Slice<T>) -> Option<Self::Output<'_>> {
         (*self.start()..*self.end() + 1).get(slice)
     }
 
+    #[inline]
     fn get_mut(self, slice: &mut Slice<T>) -> Option<Self::OutputMut<'_>> {
         (*self.start()..*self.end() + 1).get_mut(slice)
     }

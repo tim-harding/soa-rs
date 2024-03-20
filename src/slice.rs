@@ -85,6 +85,7 @@ where
     /// Used by the [`Soars`] derive macro, but generally not intended for use
     /// by end users.
     #[doc(hidden)]
+    #[inline]
     pub const fn raw(&self) -> T::Raw {
         self.raw
     }
@@ -216,6 +217,7 @@ where
     /// assert_eq!(soa.get(1..=3).unwrap(), [Foo(40), Foo(30), Foo(20)]);
     /// assert_eq!(soa.get(2..5), None);
     /// ```
+    #[inline]
     pub fn get<I>(&self, index: I) -> Option<I::Output<'_>>
     where
         I: SoaIndex<T>,
