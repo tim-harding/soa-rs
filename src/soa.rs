@@ -1,4 +1,7 @@
-use crate::{iter_raw::IterRaw, IntoIter, Iter, IterMut, Slice, SoaRaw, Soars};
+use crate::{
+    iter_raw::IterRaw, AsMutSlice, AsSlice, IntoIter, Iter, IterMut, Slice, SliceMut, SliceRef,
+    SoaRaw, Soars,
+};
 use std::{
     borrow::{Borrow, BorrowMut},
     cmp::Ordering,
@@ -538,43 +541,6 @@ where
         while self.pop().is_some() {}
     }
 
-    /// Extracts a slice with the entire container's contents.
-    ///
-    /// Equivalent to `s.get(..).unwrap()`
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// # use soa_rs::{Soa, Soars, soa};
-    /// # #[derive(Soars, Debug, PartialEq)]
-    /// # #[soa_derive(Debug, PartialEq)]
-    /// # struct Foo(usize);
-    /// let soa = soa![Foo(10), Foo(20)];
-    /// assert_eq!(soa.as_slice(), soa.get(..).unwrap());
-    /// ```
-    pub fn as_slice(&self) -> &Slice<T> {
-        self.as_ref()
-    }
-
-    /// Extracts a mutable slice with the entire container's contents.
-    ///
-    /// Equivalent to `s.get_mut(..).unwrap()`
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// # use soa_rs::{Soa, Soars, soa};
-    /// # #[derive(Soars, Debug, PartialEq)]
-    /// # #[soa_derive(Debug, PartialEq)]
-    /// # struct Foo(usize);
-    /// let mut soa = soa![Foo(10), Foo(20)];
-    /// soa.as_mut_slice().f0_mut()[0] = 30;
-    /// assert_eq!(soa, [Foo(30), Foo(20)]);
-    /// ```
-    pub fn as_mut_slice(&mut self) -> &mut Slice<T> {
-        self.as_mut()
-    }
-
     /// Grows the allocated capacity if `len == cap`.
     fn maybe_grow(&mut self) {
         if self.len < self.cap {
@@ -814,7 +780,7 @@ where
     for<'a> T::Ref<'a>: PartialOrd,
 {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        self.as_slice().partial_cmp(other.as_slice())
+        self.as_slice().partial_cmp(&other.as_slice())
     }
 }
 
@@ -824,7 +790,7 @@ where
     for<'a> T::Ref<'a>: Ord,
 {
     fn cmp(&self, other: &Self) -> Ordering {
-        self.as_slice().cmp(other.as_slice())
+        self.as_slice().cmp(&other.as_slice())
     }
 }
 
@@ -924,11 +890,11 @@ where
 impl<T, R> PartialEq<R> for Soa<T>
 where
     T: Soars,
-    R: AsRef<Slice<T>> + ?Sized,
+    R: AsSlice<Item = T> + ?Sized,
     for<'a> T::Ref<'a>: PartialEq,
 {
     fn eq(&self, other: &R) -> bool {
-        self.as_slice() == other.as_ref()
+        self.as_slice() == other.as_slice()
     }
 }
 
@@ -937,4 +903,24 @@ where
     T: Soars,
     for<'a> T::Ref<'a>: Eq,
 {
+}
+
+impl<T> AsSlice for Soa<T>
+where
+    T: Soars,
+{
+    type Item = T;
+
+    fn as_slice(&self) -> SliceRef<'_, Self::Item> {
+        unsafe { SliceRef::from_slice(self.slice, self.len) }
+    }
+}
+
+impl<T> AsMutSlice for Soa<T>
+where
+    T: Soars,
+{
+    fn as_mut_slice(&mut self) -> crate::SliceMut<'_, Self::Item> {
+        unsafe { SliceMut::from_slice(self.slice, self.len) }
+    }
 }

@@ -555,6 +555,12 @@ fn chunks_exact() {
 }
 
 #[test]
+fn array_eq() {
+    let array = ABCDE_SOA;
+    assert_eq!(array.as_slice(), array);
+}
+
+#[test]
 fn array_slice_mut() {
     let mut array = ABCDE_SOA;
     let mut slice = array.as_mut_slice();

@@ -1,6 +1,6 @@
 use crate::{
-    chunks_exact::ChunksExact, index::SoaIndex, iter_raw::IterRaw, Iter, IterMut, SoaDeref, SoaRaw,
-    Soars,
+    chunks_exact::ChunksExact, index::SoaIndex, iter_raw::IterRaw, AsMutSlice, AsSlice, Iter,
+    IterMut, SliceMut, SliceRef, SoaDeref, SoaRaw, Soars,
 };
 use std::{
     cmp::Ordering,
@@ -568,11 +568,11 @@ where
 impl<T, R> PartialEq<R> for Slice<T>
 where
     T: Soars,
-    R: AsRef<Self> + ?Sized,
+    R: AsSlice<Item = T> + ?Sized,
     for<'a> T::Ref<'a>: PartialEq,
 {
     fn eq(&self, other: &R) -> bool {
-        let other = other.as_ref();
+        let other = other.as_slice();
         self.len() == other.len() && self.iter().zip(other.iter()).all(|(me, them)| me == them)
     }
 }
@@ -683,5 +683,25 @@ where
 {
     fn as_mut(&mut self) -> &mut Self {
         self
+    }
+}
+
+impl<T> AsSlice for Slice<T>
+where
+    T: Soars,
+{
+    type Item = T;
+
+    fn as_slice(&self) -> SliceRef<'_, Self::Item> {
+        unsafe { SliceRef::from_slice(self.as_sized(), self.len()) }
+    }
+}
+
+impl<T> AsMutSlice for Slice<T>
+where
+    T: Soars,
+{
+    fn as_mut_slice(&mut self) -> SliceMut<'_, Self::Item> {
+        unsafe { SliceMut::from_slice(self.as_sized(), self.len()) }
     }
 }

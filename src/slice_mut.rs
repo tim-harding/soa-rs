@@ -1,4 +1,4 @@
-use crate::{iter_raw::IterRaw, IterMut, Slice, Soars};
+use crate::{iter_raw::IterRaw, AsMutSlice, AsSlice, IterMut, Slice, SliceRef, Soars};
 use std::{
     cmp::Ordering,
     fmt::{self, Debug, Formatter},
@@ -143,11 +143,11 @@ where
 impl<T, R> PartialEq<R> for SliceMut<'_, T>
 where
     T: Soars,
-    R: AsRef<Slice<T>> + ?Sized,
+    R: AsSlice<Item = T> + ?Sized,
     for<'a> T::Ref<'a>: PartialEq,
 {
     fn eq(&self, other: &R) -> bool {
-        self.as_ref() == other.as_ref()
+        self.as_ref() == other.as_slice().as_ref()
     }
 }
 
@@ -156,4 +156,24 @@ where
     T: Soars,
     for<'a> T::Ref<'a>: Eq,
 {
+}
+
+impl<T> AsSlice for SliceMut<'_, T>
+where
+    T: Soars,
+{
+    type Item = T;
+
+    fn as_slice(&self) -> SliceRef<'_, Self::Item> {
+        unsafe { SliceRef::from_slice(self.slice, self.len) }
+    }
+}
+
+impl<T> AsMutSlice for SliceMut<'_, T>
+where
+    T: Soars,
+{
+    fn as_mut_slice(&mut self) -> SliceMut<'_, Self::Item> {
+        unsafe { Self::from_slice(self.slice, self.len) }
+    }
 }
