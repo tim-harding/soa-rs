@@ -1,6 +1,4 @@
-use crate::{
-    eq_impl, iter_raw::IterRaw, IntoIter, Iter, IterMut, Slice, SliceMut, SliceRef, SoaRaw, Soars,
-};
+use crate::{iter_raw::IterRaw, IntoIter, Iter, IterMut, Slice, SoaRaw, Soars};
 use std::{
     borrow::{Borrow, BorrowMut},
     cmp::Ordering,
@@ -923,4 +921,20 @@ where
     }
 }
 
-eq_impl::impl_for!(Soa<T>);
+impl<T, R> PartialEq<R> for Soa<T>
+where
+    T: Soars,
+    R: AsRef<Slice<T>> + ?Sized,
+    for<'a> T::Ref<'a>: PartialEq,
+{
+    fn eq(&self, other: &R) -> bool {
+        self.as_slice() == other.as_ref()
+    }
+}
+
+impl<T> Eq for Soa<T>
+where
+    T: Soars,
+    for<'a> T::Ref<'a>: Eq,
+{
+}

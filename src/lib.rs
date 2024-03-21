@@ -168,7 +168,6 @@ pub use soa_raw::SoaRaw;
 mod chunks_exact;
 pub use chunks_exact::ChunksExact;
 
-mod eq_impl;
 mod iter_raw;
 
 mod soa_array;

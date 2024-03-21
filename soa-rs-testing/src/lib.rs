@@ -63,6 +63,7 @@ const E: El = El {
 };
 
 const ABCDE: [El; 5] = [A, B, C, D, E];
+const ABCDE_SOA: ElArray<5> = ElArray::from_array([A, B, C, D, E]);
 
 #[derive(Soars, Debug, Clone, Copy, PartialEq, Eq, Default, PartialOrd, Ord)]
 #[soa_derive(Debug, PartialEq, Eq, PartialOrd, Ord)]
@@ -419,15 +420,18 @@ pub fn align_attribute() {
             d: 11.0,
         },
     ];
+    let aligns_array = AlignmentArray::from_array(aligns);
 
     let soa: Soa<_> = aligns.into_iter().collect();
-    assert_eq!(soa, aligns);
+    assert_eq!(soa, aligns_array.as_slice());
 }
 
 #[test]
 pub fn iterator_slice_methods() {
     let mut soa = Soa::from(ABCDE);
-    let expected = &ABCDE[1..];
+    let array = ABCDE_SOA;
+    let slice = array.as_slice();
+    let expected = &slice.get(1..).unwrap();
 
     {
         let mut iter = soa.iter();
@@ -440,7 +444,7 @@ pub fn iterator_slice_methods() {
         iter.next();
         assert_eq!(iter.as_slice(), expected);
         assert_eq!(iter.as_mut_slice(), expected);
-        assert_eq!(iter.into_slice(), expected);
+        assert_eq!(&iter.into_slice(), expected);
     }
 
     {
@@ -533,43 +537,37 @@ fn iterator_fold() {
 
 #[test]
 fn chunks_exact() {
-    let soa: Soa<_> = ABCDE.into_iter().cycle().take(19).collect();
-    let vec: Vec<_> = ABCDE.into_iter().cycle().take(19).collect();
+    let soa: Soa<_> = ABCDE.into_iter().cycle().take(11).collect();
     let mut soa_iter = soa.chunks_exact(4);
-    let mut vec_iter = vec.chunks_exact(4);
-    for _ in 0..(19 / 4) {
-        match (soa_iter.next(), vec_iter.next()) {
-            (Some(u), Some(v)) => assert_eq!(u, v),
-            (None, None) => {}
-            (u, v) => panic!("not equal: {u:?}, {v:?}"),
-        }
-    }
-    assert_eq!(soa_iter.remainder(), vec_iter.remainder());
-}
-
-const ARRAY: ElArray<5> = ElArray::from_array(ABCDE);
-
-#[test]
-fn array_slice_eq() {
-    let array = ARRAY;
-    let slice = array.as_slice();
-    assert_eq!(slice, ABCDE);
+    assert_eq!(
+        soa_iter.next(),
+        Some(ElArray::from_array([A, B, C, D]).as_slice())
+    );
+    assert_eq!(
+        soa_iter.next(),
+        Some(ElArray::from_array([E, A, B, C]).as_slice())
+    );
+    assert_eq!(soa_iter.next(), None);
+    assert_eq!(
+        soa_iter.remainder(),
+        &ElArray::from_array([D, E, A]).as_slice()
+    );
 }
 
 #[test]
 fn array_slice_mut() {
-    let mut array = ARRAY;
+    let mut array = ABCDE_SOA;
     let mut slice = array.as_mut_slice();
     for item in slice.iter_mut() {
         *item.foo += 10;
         *item.bar += 10;
     }
-    let expected = ABCDE.map(|el| El {
+    let expected = ElArray::from_array(ABCDE.map(|el| El {
         foo: el.foo + 10,
         bar: el.bar + 10,
         baz: el.baz,
-    });
-    assert_eq!(slice, expected);
+    }));
+    assert_eq!(slice, expected.as_slice());
 }
 
 #[test]

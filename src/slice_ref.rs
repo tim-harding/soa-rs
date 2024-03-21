@@ -1,4 +1,4 @@
-use crate::{eq_impl, iter_raw::IterRaw, Iter, Slice, SliceMut, Soa, Soars};
+use crate::{iter_raw::IterRaw, Iter, Slice, Soars};
 use std::{
     cmp::Ordering,
     fmt::{self, Debug, Formatter},
@@ -133,4 +133,20 @@ where
     }
 }
 
-eq_impl::impl_for!(SliceRef<'_, T>);
+impl<T, R> PartialEq<R> for SliceRef<'_, T>
+where
+    T: Soars,
+    R: AsRef<Slice<T>> + ?Sized,
+    for<'a> T::Ref<'a>: PartialEq,
+{
+    fn eq(&self, other: &R) -> bool {
+        self.as_ref() == other.as_ref()
+    }
+}
+
+impl<T> Eq for SliceRef<'_, T>
+where
+    T: Soars,
+    for<'a> T::Ref<'a>: Eq,
+{
+}

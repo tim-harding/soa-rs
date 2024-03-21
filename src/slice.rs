@@ -1,6 +1,6 @@
 use crate::{
-    chunks_exact::ChunksExact, index::SoaIndex, iter_raw::IterRaw, AsSoaRef, Iter, IterMut,
-    SliceMut, SliceRef, Soa, SoaDeref, SoaRaw, Soars,
+    chunks_exact::ChunksExact, index::SoaIndex, iter_raw::IterRaw, Iter, IterMut, SoaDeref, SoaRaw,
+    Soars,
 };
 use std::{
     cmp::Ordering,
@@ -79,9 +79,10 @@ where
     }
 }
 
-impl<T, D: ?Sized> Slice<T, D>
+impl<T, D> Slice<T, D>
 where
     T: Soars,
+    D: ?Sized,
 {
     /// Gets the [`SoaRaw`] the slice uses.
     ///
@@ -564,12 +565,14 @@ where
     }
 }
 
-impl<T> PartialEq for Slice<T>
+impl<T, R> PartialEq<R> for Slice<T>
 where
     T: Soars,
+    R: AsRef<Self> + ?Sized,
     for<'a> T::Ref<'a>: PartialEq,
 {
-    fn eq(&self, other: &Self) -> bool {
+    fn eq(&self, other: &R) -> bool {
+        let other = other.as_ref();
         self.len() == other.len() && self.iter().zip(other.iter()).all(|(me, them)| me == them)
     }
 }
@@ -580,117 +583,6 @@ where
     for<'a> T::Ref<'a>: Eq,
 {
 }
-
-impl<T> PartialEq<Slice<T>> for [T]
-where
-    T: Soars,
-    for<'a> T::Ref<'a>: PartialEq,
-{
-    fn eq(&self, other: &Slice<T>) -> bool {
-        self.len() == other.len()
-            && self
-                .iter()
-                .zip(other.iter())
-                .all(|(me, them)| them.as_soa_ref() == me.as_soa_ref())
-    }
-}
-
-impl<T> PartialEq<[T]> for Slice<T>
-where
-    T: Soars,
-    for<'a> T::Ref<'a>: PartialEq,
-{
-    fn eq(&self, other: &[T]) -> bool {
-        self.len() == other.len()
-            && self
-                .iter()
-                .zip(other.iter())
-                .all(|(me, them)| me == them.as_soa_ref())
-    }
-}
-
-macro_rules! as_slice_eq {
-    ($t:ty $(,$N:tt)?) => {
-        impl<T $(,const $N: usize)?> PartialEq<$t> for Slice<T>
-        where
-            T: Soars,
-            for<'a> T::Ref<'a>: PartialEq,
-        {
-            fn eq(&self, other: &$t) -> bool {
-                self.eq(other.as_slice())
-            }
-        }
-
-        impl<T $(,const $N: usize)?> PartialEq<Slice<T>> for $t
-        where
-            T: Soars,
-            for<'a> T::Ref<'a>: PartialEq,
-        {
-            fn eq(&self, other: &Slice<T>) -> bool {
-                self.as_slice().eq(other)
-            }
-        }
-    };
-}
-
-as_slice_eq!([T; N], N);
-as_slice_eq!(Vec<T>);
-
-macro_rules! trivial_ref_eq {
-    ($t:ty $(,$N:tt)?) => {
-        impl<T $(,const $N: usize)?> PartialEq<$t> for Slice<T>
-        where
-            T: Soars ,
-            for<'a> T::Ref<'a>: PartialEq,
-        {
-            fn eq(&self, other: &$t) -> bool {
-                self.eq(*other)
-            }
-        }
-
-        impl<T $(,const $N: usize)?> PartialEq<Slice<T>> for $t
-        where
-            T: Soars,
-            for<'a> T::Ref<'a>: PartialEq,
-        {
-            fn eq(&self, other: &Slice<T>) -> bool {
-                (**self).eq(other)
-            }
-        }
-    };
-}
-
-trivial_ref_eq!(&[T]);
-trivial_ref_eq!(&mut [T]);
-trivial_ref_eq!(&[T; N], N);
-trivial_ref_eq!(&mut [T; N], N);
-
-macro_rules! eq_for_slice_ref {
-    ($t:ty) => {
-        eq_for_slice_ref!($t, Vec<T>);
-        eq_for_slice_ref!($t, [T]);
-        eq_for_slice_ref!($t, [T; N], const N: usize);
-        eq_for_slice_ref!($t, Slice<T>);
-        eq_for_slice_ref!($t, SliceRef<'_, T>);
-        eq_for_slice_ref!($t, SliceMut<'_, T>);
-        eq_for_slice_ref!($t, Soa<T>);
-    };
-
-    ($t:ty, $s:ty $(,$($b:tt)+)?) => {
-        impl<T $(,$($b)+)?> PartialEq<$s> for $t
-        where
-            T: Soars ,
-            for<'a> T::Ref<'a>: PartialEq,
-        {
-            fn eq(&self, other: &$s) -> bool {
-                <Slice<T> as PartialEq<$s>>::eq(*self, other)
-            }
-        }
-    };
-}
-
-eq_for_slice_ref!(&Slice<T>);
-eq_for_slice_ref!(&mut Slice<T>);
 
 impl<T> Debug for Slice<T>
 where

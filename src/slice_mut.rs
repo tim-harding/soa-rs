@@ -1,4 +1,4 @@
-use crate::{eq_impl, iter_raw::IterRaw, IterMut, Slice, SliceRef, Soa, Soars};
+use crate::{iter_raw::IterRaw, IterMut, Slice, Soars};
 use std::{
     cmp::Ordering,
     fmt::{self, Debug, Formatter},
@@ -100,8 +100,6 @@ where
     }
 }
 
-eq_impl::impl_for!(SliceMut<'_, T>);
-
 impl<'a, T> Debug for SliceMut<'a, T>
 where
     T: Soars,
@@ -140,4 +138,22 @@ where
     fn hash<H: Hasher>(&self, state: &mut H) {
         self.as_ref().hash(state)
     }
+}
+
+impl<T, R> PartialEq<R> for SliceMut<'_, T>
+where
+    T: Soars,
+    R: AsRef<Slice<T>> + ?Sized,
+    for<'a> T::Ref<'a>: PartialEq,
+{
+    fn eq(&self, other: &R) -> bool {
+        self.as_ref() == other.as_ref()
+    }
+}
+
+impl<T> Eq for SliceMut<'_, T>
+where
+    T: Soars,
+    for<'a> T::Ref<'a>: Eq,
+{
 }
