@@ -148,9 +148,9 @@ where
     /// # struct Foo(usize);
     /// let soa = soa![Foo(1), Foo(2), Foo(4)];
     /// let mut iter = soa.iter();
-    /// assert_eq!(iter.next().unwrap(), Foo(1));
-    /// assert_eq!(iter.next().unwrap(), Foo(2));
-    /// assert_eq!(iter.next().unwrap(), Foo(4));
+    /// assert_eq!(iter.next(), Some(FooRef(&1)));
+    /// assert_eq!(iter.next(), Some(FooRef(&2)));
+    /// assert_eq!(iter.next(), Some(FooRef(&4)));
     /// assert_eq!(iter.next(), None);
     /// ```
     pub const fn iter(&self) -> Iter<T> {
@@ -180,7 +180,7 @@ where
     /// for mut elem in soa.iter_mut() {
     ///     *elem.0 *= 2;
     /// }
-    /// assert_eq!(soa, [Foo(2), Foo(4), Foo(8)]);
+    /// assert_eq!(soa, FooArray::from_array([Foo(2), Foo(4), Foo(8)]));
     /// ```
     pub fn iter_mut(&mut self) -> IterMut<T> {
         IterMut {

@@ -1,6 +1,6 @@
 #![cfg(test)]
 
-use soa_rs::{soa, AsSoaRef, Soa, SoaArray, Soars};
+use soa_rs::{soa, AsMutSlice, AsSlice, AsSoaRef, Soa, Soars};
 use std::{fmt::Debug, thread};
 
 #[derive(Soars, Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]

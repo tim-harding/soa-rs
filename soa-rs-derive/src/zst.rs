@@ -28,7 +28,7 @@ pub fn zst_struct(ident: Ident, vis: Visibility, kind: ZstKind) -> TokenStream {
         #vis struct #array<const N: usize>;
 
         #[automatically_derived]
-        impl<const N: usize> ::soa_rs::SoaArray for #array<N> {
+        impl<const N: usize> ::soa_rs::AsSlice for #array<N> {
             type Item = #ident;
 
             fn as_slice(&self) -> ::soa_rs::SliceRef<'_, Self::Item> {
@@ -36,7 +36,9 @@ pub fn zst_struct(ident: Ident, vis: Visibility, kind: ZstKind) -> TokenStream {
                 let slice = ::soa_rs::Slice::with_raw(raw);
                 unsafe { ::soa_rs::SliceRef::from_slice(slice, N) }
             }
+        }
 
+        impl<const N: usize> ::soa_rs::AsMutSlice for #array<N> {
             fn as_mut_slice(&mut self) -> ::soa_rs::SliceMut<'_, Self::Item> {
                 let raw = #raw;
                 let slice = ::soa_rs::Slice::with_raw(raw);

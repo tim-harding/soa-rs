@@ -1,4 +1,4 @@
-use crate::{AsSoaRef, SoaArray, SoaDeref, SoaRaw};
+use crate::{as_slice::AsMutSlice, AsSlice, AsSoaRef, SoaDeref, SoaRaw};
 
 /// Provides [`Soa`] compatibility.
 ///
@@ -42,7 +42,7 @@ pub unsafe trait Soars: AsSoaRef<Item = Self> {
     /// The SoA array type.
     ///
     /// For each field with type `T`, this type has a field with type `[T; N]`.
-    type Array<const N: usize>: SoaArray<Item = Self>;
+    type Array<const N: usize>: AsSlice<Item = Self> + AsMutSlice;
 
     /// The slices that make up a [`Slice`].
     ///

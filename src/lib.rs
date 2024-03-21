@@ -170,8 +170,8 @@ pub use chunks_exact::ChunksExact;
 
 mod iter_raw;
 
-mod soa_array;
-pub use soa_array::SoaArray;
+mod as_slice;
+pub use as_slice::{AsMutSlice, AsSlice};
 
 mod as_soa_ref;
 pub use as_soa_ref::AsSoaRef;
