@@ -99,6 +99,7 @@ pub fn fields_struct(
         #[repr(transparent)]
         #vis struct #deref(::soa_rs::Slice<#ident>);
 
+        #[automatically_derived]
         impl ::soa_rs::SoaDeref for #deref {
             type Item = #ident;
 
@@ -111,6 +112,7 @@ pub fn fields_struct(
             }
         }
 
+        #[automatically_derived]
         impl #deref {
             #(
             #vis_all fn #slice_getters_ref(&self) -> &[#ty_all] {
@@ -156,6 +158,7 @@ pub fn fields_struct(
         #[automatically_derived]
         #vis struct #item_ref<'a> #item_ref_def
 
+        #[automatically_derived]
         impl<'a> ::soa_rs::AsSoaRef for #item_ref<'a> {
             type Item = #ident;
 
@@ -171,6 +174,7 @@ pub fn fields_struct(
         #[automatically_derived]
         #vis struct #item_ref_mut<'a> #item_ref_mut_def
 
+        #[automatically_derived]
         impl<'a> ::soa_rs::AsSoaRef for #item_ref_mut<'a> {
             type Item = #ident;
 
@@ -205,6 +209,7 @@ pub fn fields_struct(
         #[automatically_derived]
         #vis struct #array<const N: usize> #array_def
 
+        #[automatically_derived]
         impl<const N: usize> #array<N> {
             #vis const fn from_array(array: [#ident; N]) -> Self {
                 let array = ::std::mem::ManuallyDrop::new(array);
@@ -248,6 +253,7 @@ pub fn fields_struct(
             }
         }
 
+        #[automatically_derived]
         impl<const N: usize> ::soa_rs::AsSlice for #array<N> {
             type Item = #ident;
 
@@ -265,6 +271,7 @@ pub fn fields_struct(
             }
         }
 
+        #[automatically_derived]
         impl<const N: usize> ::soa_rs::AsMutSlice for #array<N> {
             fn as_mut_slice(&mut self) -> ::soa_rs::SliceMut<'_, Self::Item> {
                 let raw = #raw {
@@ -554,13 +561,6 @@ pub fn fields_struct(
                         #ident_all: &self.#ident_all,
                     )*
                 }
-            }
-        }
-
-        #[automatically_derived]
-        impl<'a> ::std::cmp::PartialEq<#ident> for #item_ref<'a> {
-            fn eq(&self, other: &#ident) -> bool {
-                self == &<#ident as ::soa_rs::AsSoaRef>::as_soa_ref(other)
             }
         }
     });

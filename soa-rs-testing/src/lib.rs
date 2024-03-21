@@ -636,3 +636,18 @@ fn soa_is_sync_and_send() {
     });
     assert_eq!(arr.first(), Some(Example { foo: 6 }.as_soa_ref()))
 }
+
+#[test]
+#[allow(unused)]
+fn field_type_without_partial_eq() {
+    // See https://github.com/tim-harding/soa-rs/issues/10
+
+    struct TypeWithoutPartialEq {
+        foo: u8,
+    }
+
+    #[derive(Soars)]
+    struct Example {
+        a: TypeWithoutPartialEq,
+    }
+}
