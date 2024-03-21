@@ -37,6 +37,9 @@ pub struct Slice<T: Soars, D: ?Sized = [()]> {
     pub(crate) dst: D,
 }
 
+unsafe impl<T: Soars, D: ?Sized> Sync for Slice<T, D> where T: Sync {}
+unsafe impl<T: Soars, D: ?Sized> Send for Slice<T, D> where T: Send {}
+
 impl<T> Slice<T, ()>
 where
     T: Soars,
