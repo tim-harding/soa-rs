@@ -1,7 +1,7 @@
 #![cfg(test)]
 
 use soa_rs::{soa, AsSoaRef, Soa, SoaArray, Soars};
-use std::fmt::Debug;
+use std::{fmt::Debug, thread};
 
 #[derive(Soars, Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[soa_derive(Debug, PartialEq, Eq, PartialOrd, Ord)]
@@ -611,4 +611,33 @@ fn array_with_box() {
     let s = x.as_slice();
     let v: &Box<u8> = s.get(0).unwrap().foo;
     dbg!(v);
+}
+
+#[test]
+fn soa_is_sync_and_send() {
+    #[derive(Soars, Debug)]
+    #[soa_derive(PartialEq, Debug)]
+    struct Example {
+        foo: u8,
+    }
+
+    let mut arr = soa![Example { foo: 5 }];
+
+    // Test sync
+    thread::scope(|s| {
+        s.spawn(|| assert_eq!(arr.first(), Some(Example { foo: 5 }.as_soa_ref())));
+        s.spawn(|| assert_eq!(arr.first(), Some(Example { foo: 5 }.as_soa_ref())));
+    });
+
+    // Test send
+    let arr = thread::scope(|s| {
+        s.spawn(move || {
+            *arr.first_mut().unwrap().foo += 1;
+            assert_eq!(arr.first(), Some(Example { foo: 6 }.as_soa_ref()));
+            arr
+        })
+        .join()
+        .unwrap()
+    });
+    assert_eq!(arr.first(), Some(Example { foo: 6 }.as_soa_ref()))
 }
