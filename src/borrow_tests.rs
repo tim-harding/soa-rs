@@ -4,8 +4,8 @@
 /// #[soa_derive(Debug, PartialEq)]
 /// struct Foo(usize);
 /// let mut soa = soa![Foo(10), Foo(20)];
-/// let slice: &Slice<_> = soa.as_slice();
-/// let slice_mut: &mut Slice<_> = soa.as_mut_slice();
+/// let slice: &Slice<_> = soa.as_ref();
+/// let slice_mut: &mut Slice<_> = soa.as_mut();
 /// ```
 mod simultaneous_mutable_and_immutable {
     /// ```compile_fail
@@ -14,8 +14,8 @@ mod simultaneous_mutable_and_immutable {
     /// #[soa_derive(Debug, PartialEq)]
     /// struct Foo(usize);
     /// let mut soa = soa![Foo(10), Foo(20)];
-    /// let slice: &Slice<_> = soa.as_slice();
-    /// let slice_mut: &mut Slice<_> = soa.as_mut_slice();
+    /// let slice: &Slice<_> = soa.as_ref();
+    /// let slice_mut: &mut Slice<_> = soa.as_mut();
     /// println!("{:?}", slice); // Added
     /// ```
     mod fail {}
@@ -27,8 +27,8 @@ mod simultaneous_mutable_and_immutable {
 /// #[soa_derive(Debug, PartialEq)]
 /// struct Foo(usize);
 /// let mut soa = soa![Foo(10), Foo(20)];
-/// let slice: &Slice<_> = soa.as_slice();
-/// let slice_mut: &mut Slice<_> = soa.as_mut_slice();
+/// let slice: &Slice<_> = soa.as_ref();
+/// let slice_mut: &mut Slice<_> = soa.as_mut();
 /// slice_mut.f0_mut()[0] = 30;
 /// ```
 mod multiple_mutable_borrows {
@@ -38,8 +38,8 @@ mod multiple_mutable_borrows {
     /// #[soa_derive(Debug, PartialEq)]
     /// struct Foo(usize);
     /// let mut soa = soa![Foo(10), Foo(20)];
-    /// let slice: &Slice<_> = soa.as_slice();
-    /// let slice_mut: &mut Slice<_> = soa.as_mut_slice();
+    /// let slice: &Slice<_> = soa.as_ref();
+    /// let slice_mut: &mut Slice<_> = soa.as_mut();
     /// slice_mut.f0_mut()[0] = 30;
     /// slice_mut_2.f0_mut()[0] = 40; // Added
     /// ```

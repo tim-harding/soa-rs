@@ -180,7 +180,7 @@ where
     /// for mut elem in soa.iter_mut() {
     ///     *elem.0 *= 2;
     /// }
-    /// assert_eq!(soa, FooArray::from_array([Foo(2), Foo(4), Foo(8)]));
+    /// assert_eq!(soa, soa![Foo(2), Foo(4), Foo(8)]);
     /// ```
     pub fn iter_mut(&mut self) -> IterMut<T> {
         IterMut {
@@ -206,20 +206,20 @@ where
     ///
     /// ```
     /// # use std::fmt;
-    /// # use soa_rs::{Soa, Soars, soa, Slice};
+    /// # use soa_rs::{Soa, Soars, soa, Slice, AsSlice};
     /// # #[derive(Soars, Debug, PartialEq)]
     /// # #[soa_derive(PartialEq, Debug)]
     /// # struct Foo(usize);
     /// let soa = soa![Foo(10), Foo(40), Foo(30), Foo(20)];
-    /// assert_eq!(soa.get(1).unwrap(), Foo(40));
-    /// assert_eq!(soa.get(4), None);
-    /// assert_eq!(soa.get(..).unwrap(), [Foo(10), Foo(40), Foo(30), Foo(20)]);
-    /// assert_eq!(soa.get(..2).unwrap(), [Foo(10), Foo(40)]);
-    /// assert_eq!(soa.get(..=2).unwrap(), [Foo(10), Foo(40), Foo(30)]);
-    /// assert_eq!(soa.get(2..).unwrap(), [Foo(30), Foo(20)]);
-    /// assert_eq!(soa.get(1..3).unwrap(), [Foo(40), Foo(30)]);
-    /// assert_eq!(soa.get(1..=3).unwrap(), [Foo(40), Foo(30), Foo(20)]);
-    /// assert_eq!(soa.get(2..5), None);
+    /// assert_eq!(soa.get(1), Some(FooRef(&40)));
+    /// assert!(soa.get(4).is_none());
+    /// assert_eq!(soa.get(..), Some(soa![Foo(10), Foo(40), Foo(30), Foo(20)].as_slice()));
+    /// assert_eq!(soa.get(..2), Some(soa![Foo(10), Foo(40)].as_slice()));
+    /// assert_eq!(soa.get(..=2), Some(soa![Foo(10), Foo(40), Foo(30)].as_slice()));
+    /// assert_eq!(soa.get(2..), Some(soa![Foo(30), Foo(20)].as_slice()));
+    /// assert_eq!(soa.get(1..3), Some(soa![Foo(40), Foo(30)].as_slice()));
+    /// assert_eq!(soa.get(1..=3), Some(soa![Foo(40), Foo(30), Foo(20)].as_slice()));
+    /// assert!(soa.get(2..5).is_none());
     /// ```
     #[inline]
     pub fn get<I>(&self, index: I) -> Option<I::Output<'_>>
@@ -243,7 +243,7 @@ where
     /// if let Some(mut elem) = soa.get_mut(1) {
     ///     *elem.0 = 42;
     /// }
-    /// assert_eq!(soa, [Foo(1), Foo(42), Foo(3)]);
+    /// assert_eq!(soa, soa![Foo(1), Foo(42), Foo(3)]);
     /// ```
     ///
     /// [`get`]: Slice::get
@@ -273,8 +273,8 @@ where
     /// # #[soa_derive(Debug, PartialEq)]
     /// # struct Foo(usize);
     /// let soa = soa![Foo(10), Foo(40), Foo(30), Foo(90)];
-    /// assert_eq!(soa.idx(3), Foo(90));
-    /// assert_eq!(soa.idx(1..3), [Foo(40), Foo(30)]);
+    /// assert_eq!(soa.idx(3), FooRef(&90));
+    /// assert_eq!(soa.idx(1..3), soa![Foo(40), Foo(30)]);
     /// ```
     ///
     /// [`Index`]: std::ops::Index
@@ -306,7 +306,7 @@ where
     /// # struct Foo(usize);
     /// let mut soa = soa![Foo(10), Foo(20), Foo(30)];
     /// *soa.idx_mut(1).0 = 42;
-    /// assert_eq!(soa, [Foo(10), Foo(42), Foo(30)]);
+    /// assert_eq!(soa, soa![Foo(10), Foo(42), Foo(30)]);
     /// ```
     ///
     /// [`IndexMut`]: std::ops::Index
@@ -338,7 +338,7 @@ where
     /// # struct Foo(usize);
     /// let mut soa = soa![Foo(0), Foo(1), Foo(2), Foo(3), Foo(4)];
     /// soa.swap(2, 4);
-    /// assert_eq!(soa, [Foo(0), Foo(1), Foo(4), Foo(3), Foo(2)]);
+    /// assert_eq!(soa, soa![Foo(0), Foo(1), Foo(4), Foo(3), Foo(2)]);
     /// ```
     pub fn swap(&mut self, a: usize, b: usize) {
         if a >= self.len() || b >= self.len() {
@@ -364,7 +364,7 @@ where
     /// # #[soa_derive(Debug, PartialEq)]
     /// # struct Foo(usize);
     /// let soa = soa![Foo(10), Foo(40), Foo(30)];
-    /// assert_eq!(soa.first().unwrap(), Foo(10));
+    /// assert_eq!(soa.first(), Some(FooRef(&10)));
     ///
     /// let soa = Soa::<Foo>::new();
     /// assert_eq!(soa.first(), None);
@@ -386,7 +386,7 @@ where
     /// if let Some(mut first) = soa.first_mut() {
     ///     *first.0 = 5;
     /// }
-    /// assert_eq!(soa, [Foo(5), Foo(1), Foo(2)]);
+    /// assert_eq!(soa, soa![Foo(5), Foo(1), Foo(2)]);
     /// ```
     pub fn first_mut(&mut self) -> Option<T::RefMut<'_>> {
         self.get_mut(0)
@@ -402,7 +402,7 @@ where
     /// # #[soa_derive(Debug, PartialEq)]
     /// # struct Foo(usize);
     /// let soa = soa![Foo(10), Foo(40), Foo(30)];
-    /// assert_eq!(soa.last().unwrap(), Foo(30));
+    /// assert_eq!(soa.last(), Some(FooRef(&30)));
     ///
     /// let soa = Soa::<Foo>::new();
     /// assert_eq!(soa.last(), None);
@@ -424,7 +424,7 @@ where
     /// if let Some(mut last) = soa.last_mut() {
     ///     *last.0 = 5;
     /// }
-    /// assert_eq!(soa, [Foo(0), Foo(1), Foo(5)]);
+    /// assert_eq!(soa, soa![Foo(0), Foo(1), Foo(5)]);
     /// ```
     pub fn last_mut(&mut self) -> Option<T::RefMut<'_>> {
         self.get_mut(self.len().saturating_sub(1))
@@ -446,16 +446,16 @@ where
     /// # Examples
     ///
     /// ```
-    /// # use soa_rs::{Soa, Soars, soa};
+    /// # use soa_rs::{Soa, Soars, soa, AsSlice};
     /// # #[derive(Soars, Debug, PartialEq)]
     /// # #[soa_derive(Debug, PartialEq)]
     /// # struct Foo(char);
     /// let soa = soa![Foo('l'), Foo('o'), Foo('r'), Foo('e'), Foo('m')];
     /// let mut iter = soa.chunks_exact(2);
-    /// assert_eq!(iter.next().unwrap(), [Foo('l'), Foo('o')]);
-    /// assert_eq!(iter.next().unwrap(), [Foo('r'), Foo('e')]);
+    /// assert_eq!(iter.next(), Some(soa![Foo('l'), Foo('o')].as_slice()));
+    /// assert_eq!(iter.next(), Some(soa![Foo('r'), Foo('e')].as_slice()));
     /// assert!(iter.next().is_none());
-    /// assert_eq!(iter.remainder(), [Foo('m')]);
+    /// assert_eq!(iter.remainder(), &soa![Foo('m')]);
     /// ```
     pub fn chunks_exact(&self, chunk_size: usize) -> ChunksExact<'_, T> {
         if chunk_size == 0 {

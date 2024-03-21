@@ -44,7 +44,7 @@
 //! An SoA can be indexed and sliced just like a `&[T]`. Use `idx` in lieu of
 //! the index operator.
 //! ```
-//! # use soa_rs::{soa, Soars};
+//! # use soa_rs::{soa, Soars, AsSlice};
 //! # #[derive(Soars, Debug, Clone, Copy, PartialEq)]
 //! # #[soa_derive(Debug, PartialEq)]
 //! # struct Example {
@@ -57,8 +57,14 @@
 //!     Example { foo: 5, bar: 6 },
 //!     Example { foo: 7, bar: 8 }
 //! ];
-//! assert_eq!(soa.idx(3), Example { foo: 7, bar: 8 });
-//! assert_eq!(soa.idx(1..3), [Example { foo: 3, bar: 4 }, Example { foo: 5, bar: 6 }]);
+//! assert_eq!(soa.idx(3), ExampleRef { foo: &7, bar: &8 });
+//! assert_eq!(
+//!     soa.idx(1..3),
+//!     soa![
+//!         Example { foo: 3, bar: 4 },
+//!         Example { foo: 5, bar: 6 },
+//!     ],
+//! );
 //! ```
 //!
 //! The usual [`Vec`] APIs work normally.
@@ -237,7 +243,7 @@ pub use soa_rs_derive::Soars;
 /// # #[soa_derive(Debug, PartialEq, PartialOrd)]
 /// # struct Foo(u8, u16);
 /// let soa = soa![Foo(1, 2), Foo(3, 4)];
-/// assert_eq!(soa, [Foo(1, 2), Foo(3, 4)]);
+/// assert_eq!(soa, soa![Foo(1, 2), Foo(3, 4)]);
 /// ```
 ///
 /// - Create a [`Soa`] from a given element and size:
@@ -248,7 +254,7 @@ pub use soa_rs_derive::Soars;
 /// # #[soa_derive(Debug, PartialEq)]
 /// # struct Foo(u8, u16);
 /// let soa = soa![Foo(1, 2); 2];
-/// assert_eq!(soa, [Foo(1, 2); 2]);
+/// assert_eq!(soa, soa![Foo(1, 2), Foo(1, 2)]);
 /// ```
 #[macro_export]
 macro_rules! soa {

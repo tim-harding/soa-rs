@@ -539,19 +539,10 @@ fn iterator_fold() {
 fn chunks_exact() {
     let soa: Soa<_> = ABCDE.into_iter().cycle().take(11).collect();
     let mut soa_iter = soa.chunks_exact(4);
-    assert_eq!(
-        soa_iter.next(),
-        Some(ElArray::from_array([A, B, C, D]).as_slice())
-    );
-    assert_eq!(
-        soa_iter.next(),
-        Some(ElArray::from_array([E, A, B, C]).as_slice())
-    );
+    assert_eq!(soa_iter.next(), Some(soa![A, B, C, D].as_slice()));
+    assert_eq!(soa_iter.next(), Some(soa![E, A, B, C].as_slice()));
     assert_eq!(soa_iter.next(), None);
-    assert_eq!(
-        soa_iter.remainder(),
-        &ElArray::from_array([D, E, A]).as_slice()
-    );
+    assert_eq!(soa_iter.remainder(), &soa![D, E, A].as_slice());
 }
 
 #[test]

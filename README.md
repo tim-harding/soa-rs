@@ -11,7 +11,7 @@ soa-rs makes it simple to work with the structure-of-arrays memory layout. What
 ## Example
 
 ```rust
-use soa_rs::{Soars, soa};
+use soa_rs::{Soars, soa, AsSlice};
 
 // Derive soa-rs for your type
 #[derive(Soars, PartialEq, Debug)]
@@ -38,17 +38,17 @@ struct Tuple(u16, u8);
 let tuple = soa![Tuple(1, 2), Tuple(3, 4), Tuple(5, 6), Tuple(7, 8)];
 
 // SoA can be sliced and indexed like normal slices
-assert_eq!(tuple.idx(1..3), [Tuple(3, 4), Tuple(5, 6)]);
-assert_eq!(tuple.idx(3), Tuple(7, 8));
+assert_eq!(tuple.idx(1..3), soa![Tuple(3, 4), Tuple(5, 6)]);
+assert_eq!(tuple.idx(3), TupleRef(&7, &8));
 
 // Drop-in for Vec in many cases
 soa.insert(0, Baz { foo: 5, bar: 6 });
 assert_eq!(soa.pop(), Some(Baz { foo: 3, bar: 4 }));
-assert_eq!(soa, [Baz { foo: 5, bar: 6 }, Baz { foo: 1, bar: 2 }]);
+assert_eq!(soa, soa![Baz { foo: 5, bar: 6 }, Baz { foo: 1, bar: 2 }]);
 for mut el in &mut soa {
     *el.foo += 10;
 }
-assert_eq!(soa, [Baz { foo: 15, bar: 6 }, Baz { foo: 11, bar: 2 }]);
+assert_eq!(soa, soa![Baz { foo: 15, bar: 6 }, Baz { foo: 11, bar: 2}]);
 ```
 
 ## What is SoA?

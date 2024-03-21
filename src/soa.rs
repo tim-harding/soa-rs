@@ -138,7 +138,7 @@ where
     /// # #[soa_derive(Debug, PartialEq)]
     /// # struct Foo(usize);
     /// let soa = Soa::with(Foo(10));
-    /// assert_eq!(soa, [Foo(10)]);
+    /// assert_eq!(soa, soa![Foo(10)]);
     /// ```
     pub fn with(element: T) -> Self {
         let mut out = Self::new();
@@ -188,7 +188,7 @@ where
     /// let soa = soa![Foo(1), Foo(2)];
     /// let (ptr, len, cap) = soa.into_raw_parts();
     /// let rebuilt = unsafe { Soa::<Foo>::from_raw_parts(ptr, len, cap) };
-    /// assert_eq!(rebuilt, [Foo(1), Foo(2)]);
+    /// assert_eq!(rebuilt, soa![Foo(1), Foo(2)]);
     /// ```
     pub fn into_raw_parts(self) -> (*mut u8, usize, usize) {
         let me = ManuallyDrop::new(self);
@@ -223,7 +223,7 @@ where
     /// # struct Foo(usize);
     /// let mut soa = soa![Foo(1), Foo(2)];
     /// soa.push(Foo(3));
-    /// assert_eq!(soa, [Foo(1), Foo(2), Foo(3)]);
+    /// assert_eq!(soa, soa![Foo(1), Foo(2), Foo(3)]);
     /// ```
     pub fn push(&mut self, element: T) {
         self.maybe_grow();
@@ -245,7 +245,7 @@ where
     /// # struct Foo(usize);
     /// let mut soa = soa![Foo(1), Foo(2), Foo(3)];
     /// assert_eq!(soa.pop(), Some(Foo(3)));
-    /// assert_eq!(soa, [Foo(1), Foo(2)]);
+    /// assert_eq!(soa, soa![Foo(1), Foo(2)]);
     /// ```
     pub fn pop(&mut self) -> Option<T> {
         if self.len == 0 {
@@ -272,9 +272,9 @@ where
     /// # struct Foo(usize);
     /// let mut soa = soa![Foo(1), Foo(2), Foo(3)];
     /// soa.insert(1, Foo(4));
-    /// assert_eq!(soa, [Foo(1), Foo(4), Foo(2), Foo(3)]);
+    /// assert_eq!(soa, soa![Foo(1), Foo(4), Foo(2), Foo(3)]);
     /// soa.insert(4, Foo(5));
-    /// assert_eq!(soa, [Foo(1), Foo(4), Foo(2), Foo(3), Foo(5)]);
+    /// assert_eq!(soa, soa![Foo(1), Foo(4), Foo(2), Foo(3), Foo(5)]);
     /// ```
     pub fn insert(&mut self, index: usize, element: T) {
         assert!(index <= self.len, "index out of bounds");
@@ -299,7 +299,7 @@ where
     /// # struct Foo(usize);
     /// let mut soa = soa![Foo(1), Foo(2), Foo(3)];
     /// assert_eq!(soa.remove(1), Foo(2));
-    /// assert_eq!(soa, [Foo(1), Foo(3)])
+    /// assert_eq!(soa, soa![Foo(1), Foo(3)])
     /// ```
     pub fn remove(&mut self, index: usize) -> T {
         assert!(index < self.len, "index out of bounds");
@@ -427,7 +427,7 @@ where
     /// # struct Foo(usize);
     /// let mut soa = soa![Foo(1), Foo(2), Foo(3), Foo(4), Foo(5)];
     /// soa.truncate(2);
-    /// assert_eq!(soa, [Foo(1), Foo(2)]);
+    /// assert_eq!(soa, soa![Foo(1), Foo(2)]);
     /// ```
     ///
     /// No truncation occurs when `len` is greater than the SOA's current
@@ -439,7 +439,7 @@ where
     /// # struct Foo(usize);
     /// let mut soa = soa![Foo(1), Foo(2), Foo(3)];
     /// soa.truncate(8);
-    /// assert_eq!(soa, [Foo(1), Foo(2), Foo(3)]);
+    /// assert_eq!(soa, soa![Foo(1), Foo(2), Foo(3)]);
     /// ```
     ///
     /// Truncating with `len == 0` is equivalent to [`Soa::clear`].
@@ -450,7 +450,7 @@ where
     /// # struct Foo(usize);
     /// let mut soa = soa![Foo(1), Foo(2), Foo(3)];
     /// soa.truncate(0);
-    /// assert_eq!(soa, []);
+    /// assert_eq!(soa, soa![]);
     /// ```
     pub fn truncate(&mut self, len: usize) {
         while len < self.len {
@@ -478,10 +478,10 @@ where
     /// let mut soa = soa![Foo(0), Foo(1), Foo(2), Foo(3)];
     ///
     /// assert_eq!(soa.swap_remove(1), Foo(1));
-    /// assert_eq!(soa, [Foo(0), Foo(3), Foo(2)]);
+    /// assert_eq!(soa, soa![Foo(0), Foo(3), Foo(2)]);
     ///
     /// assert_eq!(soa.swap_remove(0), Foo(0));
-    /// assert_eq!(soa, [Foo(2), Foo(3)])
+    /// assert_eq!(soa, soa![Foo(2), Foo(3)])
     /// ```
     pub fn swap_remove(&mut self, index: usize) -> T {
         if index >= self.len {
@@ -509,8 +509,8 @@ where
     /// let mut soa1  = soa![Foo(1), Foo(2), Foo(3)];
     /// let mut soa2 = soa![Foo(4), Foo(5), Foo(6)];
     /// soa1.append(&mut soa2);
-    /// assert_eq!(soa1, [Foo(1), Foo(2), Foo(3), Foo(4), Foo(5), Foo(6)]);
-    /// assert_eq!(soa2, []);
+    /// assert_eq!(soa1, soa![Foo(1), Foo(2), Foo(3), Foo(4), Foo(5), Foo(6)]);
+    /// assert_eq!(soa2, soa![]);
     /// ```
     pub fn append(&mut self, other: &mut Self) {
         self.reserve(other.len);
