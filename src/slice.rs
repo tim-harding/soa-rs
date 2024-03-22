@@ -40,6 +40,31 @@ pub struct Slice<T: Soars, D: ?Sized = [()]> {
 unsafe impl<T: Soars, D: ?Sized> Sync for Slice<T, D> where T: Sync {}
 unsafe impl<T: Soars, D: ?Sized> Send for Slice<T, D> where T: Send {}
 
+/// ```compile_fail
+/// use std::marker::PhantomData;
+/// use soa_rs::{soa, Soars};
+///
+/// fn assert_send<T: Send>(_t: T) {}
+///
+/// #[derive(Soars)]
+/// struct NoSendSync(PhantomData<*mut ()>);
+///
+/// assert_send(soa![NoSendSync(PhantomData)]);
+/// ```
+///
+/// ```compile_fail
+/// use std::marker::PhantomData;
+/// use soa_rs::{soa, Soars};
+///
+/// fn assert_sync<T: Sync>(_t: T) {}
+///
+/// #[derive(Soars)]
+/// struct NoSendSync(PhantomData<*mut ()>);
+///
+/// assert_sync(soa![NoSendSync(PhantomData)]);
+/// ```
+mod send_sync_fail {}
+
 impl<T> Slice<T, ()>
 where
     T: Soars,
