@@ -924,3 +924,24 @@ where
         unsafe { SliceMut::from_slice(self.slice, self.len) }
     }
 }
+
+#[cfg(feature = "serde")]
+use serde::ser::{Serialize, SerializeSeq, Serializer};
+
+#[cfg(feature = "serde")]
+impl<T> Serialize for Soa<T>
+where
+    T: Soars,
+    for<'a> T::Ref<'a>: Serialize,
+{
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        let mut seq = serializer.serialize_seq(Some(self.len()))?;
+        for el in self {
+            seq.serialize_element(&el)?;
+        }
+        seq.end()
+    }
+}
