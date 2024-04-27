@@ -182,6 +182,9 @@ pub use as_slice::{AsMutSlice, AsSlice};
 mod as_soa_ref;
 pub use as_soa_ref::AsSoaRef;
 
+#[cfg(feature = "serde")]
+mod serde;
+
 /// Derive macro for the [`Soars`] trait.
 ///
 /// Deriving Soars for some struct `Foo` will create the following additional
