@@ -134,6 +134,18 @@
 //! assert_eq!(soa.f0(), [5, 10]);
 //! ```
 //!
+//! # Serde
+//!
+//! [`serde`](https://serde.rs/) support is enabled by the `serde` feature
+//! flag.
+//!
+//! ```
+//! # use soa_rs::Soars;
+//! #[derive(Soars, serde::Deserialize)]
+//! #[soa_derive(include(Ref), serde::Serialize)]
+//! struct Test(u32);
+//! ```
+//!
 //! [`Soars`]: soa_rs_derive::Soars
 #![warn(missing_docs)]
 
