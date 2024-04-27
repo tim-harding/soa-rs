@@ -1,6 +1,6 @@
 [package]
 name = "soa-rs"
-version = "0.4.0"
+version = "0.5.0"
 edition = "2021"
 license = "MIT"
 description = "A Vec-like structure-of-arrays container"
@@ -24,4 +24,5 @@ version = "1.0.199"
 optional = true
 
 [features]
+default = []
 serde = ["dep:serde"]
