@@ -28,7 +28,6 @@ where
 impl<'de, T> Deserialize<'de> for Soa<T>
 where
     T: Soars + Deserialize<'de>,
-    T: Deserializer<'de>,
 {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where

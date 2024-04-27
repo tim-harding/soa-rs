@@ -630,3 +630,29 @@ fn field_type_without_partial_eq() {
         a: TypeWithoutPartialEq,
     }
 }
+
+#[test]
+fn serde() {
+    #[derive(Soars, serde::Deserialize)]
+    #[soa_derive(Debug, PartialEq)]
+    #[soa_derive(include(Ref), serde::Serialize)]
+    struct Test {
+        n: i32,
+        s: String,
+    }
+
+    let original = soa![
+        Test {
+            n: 10,
+            s: "Hello".to_string()
+        },
+        Test {
+            n: 20,
+            s: "Serde".to_string()
+        }
+    ];
+
+    let serial = serde_json::to_string(&original).unwrap();
+    let deserial: Soa<Test> = serde_json::from_str(&serial).unwrap();
+    assert_eq!(original, deserial);
+}

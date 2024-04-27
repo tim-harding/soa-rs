@@ -13,6 +13,14 @@ pub fn fields_struct(
     kind: FieldKind,
     soa_derive: SoaDerive,
 ) -> Result<TokenStream, syn::Error> {
+    let SoaDerive {
+        r#ref: derive_ref,
+        ref_mut: derive_ref_mut,
+        slice: derive_slice,
+        slice_mut: derive_slice_mut,
+        array: derive_array,
+    } = soa_derive;
+
     let fields_len = fields.len();
     let (vis_all, (ty_all, (ident_all, attrs_all))): (Vec<_>, (Vec<_>, (Vec<_>, Vec<_>))) = fields
         .into_iter()
@@ -146,15 +154,9 @@ pub fn fields_struct(
         }
     };
 
-    let mut extra_plus_copy = soa_derive.clone();
-    extra_plus_copy.insert("Copy");
-    extra_plus_copy.insert("Clone");
-    let extra_plus_copy = extra_plus_copy.into_derive();
-    let extra = soa_derive.into_derive();
-
     let item_ref_def = define(&|ty| quote! { &'a #ty });
     out.append_all(quote! {
-        #extra_plus_copy
+        #derive_ref
         #[automatically_derived]
         #vis struct #item_ref<'a> #item_ref_def
 
@@ -170,7 +172,7 @@ pub fn fields_struct(
 
     let item_ref_mut_def = define(&|ty| quote! { &'a mut #ty });
     out.append_all(quote! {
-        #extra
+        #derive_ref_mut
         #[automatically_derived]
         #vis struct #item_ref_mut<'a> #item_ref_mut_def
 
@@ -190,14 +192,14 @@ pub fn fields_struct(
 
     let slices_def = define(&|ty| quote! { &'a [#ty] });
     out.append_all(quote! {
-        #extra_plus_copy
+        #derive_slice
         #[automatically_derived]
         #vis struct #slices<'a> #slices_def
     });
 
     let slices_mut_def = define(&|ty| quote! { &'a mut [#ty] });
     out.append_all(quote! {
-        #extra
+        #derive_slice_mut
         #[automatically_derived]
         #vis struct #slices_mut<'a> #slices_mut_def
     });
@@ -205,7 +207,7 @@ pub fn fields_struct(
     let array_def = define(&|ty| quote! { [#ty; N] });
     let uninit_def = define(&|ty| quote! { [::std::mem::MaybeUninit<#ty>; K] });
     out.append_all(quote! {
-        #extra
+        #derive_array
         #[automatically_derived]
         #vis struct #array<const N: usize> #array_def
 
