@@ -1,6 +1,11 @@
+use crate::{Soa, Soars};
 use serde::{
     de::{Deserialize, Deserializer, SeqAccess, Visitor},
     ser::{Serialize, SerializeSeq, Serializer},
+};
+use std::{
+    fmt::{self, Formatter},
+    marker::PhantomData,
 };
 
 impl<T> Serialize for Soa<T>
@@ -41,7 +46,7 @@ where
 {
     type Value = Soa<T>;
 
-    fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+    fn expecting(&self, formatter: &mut Formatter) -> fmt::Result {
         formatter.write_str("a sequence of maps")
     }
 
