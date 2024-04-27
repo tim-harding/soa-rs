@@ -206,15 +206,25 @@ mod serde;
 /// # Derive for generated types
 ///
 /// The `soa_derive` attribute can be used to derive traits for the generated
-/// types. In the example, `Debug` and `PartialEq` will be implemented for
-/// `FooRef`, `FooRefMut`, `FooSlices`, `FooSlicesMut`, and `FooArray`.
+/// types. `Copy` and `Clone` are added automatically for `FooRef` and
+/// `FooSlices`. In the following example, we have the following trait
+/// implementations:
+///
+/// | Struct         | `Copy`/`Clone` | `Debug`/`PartialEq` | `Eq` | `PartialOrd` |
+/// |----------------|----------------|---------------------|------|--------------|
+/// | `FooRef`       | ✅             | ✅                  | ✅   |              |
+/// | `FooRefMut`    |                | ✅                  | ✅   | ✅           |
+/// | `FooSlices`    | ✅             | ✅                  |      |              |
+/// | `FooSlicesMut` |                | ✅                  |      | ✅           |
+/// | `FooArray`     |                | ✅                  |      | ✅           |
 ///
 /// ```
 /// # use soa_rs::{Soars};
 /// #[derive(Soars)]
 /// #[soa_derive(Debug, PartialEq)]
+/// #[soa_derive(include(Ref, RefMut), Eq)]
+/// #[soa_derive(exclude(Ref, Slices), PartialOrd)]
 /// struct Foo(u8);
-/// assert_eq!(FooRef(&10), FooRef(&10));
 /// ```
 ///
 /// # Alignment

@@ -80,8 +80,8 @@ impl From<syn::Error> for SoarsError {
 struct SoaDeriveParse {
     r#ref: Vec<syn::Path>,
     ref_mut: Vec<syn::Path>,
-    slice: Vec<syn::Path>,
-    slice_mut: Vec<syn::Path>,
+    slices: Vec<syn::Path>,
+    slices_mut: Vec<syn::Path>,
     array: Vec<syn::Path>,
 }
 
@@ -90,8 +90,8 @@ impl SoaDeriveParse {
         Self {
             r#ref: copy_clone(),
             ref_mut: vec![],
-            slice: copy_clone(),
-            slice_mut: vec![],
+            slices: copy_clone(),
+            slices_mut: vec![],
             array: vec![],
         }
     }
@@ -100,8 +100,8 @@ impl SoaDeriveParse {
         let Self {
             r#ref: reff,
             ref_mut,
-            slice,
-            slice_mut,
+            slices,
+            slices_mut,
             array,
         } = self;
         SoaDerive {
@@ -111,11 +111,11 @@ impl SoaDeriveParse {
             ref_mut: quote! {
                 #[derive(#(#ref_mut),*)]
             },
-            slice: quote! {
-                #[derive(#(#slice),*)]
+            slices: quote! {
+                #[derive(#(#slices),*)]
             },
-            slice_mut: quote! {
-                #[derive(#(#slice_mut),*)]
+            slices_mut: quote! {
+                #[derive(#(#slices_mut),*)]
             },
             array: quote! {
                 #[derive(#(#array),*)]
@@ -153,8 +153,8 @@ impl SoaDeriveParse {
                     .then_some(&mut self.r#ref)
                     .into_iter()
                     .chain(mask.ref_mut.then_some(&mut self.ref_mut).into_iter())
-                    .chain(mask.slice.then_some(&mut self.slice).into_iter())
-                    .chain(mask.slice_mut.then_some(&mut self.slice_mut).into_iter())
+                    .chain(mask.slice.then_some(&mut self.slices).into_iter())
+                    .chain(mask.slice_mut.then_some(&mut self.slices_mut).into_iter())
                     .chain(mask.array.then_some(&mut self.array).into_iter());
                 for set in to_extend {
                     set.extend(collected.iter().cloned());
@@ -180,8 +180,8 @@ fn str_to_path(s: &str) -> syn::Path {
 struct SoaDerive {
     pub r#ref: TokenStream2,
     pub ref_mut: TokenStream2,
-    pub slice: TokenStream2,
-    pub slice_mut: TokenStream2,
+    pub slices: TokenStream2,
+    pub slices_mut: TokenStream2,
     pub array: TokenStream2,
 }
 
@@ -214,9 +214,9 @@ impl SoaDeriveMask {
             self.r#ref = value;
         } else if path.is_ident("RefMut") {
             self.ref_mut = value;
-        } else if path.is_ident("Slice") {
+        } else if path.is_ident("Slices") {
             self.slice = value;
-        } else if path.is_ident("SliceMut") {
+        } else if path.is_ident("SlicesMut") {
             self.slice_mut = value;
         } else if path.is_ident("Array") {
             self.array = value;

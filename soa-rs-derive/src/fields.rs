@@ -16,8 +16,8 @@ pub fn fields_struct(
     let SoaDerive {
         r#ref: derive_ref,
         ref_mut: derive_ref_mut,
-        slice: derive_slice,
-        slice_mut: derive_slice_mut,
+        slices: derive_slices,
+        slices_mut: derive_slices_mut,
         array: derive_array,
     } = soa_derive;
 
@@ -192,14 +192,14 @@ pub fn fields_struct(
 
     let slices_def = define(&|ty| quote! { &'a [#ty] });
     out.append_all(quote! {
-        #derive_slice
+        #derive_slices
         #[automatically_derived]
         #vis struct #slices<'a> #slices_def
     });
 
     let slices_mut_def = define(&|ty| quote! { &'a mut [#ty] });
     out.append_all(quote! {
-        #derive_slice_mut
+        #derive_slices_mut
         #[automatically_derived]
         #vis struct #slices_mut<'a> #slices_mut_def
     });
