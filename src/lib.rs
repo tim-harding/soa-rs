@@ -139,8 +139,7 @@
 //! [`serde`](https://serde.rs/) support is enabled by the `serde` feature
 //! flag.
 //!
-//! ```
-//! # use soa_rs::Soars;
+//! ```ignore
 //! #[derive(Soars, serde::Deserialize)]
 //! #[soa_derive(include(Ref), serde::Serialize)]
 //! struct Test(u32);

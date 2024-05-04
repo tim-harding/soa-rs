@@ -1,5 +1,9 @@
 use crate::{as_slice::AsMutSlice, AsSlice, AsSoaRef, SoaDeref, SoaRaw};
 
+#[diagnostic::on_unimplemented(
+    label = "SOA type",
+    note = "The Soars trait is required for SOA compatibility"
+)]
 /// Provides [`Soa`] compatibility.
 ///
 /// # Safety
