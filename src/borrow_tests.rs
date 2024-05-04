@@ -8,7 +8,7 @@
 /// let slice_mut: &mut Slice<_> = soa.as_mut();
 /// ```
 mod simultaneous_mutable_and_immutable {
-    /// ```compile_fail
+    /// ```E0502
     /// use soa_rs::{Soa, Soars, soa, Slice};
     /// #[derive(Soars, PartialEq, Debug)]
     /// #[soa_derive(Debug, PartialEq)]
@@ -32,7 +32,7 @@ mod simultaneous_mutable_and_immutable {
 /// slice_mut.f0_mut()[0] = 30;
 /// ```
 mod multiple_mutable_borrows {
-    /// ```compile_fail
+    /// ```E0499
     /// use soa_rs::{Soa, Soars, soa, Slice};
     /// #[derive(Soars, PartialEq, Debug)]
     /// #[soa_derive(Debug, PartialEq)]
@@ -40,6 +40,7 @@ mod multiple_mutable_borrows {
     /// let mut soa = soa![Foo(10), Foo(20)];
     /// let slice: &Slice<_> = soa.as_ref();
     /// let slice_mut: &mut Slice<_> = soa.as_mut();
+    /// let slice_mut_2: &mut Slice<_> = soa.as_mut(); // Added
     /// slice_mut.f0_mut()[0] = 30;
     /// slice_mut_2.f0_mut()[0] = 40; // Added
     /// ```
@@ -60,8 +61,9 @@ mod multiple_mutable_borrows {
 /// let mut y = Soa::<Foo>::new();
 /// ```
 mod swap_slices_by_mut_ref {
-    /// ```compile_fail
+    /// ```E0277
     /// use soa_rs::{Soa, Soars};
+    /// use std::ops::DerefMut; // Added
     ///
     /// #[derive(Soars)]
     /// #[soa_derive(Debug, PartialEq)]
@@ -70,12 +72,12 @@ mod swap_slices_by_mut_ref {
     /// let mut x = Soa::<Foo>::new();
     /// x.push(Foo(0));
     /// let mut y = Soa::<Foo>::new();
-    /// std::mem::swap(x.deref_mut(), y.deref_mut());
+    /// std::mem::swap(x.deref_mut(), y.deref_mut()); // Added
     /// ```
     mod deref_mut {}
 
-    /// ```compile_fail
-    /// use soa_rs::{Soa, Soars};
+    /// ```E0277
+    /// use soa_rs::{Soa, Soars, Slice}; // Changed
     ///
     /// #[derive(Soars)]
     /// #[soa_derive(Debug, PartialEq)]
@@ -84,12 +86,12 @@ mod swap_slices_by_mut_ref {
     /// let mut x = Soa::<Foo>::new();
     /// x.push(Foo(0));
     /// let mut y = Soa::<Foo>::new();
-    /// std::mem::swap(x.as_mut(), y.as_mut()); // Changed
+    /// std::mem::swap::<Slice<_>>(x.as_mut(), y.as_mut()); // Added
     /// ```
     mod as_mut {}
 
-    /// ```compile_fail
-    /// use soa_rs::{Soa, Soars};
+    /// ```E0277
+    /// use soa_rs::{Soa, Soars, AsMutSlice, SliceMut}; // Changed
     ///
     /// #[derive(Soars)]
     /// #[soa_derive(Debug, PartialEq)]
@@ -98,7 +100,7 @@ mod swap_slices_by_mut_ref {
     /// let mut x = Soa::<Foo>::new();
     /// x.push(Foo(0));
     /// let mut y = Soa::<Foo>::new();
-    /// std::mem::swap(x.as_mut_slice(), y.as_mut_slice()); // Changed
+    /// std::mem::swap::<SliceMut<_>>(x.as_mut_slice(), y.as_mut_slice()); // Added
     /// ```
     mod as_mut_slice {}
 }
