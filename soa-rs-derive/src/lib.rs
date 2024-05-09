@@ -14,7 +14,7 @@ use std::{
 use syn::{parse_macro_input, Attribute, Data, DeriveInput, Fields};
 use zst::{zst_struct, ZstKind};
 
-#[proc_macro_derive(Soars, attributes(align, soa_derive))]
+#[proc_macro_derive(Soars, attributes(align, soa_derive, soa_array))]
 pub fn soa(input: TokenStream) -> TokenStream {
     let input: DeriveInput = parse_macro_input!(input);
     let span = input.ident.span();
@@ -39,9 +39,7 @@ fn soa_inner(input: DeriveInput) -> Result<TokenStream2, SoarsError> {
         generics: _,
     } = input;
 
-    let mut soa_derive = SoaDeriveParse::new();
-    soa_derive.append(attrs)?;
-    let soa_derive = soa_derive.into_derive();
+    let attrs = SoaAttrs::new(attrs)?;
     match data {
         Data::Struct(strukt) => match strukt.fields {
             Fields::Named(fields) => Ok(fields_struct(
@@ -49,14 +47,14 @@ fn soa_inner(input: DeriveInput) -> Result<TokenStream2, SoarsError> {
                 vis,
                 fields.named,
                 FieldKind::Named,
-                soa_derive,
+                attrs,
             )?),
             Fields::Unnamed(fields) => Ok(fields_struct(
                 ident,
                 vis,
                 fields.unnamed,
                 FieldKind::Unnamed,
-                soa_derive,
+                attrs,
             )?),
             Fields::Unit => Ok(zst_struct(ident, vis, ZstKind::Unit)),
         },
@@ -73,6 +71,34 @@ enum SoarsError {
 impl From<syn::Error> for SoarsError {
     fn from(value: syn::Error) -> Self {
         Self::Syn(value)
+    }
+}
+
+#[derive(Debug, Clone)]
+struct SoaAttrs {
+    pub derive: SoaDerive,
+    pub include_array: bool,
+}
+
+impl SoaAttrs {
+    pub fn new(attributes: Vec<Attribute>) -> Result<Self, syn::Error> {
+        let mut derive_parse = SoaDeriveParse::new();
+        let mut include_array = false;
+        for attr in attributes {
+            let path = attr.path();
+            if path.is_ident("soa_derive") {
+                derive_parse.append(attr)?;
+            } else if path.is_ident("soa_array") {
+                include_array = true;
+            } else {
+                return Err(syn::Error::new_spanned(attr, "Unknown SOA attribute"));
+            }
+        }
+
+        Ok(Self {
+            derive: derive_parse.into_derive(),
+            include_array,
+        })
     }
 }
 
@@ -123,44 +149,42 @@ impl SoaDeriveParse {
         }
     }
 
-    pub fn append(&mut self, value: Vec<Attribute>) -> Result<(), syn::Error> {
-        for attr in value {
-            if attr.path().is_ident("soa_derive") {
-                let mut collected = vec![];
-                let mut mask = SoaDeriveMask::new();
-                attr.parse_nested_meta(|meta| {
-                    if meta.path.is_ident("include") {
-                        mask = SoaDeriveMask::splat(false);
-                        meta.parse_nested_meta(|meta| {
-                            mask.set_by_path(&meta.path, true).map_err(|_| {
-                                meta.error(format!("unknown include specifier {:?}", meta.path))
-                            })
-                        })?;
-                    } else if meta.path.is_ident("exclude") {
-                        meta.parse_nested_meta(|meta| {
-                            mask.set_by_path(&meta.path, false).map_err(|_| {
-                                meta.error(format!("unknown exclude specifier {:?}", meta.path))
-                            })
-                        })?;
-                    } else {
-                        collected.push(meta.path);
-                    }
-                    Ok(())
+    pub fn append(&mut self, attr: Attribute) -> Result<(), syn::Error> {
+        let mut collected = vec![];
+        let mut mask = SoaDeriveMask::new();
+        attr.parse_nested_meta(|meta| {
+            if meta.path.is_ident("include") {
+                mask = SoaDeriveMask::splat(false);
+                meta.parse_nested_meta(|meta| {
+                    mask.set_by_path(&meta.path, true).map_err(|_| {
+                        meta.error(format!("unknown include specifier {:?}", meta.path))
+                    })
                 })?;
-
-                let to_extend = mask
-                    .r#ref
-                    .then_some(&mut self.r#ref)
-                    .into_iter()
-                    .chain(mask.ref_mut.then_some(&mut self.ref_mut).into_iter())
-                    .chain(mask.slice.then_some(&mut self.slices).into_iter())
-                    .chain(mask.slice_mut.then_some(&mut self.slices_mut).into_iter())
-                    .chain(mask.array.then_some(&mut self.array).into_iter());
-                for set in to_extend {
-                    set.extend(collected.iter().cloned());
-                }
+            } else if meta.path.is_ident("exclude") {
+                meta.parse_nested_meta(|meta| {
+                    mask.set_by_path(&meta.path, false).map_err(|_| {
+                        meta.error(format!("unknown exclude specifier {:?}", meta.path))
+                    })
+                })?;
+            } else {
+                collected.push(meta.path);
             }
+            Ok(())
+        })?;
+
+        let to_extend = mask
+            .r#ref
+            .then_some(&mut self.r#ref)
+            .into_iter()
+            .chain(mask.ref_mut.then_some(&mut self.ref_mut).into_iter())
+            .chain(mask.slice.then_some(&mut self.slices).into_iter())
+            .chain(mask.slice_mut.then_some(&mut self.slices_mut).into_iter())
+            .chain(mask.array.then_some(&mut self.array).into_iter());
+
+        for set in to_extend {
+            set.extend(collected.iter().cloned());
         }
+
         Ok(())
     }
 }

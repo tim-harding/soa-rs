@@ -24,6 +24,7 @@ impl Drop for SingleDrop {
 }
 
 #[derive(Soars, Debug, Clone, PartialEq, Eq, Hash)]
+#[soa_array]
 #[soa_derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 struct El {
     foo: u64,
@@ -385,6 +386,7 @@ pub fn field_getters() {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Soars)]
+#[soa_array]
 #[soa_derive(Debug, PartialEq, PartialOrd)]
 struct Alignment {
     #[align(64)]
@@ -596,6 +598,7 @@ fn slices_mut() {
 #[test]
 fn array_with_box() {
     #[derive(Soars)]
+    #[soa_array]
     #[soa_derive(PartialEq)]
     struct Example {
         foo: Box<u8>,
