@@ -1,4 +1,4 @@
-use crate::{as_slice::AsMutSlice, AsSlice, AsSoaRef, SoaDeref, SoaRaw};
+use crate::{AsSoaRef, SoaDeref, SoaRaw};
 
 #[diagnostic::on_unimplemented(
     label = "SOA type",
@@ -42,11 +42,6 @@ pub unsafe trait Soars: AsSoaRef<Item = Self> {
     type RefMut<'a>: AsSoaRef<Item = Self>
     where
         Self: 'a;
-
-    /// The SoA array type.
-    ///
-    /// For each field with type `T`, this type has a field with type `[T; N]`.
-    type Array<const N: usize>: AsSlice<Item = Self> + AsMutSlice;
 
     /// The slices that make up a [`Slice`].
     ///

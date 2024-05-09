@@ -1,6 +1,6 @@
 [package]
 name = "soa-rs"
-version = "0.5.1"
+version = "0.6.1"
 edition = "2021"
 license = "MIT"
 description = "A Vec-like structure-of-arrays container"
@@ -16,7 +16,7 @@ debug = true
 members = ["soa-rs-derive", "soa-rs-testing"]
 
 [dependencies.soa-rs-derive]
-version = "0.4.0"
+version = "0.6.0"
 path = "soa-rs-derive"
 
 [dependencies.serde]

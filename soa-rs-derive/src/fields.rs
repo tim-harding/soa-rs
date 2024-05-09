@@ -1,6 +1,6 @@
 use crate::{
     zst::{zst_struct, ZstKind},
-    SoaDerive,
+    SoaAttrs, SoaDerive,
 };
 use proc_macro2::TokenStream;
 use quote::{format_ident, quote, ToTokens, TokenStreamExt};
@@ -11,15 +11,19 @@ pub fn fields_struct(
     vis: Visibility,
     fields: Punctuated<Field, Comma>,
     kind: FieldKind,
-    soa_derive: SoaDerive,
+    soa_attrs: SoaAttrs,
 ) -> Result<TokenStream, syn::Error> {
-    let SoaDerive {
-        r#ref: derive_ref,
-        ref_mut: derive_ref_mut,
-        slices: derive_slices,
-        slices_mut: derive_slices_mut,
-        array: derive_array,
-    } = soa_derive;
+    let SoaAttrs {
+        derive:
+            SoaDerive {
+                r#ref: derive_ref,
+                ref_mut: derive_ref_mut,
+                slices: derive_slices,
+                slices_mut: derive_slices_mut,
+                array: derive_array,
+            },
+        include_array,
+    } = soa_attrs;
 
     let fields_len = fields.len();
     let (vis_all, (ty_all, (ident_all, attrs_all))): (Vec<_>, (Vec<_>, (Vec<_>, Vec<_>))) = fields
@@ -204,91 +208,93 @@ pub fn fields_struct(
         #vis struct #slices_mut<'a> #slices_mut_def
     });
 
-    let array_def = define(&|ty| quote! { [#ty; N] });
-    let uninit_def = define(&|ty| quote! { [::std::mem::MaybeUninit<#ty>; K] });
-    out.append_all(quote! {
-        #derive_array
-        #[automatically_derived]
-        #vis struct #array<const N: usize> #array_def
+    if include_array {
+        let array_def = define(&|ty| quote! { [#ty; N] });
+        let uninit_def = define(&|ty| quote! { [::std::mem::MaybeUninit<#ty>; K] });
+        out.append_all(quote! {
+            #derive_array
+            #[automatically_derived]
+            #vis struct #array<const N: usize> #array_def
 
-        #[automatically_derived]
-        impl<const N: usize> #array<N> {
-            #vis const fn from_array(array: [#ident; N]) -> Self {
-                let array = ::std::mem::ManuallyDrop::new(array);
-                let array = ::std::ptr::from_ref::<::std::mem::ManuallyDrop<[#ident; N]>>(&array);
-                let array = array.cast::<[#ident; N]>();
-                let array = unsafe { &*array };
+            #[automatically_derived]
+            impl<const N: usize> #array<N> {
+                #vis const fn from_array(array: [#ident; N]) -> Self {
+                    let array = ::std::mem::ManuallyDrop::new(array);
+                    let array = ::std::ptr::from_ref::<::std::mem::ManuallyDrop<[#ident; N]>>(&array);
+                    let array = array.cast::<[#ident; N]>();
+                    let array = unsafe { &*array };
 
-                struct Uninit<const K: usize> #uninit_def;
+                    struct Uninit<const K: usize> #uninit_def;
 
-                let mut uninit: Uninit<N> = Uninit {
-                    #(
-                    // https://doc.rust-lang.org/std/mem/union.MaybeUninit.html#initializing-an-array-element-by-element
-                    //
-                    // TODO: Prefer when stablized:
-                    // https://doc.rust-lang.org/std/mem/union.MaybeUninit.html#method.uninit_array
-                    #ident_all: unsafe { ::std::mem::MaybeUninit::uninit().assume_init() },
-                    )*
-                };
+                    let mut uninit: Uninit<N> = Uninit {
+                        #(
+                        // https://doc.rust-lang.org/std/mem/union.MaybeUninit.html#initializing-an-array-element-by-element
+                        //
+                        // TODO: Prefer when stablized:
+                        // https://doc.rust-lang.org/std/mem/union.MaybeUninit.html#method.uninit_array
+                        #ident_all: unsafe { ::std::mem::MaybeUninit::uninit().assume_init() },
+                        )*
+                    };
 
-                let mut i = 0;
-                while i < N {
-                    #(
-                    let src = ::std::ptr::from_ref(&array[i].#ident_all);
-                    unsafe {
-                        uninit.#ident_all[i] = ::std::mem::MaybeUninit::new(src.read());
+                    let mut i = 0;
+                    while i < N {
+                        #(
+                        let src = ::std::ptr::from_ref(&array[i].#ident_all);
+                        unsafe {
+                            uninit.#ident_all[i] = ::std::mem::MaybeUninit::new(src.read());
+                        }
+                        )*
+
+                        i += 1;
                     }
-                    )*
 
-                    i += 1;
-                }
-
-                Self {
-                    #(
-                    // TODO: Prefer when stabilized:
-                    // https://doc.rust-lang.org/std/primitive.array.html#method.transpose
-                    #ident_all: unsafe {
-                        ::std::mem::transmute_copy(&::std::mem::ManuallyDrop::new(uninit.#ident_all))
-                    },
-                    )*
+                    Self {
+                        #(
+                        // TODO: Prefer when stabilized:
+                        // https://doc.rust-lang.org/std/primitive.array.html#method.transpose
+                        #ident_all: unsafe {
+                            ::std::mem::transmute_copy(&::std::mem::ManuallyDrop::new(uninit.#ident_all))
+                        },
+                        )*
+                    }
                 }
             }
-        }
 
-        #[automatically_derived]
-        impl<const N: usize> ::soa_rs::AsSlice for #array<N> {
-            type Item = #ident;
+            #[automatically_derived]
+            impl<const N: usize> ::soa_rs::AsSlice for #array<N> {
+                type Item = #ident;
 
-            fn as_slice(&self) -> ::soa_rs::SliceRef<'_, Self::Item> {
-                let raw = #raw {
-                    #(
-                        #ident_all: {
-                            let ptr = self.#ident_all.as_slice().as_ptr().cast_mut();
-                            unsafe { ::std::ptr::NonNull::new_unchecked(ptr) }
-                        },
-                    )*
-                };
-                let slice = ::soa_rs::Slice::with_raw(raw);
-                unsafe { ::soa_rs::SliceRef::from_slice(slice, N) }
+                fn as_slice(&self) -> ::soa_rs::SliceRef<'_, Self::Item> {
+                    let raw = #raw {
+                        #(
+                            #ident_all: {
+                                let ptr = self.#ident_all.as_slice().as_ptr().cast_mut();
+                                unsafe { ::std::ptr::NonNull::new_unchecked(ptr) }
+                            },
+                        )*
+                    };
+                    let slice = ::soa_rs::Slice::with_raw(raw);
+                    unsafe { ::soa_rs::SliceRef::from_slice(slice, N) }
+                }
             }
-        }
 
-        #[automatically_derived]
-        impl<const N: usize> ::soa_rs::AsMutSlice for #array<N> {
-            fn as_mut_slice(&mut self) -> ::soa_rs::SliceMut<'_, Self::Item> {
-                let raw = #raw {
-                    #(
-                        #ident_all: {
-                            let ptr = self.#ident_all.as_mut_slice().as_mut_ptr();
-                            unsafe { ::std::ptr::NonNull::new_unchecked(ptr) }
-                        },
-                    )*
-                };
-                let slice = ::soa_rs::Slice::with_raw(raw);
-                unsafe { ::soa_rs::SliceMut::from_slice(slice, N) }
+            #[automatically_derived]
+            impl<const N: usize> ::soa_rs::AsMutSlice for #array<N> {
+                fn as_mut_slice(&mut self) -> ::soa_rs::SliceMut<'_, Self::Item> {
+                    let raw = #raw {
+                        #(
+                            #ident_all: {
+                                let ptr = self.#ident_all.as_mut_slice().as_mut_ptr();
+                                unsafe { ::std::ptr::NonNull::new_unchecked(ptr) }
+                            },
+                        )*
+                    };
+                    let slice = ::soa_rs::Slice::with_raw(raw);
+                    unsafe { ::soa_rs::SliceMut::from_slice(slice, N) }
+                }
             }
-        }
-    });
+        });
+    }
 
     let indices = std::iter::repeat(()).enumerate().map(|(i, ())| i);
     let offsets_len = fields_len - 1;
@@ -345,7 +351,6 @@ pub fn fields_struct(
             type Deref = #deref;
             type Ref<'a> = #item_ref<'a> where Self: 'a;
             type RefMut<'a> = #item_ref_mut<'a> where Self: 'a;
-            type Array<const N: usize> = #array<N>;
             type Slices<'a> = #slices<'a> where Self: 'a;
             type SlicesMut<'a> = #slices_mut<'a> where Self: 'a;
         }

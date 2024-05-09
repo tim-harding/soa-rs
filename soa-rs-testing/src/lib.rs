@@ -1,4 +1,5 @@
 #![cfg(test)]
+#![allow(clippy::disallowed_names)]
 
 use soa_rs::{soa, AsMutSlice, AsSlice, AsSoaRef, Soa, Soars};
 
@@ -24,6 +25,7 @@ impl Drop for SingleDrop {
 }
 
 #[derive(Soars, Debug, Clone, PartialEq, Eq, Hash)]
+#[soa_array]
 #[soa_derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 struct El {
     foo: u64,
@@ -385,6 +387,7 @@ pub fn field_getters() {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Soars)]
+#[soa_array]
 #[soa_derive(Debug, PartialEq, PartialOrd)]
 struct Alignment {
     #[align(64)]
@@ -596,6 +599,7 @@ fn slices_mut() {
 #[test]
 fn array_with_box() {
     #[derive(Soars)]
+    #[soa_array]
     #[soa_derive(PartialEq)]
     struct Example {
         foo: Box<u8>,
@@ -603,8 +607,7 @@ fn array_with_box() {
     let foo = Box::new(42_u8);
     let x = ExampleArray::from_array([Example { foo }]);
     let s = x.as_slice();
-    let v: &Box<u8> = s.get(0).unwrap().foo;
-    dbg!(v);
+    let _ = s.get(0).unwrap().foo;
 }
 
 fn assert_send<T: Send>(_t: T) {}

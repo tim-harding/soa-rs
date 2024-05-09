@@ -21,7 +21,6 @@ pub fn zst_struct(ident: Ident, vis: Visibility, kind: ZstKind) -> TokenStream {
             type RefMut<'a> = #ident;
             type Slices<'a> = #ident;
             type SlicesMut<'a> = #ident;
-            type Array<const N: usize> = #array<N>;
         }
 
         #[automatically_derived]
