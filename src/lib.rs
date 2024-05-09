@@ -214,6 +214,14 @@ mod serde;
 /// The [`Soars`] trait implementation for `Foo` references these as associated
 /// types. [`AsSoaRef`] is also implemented for `Foo`, `FooRef`, and `FooRefMut`.
 ///
+/// # Arrays
+///
+/// The `FooArray` type is only generated when the `#[soa_array]` attribute is
+/// added to the struct. Only structs without interior mutability support this
+/// attribute for the time being, due to [this
+/// issue](https://github.com/rust-lang/rust/issues/80384). SOA array types are
+/// stack-allocated like normal arrays and are `const`-initializable.
+///
 /// # Derive for generated types
 ///
 /// The `soa_derive` attribute can be used to derive traits for the generated
