@@ -176,10 +176,10 @@ impl SoaDeriveParse {
             .r#ref
             .then_some(&mut self.r#ref)
             .into_iter()
-            .chain(mask.ref_mut.then_some(&mut self.ref_mut).into_iter())
-            .chain(mask.slice.then_some(&mut self.slices).into_iter())
-            .chain(mask.slice_mut.then_some(&mut self.slices_mut).into_iter())
-            .chain(mask.array.then_some(&mut self.array).into_iter());
+            .chain(mask.ref_mut.then_some(&mut self.ref_mut))
+            .chain(mask.slice.then_some(&mut self.slices))
+            .chain(mask.slice_mut.then_some(&mut self.slices_mut))
+            .chain(mask.array.then_some(&mut self.array));
 
         for set in to_extend {
             set.extend(collected.iter().cloned());

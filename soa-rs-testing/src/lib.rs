@@ -1,4 +1,5 @@
 #![cfg(test)]
+#![allow(clippy::disallowed_names)]
 
 use soa_rs::{soa, AsMutSlice, AsSlice, AsSoaRef, Soa, Soars};
 
@@ -606,8 +607,7 @@ fn array_with_box() {
     let foo = Box::new(42_u8);
     let x = ExampleArray::from_array([Example { foo }]);
     let s = x.as_slice();
-    let v: &Box<u8> = s.get(0).unwrap().foo;
-    dbg!(v);
+    let _ = s.get(0).unwrap().foo;
 }
 
 fn assert_send<T: Send>(_t: T) {}
