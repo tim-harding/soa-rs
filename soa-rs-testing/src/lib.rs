@@ -1,6 +1,8 @@
 #![cfg(test)]
 #![allow(clippy::disallowed_names)]
 
+use std::sync::Mutex;
+
 use soa_rs::{soa, AsMutSlice, AsSlice, AsSoaRef, Soa, Soars};
 
 #[derive(Soars, Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -658,4 +660,11 @@ fn serde() {
     let serial = serde_json::to_string(&original).unwrap();
     let deserial: Soa<Test> = serde_json::from_str(&serial).unwrap();
     assert_eq!(original, deserial);
+}
+
+#[test]
+fn mutex() {
+    // Regression test for https://github.com/tim-harding/soa-rs/issues/13
+    #[derive(Soars)]
+    struct M(Mutex<usize>);
 }
