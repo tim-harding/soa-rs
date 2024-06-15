@@ -134,7 +134,14 @@ where
         let mut i = 0;
         loop {
             acc = f(acc, A::item_from_raw(unsafe { slice.raw().offset(i) }));
-            i += 1;
+
+            // SAFETY: see std::slice::Iter::fold
+            //
+            // `i` can't overflow since it'll only reach usize::MAX if the
+            // slice had that length, in which case we'll break out of the loop
+            // after the increment
+            i = unsafe { i.unchecked_add(1) };
+
             if i == len {
                 break;
             }
