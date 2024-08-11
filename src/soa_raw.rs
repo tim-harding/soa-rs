@@ -97,7 +97,7 @@ pub unsafe trait SoaRaw: Copy + Clone {
     /// - `size_of::<T>() > 0`
     /// - `new_capacity < old_capacity`
     /// - `length <= new_capacity`
-    /// - `old_capacity > 0` (Otherwise use [`SoaRaw::dealloc`])
+    /// - `new_capacity > 0` (Otherwise use [`SoaRaw::dealloc`])
     #[must_use]
     unsafe fn realloc_shrink(
         &mut self,
