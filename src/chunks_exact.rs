@@ -31,6 +31,7 @@ where
         let rem_len = len % chunk_size;
         let fst_len = len - rem_len;
         let remainder = slice.idx(fst_len..);
+        // SAFETY: Lifetime of self is bound to the passed slice
         let slice = unsafe { slice.as_sized() };
         Self {
             slice,
@@ -63,6 +64,7 @@ where
                 marker: PhantomData,
             };
             self.parts_remaining -= 1;
+            // SAFETY: We had a remaining part, so we have at least chunk_size items
             self.slice.raw = unsafe { self.slice.raw().offset(self.chunk_size) };
             Some(out)
         }

@@ -68,6 +68,9 @@ where
     type Target = Slice<T>;
 
     fn deref(&self) -> &Self::Target {
+        // SAFETY:
+        // - len is valid
+        // - The lifetime is bound to self
         unsafe { self.slice.as_unsized(self.len) }
     }
 }
@@ -77,6 +80,9 @@ where
     T: Soars,
 {
     fn deref_mut(&mut self) -> &mut Self::Target {
+        // SAFETY:
+        // - len is valid
+        // - The lifetime is bound to self
         unsafe { self.slice.as_unsized_mut(self.len) }
     }
 }
@@ -165,6 +171,9 @@ where
     type Item = T;
 
     fn as_slice(&self) -> SliceRef<'_, Self::Item> {
+        // SAFETY:
+        // - len is valid
+        // - The lifetime is bound to self
         unsafe { SliceRef::from_slice(self.slice, self.len) }
     }
 }
@@ -174,6 +183,9 @@ where
     T: Soars,
 {
     fn as_mut_slice(&mut self) -> SliceMut<'_, Self::Item> {
+        // SAFETY:
+        // - len is valid
+        // - The lifetime is bound to self
         unsafe { Self::from_slice(self.slice, self.len) }
     }
 }

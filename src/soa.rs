@@ -115,6 +115,9 @@ where
                 } else {
                     Self {
                         cap: capacity,
+                        // SAFETY:
+                        // - T is nonzero sized
+                        // - capacity is nonzero
                         slice: Slice::with_raw(unsafe { T::Raw::alloc(capacity) }),
                         len: 0,
                     }
@@ -208,7 +211,7 @@ where
     pub unsafe fn from_raw_parts(ptr: NonNull<u8>, length: usize, capacity: usize) -> Self {
         Self {
             cap: capacity,
-            slice: Slice::with_raw(unsafe { T::Raw::from_parts(ptr, capacity) }),
+            slice: Slice::with_raw(T::Raw::from_parts(ptr, capacity)),
             len: length,
         }
     }
@@ -228,6 +231,7 @@ where
     /// ```
     pub fn push(&mut self, element: T) {
         self.maybe_grow();
+        // SAFETY: After maybe_grow, the allocated capacity is greater than len
         unsafe {
             self.raw().offset(self.len).set(element);
         }
@@ -253,6 +257,7 @@ where
             None
         } else {
             self.len -= 1;
+            // SAFETY: len points to at least one initialized item
             Some(unsafe { self.raw().offset(self.len).get() })
         }
     }
@@ -280,6 +285,8 @@ where
     pub fn insert(&mut self, index: usize, element: T) {
         assert!(index <= self.len, "index out of bounds");
         self.maybe_grow();
+        // SAFETY: After the bounds check and maybe_grow, index is an
+        // initialized item and index+1 is allocated
         unsafe {
             let ith = self.raw().offset(index);
             ith.copy_to(ith.offset(1), self.len - index);
@@ -305,8 +312,10 @@ where
     pub fn remove(&mut self, index: usize) -> T {
         assert!(index < self.len, "index out of bounds");
         self.len -= 1;
+        // SAFETY: After the bounds check, we know ith item is initialized
         let ith = unsafe { self.raw().offset(index) };
         let out = unsafe { ith.get() };
+        // SAFETY: There are len-index initialized elements to shift back
         unsafe {
             ith.offset(1).copy_to(ith, self.len - index);
         }
@@ -489,6 +498,7 @@ where
             panic!("index out of bounds")
         }
         self.len -= 1;
+        // SAFETY: index and len-1 are initialized elements
         let to_remove = unsafe { self.raw().offset(index) };
         let last = unsafe { self.raw().offset(self.len) };
         let out = unsafe { to_remove.get() };
@@ -516,6 +526,7 @@ where
     pub fn append(&mut self, other: &mut Self) {
         self.reserve(other.len);
         for i in 0..other.len {
+            // SAFETY: i is in bounds
             let element = unsafe { other.raw().offset(i).get() };
             self.push(element);
         }
@@ -563,6 +574,7 @@ where
 
         if new_cap == 0 {
             debug_assert!(self.cap > 0);
+            // SAFETY: We asserted the preconditions
             unsafe {
                 self.raw().dealloc(self.cap);
             }
@@ -570,6 +582,7 @@ where
         } else {
             debug_assert!(new_cap < self.cap);
             debug_assert!(self.len <= new_cap);
+            // SAFETY: We asserted the preconditions
             unsafe {
                 self.raw = self.raw().realloc_shrink(self.cap, new_cap, self.len);
             }
@@ -585,9 +598,11 @@ where
 
         if self.cap == 0 {
             debug_assert!(new_cap > 0);
+            // SAFETY: We asserted the preconditions
             self.raw = unsafe { T::Raw::alloc(new_cap) };
         } else {
             debug_assert!(self.len <= self.cap);
+            // SAFETY: We asserted the preconditions
             unsafe {
                 self.raw = self.raw().realloc_grow(self.cap, new_cap, self.len);
             }
@@ -607,6 +622,7 @@ where
         }
 
         if size_of::<T>() > 0 && self.cap > 0 {
+            // SAFETY: We asserted the preconditions
             unsafe {
                 self.raw().dealloc(self.cap);
             }
@@ -672,6 +688,7 @@ where
     fn clone(&self) -> Self {
         let mut out = Self::with_capacity(self.len);
         for i in 0..self.len {
+            // SAFETY: i is in-bounds
             let el = unsafe { self.raw.offset(i).get() };
             out.push(el);
         }
@@ -682,6 +699,7 @@ where
         self.clear();
         self.reserve_exact(source.len);
         for i in 0..source.len {
+            // SAFETY: i is in-bounds
             let el = unsafe { source.raw.offset(i).get() };
             self.push(el);
         }
@@ -819,6 +837,9 @@ where
     T: Soars,
 {
     fn as_ref(&self) -> &Slice<T> {
+        // SAFETY:
+        // - len is valid for the slice
+        // - The lifetime is bound to self
         unsafe { self.slice.as_unsized(self.len) }
     }
 }
@@ -828,6 +849,9 @@ where
     T: Soars,
 {
     fn as_mut(&mut self) -> &mut Slice<T> {
+        // SAFETY:
+        // - len is valid for the slice
+        // - The lifetime is bound to self
         unsafe { self.slice.as_unsized_mut(self.len) }
     }
 }
@@ -913,6 +937,9 @@ where
     type Item = T;
 
     fn as_slice(&self) -> SliceRef<'_, Self::Item> {
+        // SAFETY:
+        // - len is valid for this slice
+        // - The returned lifetime is bound to self
         unsafe { SliceRef::from_slice(self.slice, self.len) }
     }
 }
@@ -922,6 +949,9 @@ where
     T: Soars,
 {
     fn as_mut_slice(&mut self) -> crate::SliceMut<'_, Self::Item> {
+        // SAFETY:
+        // - len is valid for this slice
+        // - The returned lifetime is bound to self
         unsafe { SliceMut::from_slice(self.slice, self.len) }
     }
 }

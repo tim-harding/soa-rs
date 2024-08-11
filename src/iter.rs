@@ -67,6 +67,7 @@ where
     /// Returns an immutable slice of all elements that have not been yielded
     /// yet.
     pub fn as_slice(&self) -> &'a Slice<T> {
+        // SAFETY: The returned lifetime is bound to Self
         unsafe { self.iter_raw.as_slice() }
     }
 }
@@ -77,8 +78,8 @@ where
 {
     type Item = T::Ref<'a>;
 
-    fn item_from_raw(raw: T::Raw) -> Self::Item {
-        unsafe { raw.get_ref() }
+    unsafe fn item_from_raw(raw: T::Raw) -> Self::Item {
+        raw.get_ref()
     }
 }
 

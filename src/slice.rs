@@ -181,6 +181,8 @@ where
     pub const fn iter(&self) -> Iter<T> {
         Iter {
             iter_raw: IterRaw {
+                // SAFETY: The Iter lifetime is bound to &self,
+                // which ensures the aliasing rules are respected.
                 slice: unsafe { self.as_sized() },
                 len: self.len(),
                 adapter: PhantomData,
@@ -210,6 +212,8 @@ where
     pub fn iter_mut(&mut self) -> IterMut<T> {
         IterMut {
             iter_raw: IterRaw {
+                // SAFETY: The Iter lifetime is bound to &self,
+                // which ensures the aliasing rules are respected.
                 slice: unsafe { self.as_sized() },
                 len: self.len(),
                 adapter: PhantomData,
@@ -370,6 +374,7 @@ where
             panic!("index out of bounds");
         }
 
+        // SAFETY: We bounds checked a and b
         unsafe {
             let a = self.raw().offset(a);
             let b = self.raw().offset(b);
@@ -511,6 +516,9 @@ where
     /// assert_eq!(slices.bar, soa.bar());
     /// ```
     pub fn slices(&self) -> T::Slices<'_> {
+        // SAFETY:
+        // - The returned lifetime is bound to self
+        // - len elements are allocated and initialized
         unsafe { self.raw.slices(self.len()) }
     }
 
@@ -538,6 +546,9 @@ where
     /// assert_eq!(soa.bar(), [2, 4]);
     /// ```
     pub fn slices_mut(&mut self) -> T::SlicesMut<'_> {
+        // SAFETY:
+        // - The returned lifetime is bound to self
+        // - len elements are allocated and initialized
         unsafe { self.raw.slices_mut(self.len()) }
     }
 
@@ -718,6 +729,7 @@ where
     type Item = T;
 
     fn as_slice(&self) -> SliceRef<'_, Self::Item> {
+        // SAFETY: The returned lifetime is bound to self
         unsafe { SliceRef::from_slice(self.as_sized(), self.len()) }
     }
 }
@@ -727,6 +739,7 @@ where
     T: Soars,
 {
     fn as_mut_slice(&mut self) -> SliceMut<'_, Self::Item> {
+        // SAFETY: The returned lifetime is bound to self
         unsafe { SliceMut::from_slice(self.as_sized(), self.len()) }
     }
 }

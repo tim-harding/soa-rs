@@ -13,6 +13,7 @@ pub fn zst_struct(ident: Ident, vis: Visibility, kind: ZstKind) -> TokenStream {
     };
 
     quote! {
+        // SAFETY: Self::Deref is repr(transparent) with soa_rs::Slice<Self::Raw>
         #[automatically_derived]
         unsafe impl ::soa_rs::Soars for #ident {
             type Raw = #raw;
@@ -33,6 +34,9 @@ pub fn zst_struct(ident: Ident, vis: Visibility, kind: ZstKind) -> TokenStream {
             fn as_slice(&self) -> ::soa_rs::SliceRef<'_, Self::Item> {
                 let raw = #raw;
                 let slice = ::soa_rs::Slice::with_raw(raw);
+                // SAFETY: Aliasing is respected because the return type
+                // has the lifetime of self. We know the given slice and length
+                // are compatible because they come from an array.
                 unsafe { ::soa_rs::SliceRef::from_slice(slice, N) }
             }
         }
@@ -42,6 +46,9 @@ pub fn zst_struct(ident: Ident, vis: Visibility, kind: ZstKind) -> TokenStream {
             fn as_mut_slice(&mut self) -> ::soa_rs::SliceMut<'_, Self::Item> {
                 let raw = #raw;
                 let slice = ::soa_rs::Slice::with_raw(raw);
+                // SAFETY: Aliasing is respected because the return type
+                // has the lifetime of self. We know the given slice and length
+                // are compatible because they come from an array.
                 unsafe { ::soa_rs::SliceMut::from_slice(slice, N) }
             }
         }
@@ -56,10 +63,12 @@ pub fn zst_struct(ident: Ident, vis: Visibility, kind: ZstKind) -> TokenStream {
             type Item = #ident;
 
             fn from_slice(slice: &::soa_rs::Slice<Self::Item>) -> &Self {
+                // SAFETY: Self is `repr(transparent)` of Slice
                 unsafe { ::std::mem::transmute(slice) }
             }
 
             fn from_slice_mut(slice: &mut ::soa_rs::Slice<Self::Item>) -> &mut Self {
+                // SAFETY: Self is `repr(transparent)` of Slice
                 unsafe { ::std::mem::transmute(slice) }
             }
         }

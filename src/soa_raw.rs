@@ -151,22 +151,24 @@ pub unsafe trait SoaRaw: Copy + Clone {
     /// - `index < PREV_CAP`
     unsafe fn get(self) -> Self::Item;
 
-    /// Gets a reference to the element at `index`.
+    /// Gets a reference to the first element.
     ///
     /// # Safety
     ///
     /// The caller must ensure that
     ///
-    /// - `index < PREV_CAP`
+    /// The caller must ensure that either
+    /// - Self is zero-sized, or
+    /// - self points to at least one initialized value
     unsafe fn get_ref<'a>(self) -> <Self::Item as Soars>::Ref<'a>;
 
-    /// Gets a mutable reference to the element at `index`.
+    /// Gets a mutable reference to the first element.
     ///
     /// # Safety
     ///
-    /// The caller must ensure that
-    ///
-    /// - `index < PREV_CAP`
+    /// The caller must ensure that either
+    /// - Self is zero-sized, or
+    /// - self points to at least one initialized value
     unsafe fn get_mut<'a>(self) -> <Self::Item as Soars>::RefMut<'a>;
 
     /// Create a new [`SoaRaw`] starting at index `count`.
@@ -183,7 +185,25 @@ pub unsafe trait SoaRaw: Copy + Clone {
     #[must_use]
     unsafe fn offset(self, count: usize) -> Self;
 
+    /// Treats the raw SOA as a set of slices.
+    ///
+    /// # Safety
+    ///
+    /// The caller must ensure that
+    ///
+    /// - `len <= PREV_CAP`
+    /// - At least `len` elements in the SOA have been initialized
+    /// - The right lifetime is applied to the unconstrained lifetime returned
     unsafe fn slices<'a>(self, len: usize) -> <Self::Item as Soars>::Slices<'a>;
 
+    /// Treats the raw SOA as a set of mutable slices.
+    ///
+    /// # Safety
+    ///
+    /// The caller must ensure that
+    ///
+    /// - `len <= PREV_CAP`
+    /// - At least `len` elements in the SOA have been initialized
+    /// - The right lifetime is applied to the unconstrained lifetime returned
     unsafe fn slices_mut<'a>(self, len: usize) -> <Self::Item as Soars>::SlicesMut<'a>;
 }

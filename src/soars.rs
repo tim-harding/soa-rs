@@ -8,7 +8,7 @@ use crate::{AsSoaRef, SoaDeref, SoaRaw};
 ///
 /// # Safety
 ///
-/// [`Soars::Deref`] mut be `#[repr(transparent)]` with [`Slice<Self::Raw>`].
+/// [`Soars::Deref`] must be `#[repr(transparent)]` with [`Slice<Self::Raw>`].
 /// This trait should be derived using the derive macro.
 ///
 /// [`Slice<Self::Raw>`]: crate::Slice

@@ -59,6 +59,9 @@ where
     T: Soars,
 {
     fn as_ref(&self) -> &Slice<T> {
+        // SAFETY:
+        // - len is valid
+        // - The returned lifetime is bound to self
         unsafe { self.slice.as_unsized(self.len) }
     }
 }

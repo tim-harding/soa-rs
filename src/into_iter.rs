@@ -31,8 +31,8 @@ where
 {
     type Item = T;
 
-    fn item_from_raw(raw: T::Raw) -> Self::Item {
-        unsafe { raw.get() }
+    unsafe fn item_from_raw(raw: T::Raw) -> Self::Item {
+        raw.get()
     }
 }
 

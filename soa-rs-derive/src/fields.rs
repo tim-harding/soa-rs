@@ -348,6 +348,7 @@ pub fn fields_struct(
         #[derive(Copy, Clone)]
         #vis struct #raw #raw_body
 
+        // SAFETY: Self::Deref is repr(transparent) with soa_rs::Slice<Self::Raw>
         #[automatically_derived]
         unsafe impl ::soa_rs::Soars for #ident {
             type Raw = #raw;

@@ -39,6 +39,8 @@ where
     #[inline]
     fn get(self, slice: &Slice<T>) -> Option<Self::Output<'_>> {
         if self < slice.len() {
+            // SAFETY: Offsetting by less than the length leaves
+            // at least one item to read
             Some(unsafe { slice.raw().offset(self).get_ref() })
         } else {
             None
@@ -48,6 +50,8 @@ where
     #[inline]
     fn get_mut(self, slice: &mut Slice<T>) -> Option<Self::OutputMut<'_>> {
         if self < slice.len() {
+            // SAFETY: Offsetting by less than the length leaves
+            // at least one item to read
             Some(unsafe { slice.raw().offset(self).get_mut() })
         } else {
             None
@@ -70,6 +74,7 @@ where
     #[inline]
     fn get(self, slice: &Slice<T>) -> Option<Self::Output<'_>> {
         Some(SliceRef {
+            // SAFETY: The lifetime is bound to the given slice
             slice: unsafe { slice.as_sized() },
             len: slice.len(),
             marker: PhantomData,
@@ -79,6 +84,7 @@ where
     #[inline]
     fn get_mut(self, slice: &mut Slice<T>) -> Option<Self::OutputMut<'_>> {
         Some(SliceMut {
+            // SAFETY: The lifetime is bound to the given slice
             slice: unsafe { slice.as_sized() },
             len: slice.len(),
             marker: PhantomData,
@@ -102,7 +108,9 @@ where
     fn get(self, slice: &Slice<T>) -> Option<Self::Output<'_>> {
         let len = self.len();
         (len + self.start <= slice.len()).then(|| SliceRef {
-            slice: Slice::with_raw(unsafe { slice.raw().offset(self.start) }),
+            // SAFETY: The above bounds check ensures we won't be able to access
+            // the slice out of bounds.
+            slice: Slice::with_raw(unsafe { slice.raw.offset(self.start) }),
             len,
             marker: PhantomData,
         })
