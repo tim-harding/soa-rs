@@ -1,9 +1,8 @@
 #![cfg(test)]
 #![allow(clippy::disallowed_names)]
 
-use std::sync::Mutex;
-
 use soa_rs::{soa, AsMutSlice, AsSlice, AsSoaRef, Soa, Soars};
+use std::sync::Mutex;
 
 #[derive(Soars, Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[soa_derive(Debug, PartialEq, Eq, PartialOrd, Ord)]
@@ -494,9 +493,6 @@ fn iterator_nth() {
     let vec: Vec<_> = ABCDE.into_iter().cycle().take(20).collect();
     let mut iter_soa = soa.iter();
     let mut iter_vec = vec.iter();
-    for _ in 0..22 {
-        assert_option_eq!(iter_vec.nth(0), iter_soa.nth(0));
-    }
     for i in 0..10 {
         assert_option_eq!(iter_vec.nth(i), iter_soa.nth(i));
     }
@@ -508,9 +504,6 @@ fn iterator_nth_back() {
     let vec: Vec<_> = ABCDE.into_iter().cycle().take(20).collect();
     let mut iter_soa = soa.iter();
     let mut iter_vec = vec.iter();
-    for _ in 0..22 {
-        assert_option_eq!(iter_vec.nth_back(0), iter_soa.nth_back(0));
-    }
     for i in 0..10 {
         assert_option_eq!(iter_vec.nth_back(i), iter_soa.nth_back(i));
     }
