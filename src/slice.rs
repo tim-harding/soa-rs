@@ -87,7 +87,7 @@ where
     ///
     /// - `length` must be valid for the underlying type `T`.
     /// - The lifetime of the returned reference is unconstrained. Ensure that
-    /// the right lifetimes are applied.
+    ///   the right lifetimes are applied.
     pub(crate) unsafe fn as_unsized_mut<'a>(&mut self, len: usize) -> &'a mut Slice<T> {
         &mut *(std::ptr::slice_from_raw_parts_mut(self, len) as *mut Slice<T>)
     }
@@ -98,7 +98,7 @@ where
     ///
     /// - `length` must be valid for the underlying type `T`.
     /// - The lifetime of the returned reference is unconstrained. Ensure that
-    /// the right lifetimes are applied.
+    ///   the right lifetimes are applied.
     pub(crate) unsafe fn as_unsized<'a>(&self, len: usize) -> &'a Slice<T> {
         &*(std::ptr::slice_from_raw_parts(self, len) as *const Slice<T>)
     }
@@ -222,10 +222,10 @@ where
     /// index.
     ///
     /// - If given a position, returns a reference to the element at that
-    /// position or None if out of bounds.
+    ///   position or None if out of bounds.
     ///
     /// - If given a range, returns the subslice corresponding to that range, or
-    /// None if out of bounds.
+    ///   None if out of bounds.
     ///
     /// # Examples
     ///

@@ -23,7 +23,7 @@ struct Baz {
 
 // Create the SoA
 let mut soa = soa![
-    Baz { foo: 1, bar: 2 }, 
+    Baz { foo: 1, bar: 2 },
     Baz { foo: 3, bar: 4 },
 ];
 
@@ -54,7 +54,7 @@ assert_eq!(soa, soa![Baz { foo: 15, bar: 6 }, Baz { foo: 11, bar: 2}]);
 ## What is SoA?
 
 Whereas AoS stores all the fields of a type in each element of the array,
-SoA splits each field into its own array. For example, consider 
+SoA splits each field into its own array. For example, consider
 
 ```rust
 struct Example {
@@ -91,7 +91,7 @@ offer better performance:
 
 - By removing padding, each cacheline is typically more information-dense.
 - When accessing only a subset of the available fields, only data for those
-fields will be fetched. 
+  fields will be fetched.
 
 SoA does not offer performance wins in all cases. In particular, operations such
 as `push` and `pop` are usually slower than for `Vec` since the memory for each
@@ -109,7 +109,7 @@ contrast, AoS stores fields at disjoint locations in memory. Therefore,
 individual fields must be individually copied to different positions within the
 registers and, later, shuffled back out in the same way. This can prevent the
 compiler from applying vectorization. For this reason, SoA is much more likely
-to benefit from SIMD optimizations. 
+to benefit from SIMD optimizations.
 
 ### Examples
 
@@ -125,7 +125,7 @@ in the Zig compiler.
 `soa-rs-testing` contains a
 [benchmark](https://github.com/tim-harding/soa-rs/blob/92c12415d1fb8b9f2a015b35ff02a23b0e3aaa96/soa-rs-testing/benches/benchmark.rs#L82-L88)
 comparison that sums the dot products of 2¹⁶ 4D vectors. The `Vec` version runs
-in 132µs and the `Soa` version runs in 22µs, a 6x improvement. 
+in 132µs and the `Soa` version runs in 22µs, a 6x improvement.
 
 ## Comparison
 
