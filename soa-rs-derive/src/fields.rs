@@ -128,19 +128,19 @@ pub fn fields_struct(
         impl #deref {
             #(
             #vis_all fn #slice_getters_ref(&self) -> &[#ty_all] {
-                let ptr = self.0.raw().#ident_all.as_ptr();
-                let len = self.0.len();
-                unsafe {
-                    ::std::slice::from_raw_parts(ptr, len)
-                }
+                let slice = ::std::ptr::NonNull::slice_from_raw_parts(
+                    self.0.raw().#ident_all,
+                    self.0.len(),
+                );
+                unsafe { slice.as_ref() }
             }
 
             #vis_all fn #slice_getters_mut(&mut self) -> &mut [#ty_all] {
-                let ptr = self.0.raw().#ident_all.as_ptr();
-                let len = self.0.len();
-                unsafe {
-                    ::std::slice::from_raw_parts_mut(ptr, len)
-                }
+                let mut slice = ::std::ptr::NonNull::slice_from_raw_parts(
+                    self.0.raw().#ident_all,
+                    self.0.len(),
+                );
+                unsafe { slice.as_mut() }
             }
             )*
         }
@@ -187,7 +187,7 @@ pub fn fields_struct(
             fn as_soa_ref(&self) -> <Self::Item as Soars>::Ref<'_> {
                 #item_ref {
                     #(
-                        #ident_all: self.#ident_all,
+                    #ident_all: self.#ident_all,
                     )*
                 }
             }
@@ -267,10 +267,10 @@ pub fn fields_struct(
                 fn as_slice(&self) -> ::soa_rs::SliceRef<'_, Self::Item> {
                     let raw = #raw {
                         #(
-                            #ident_all: {
-                                let ptr = self.#ident_all.as_slice().as_ptr().cast_mut();
-                                unsafe { ::std::ptr::NonNull::new_unchecked(ptr) }
-                            },
+                        #ident_all: {
+                            let ptr = self.#ident_all.as_slice().as_ptr().cast_mut();
+                            unsafe { ::std::ptr::NonNull::new_unchecked(ptr) }
+                        },
                         )*
                     };
                     let slice = ::soa_rs::Slice::with_raw(raw);
@@ -283,10 +283,10 @@ pub fn fields_struct(
                 fn as_mut_slice(&mut self) -> ::soa_rs::SliceMut<'_, Self::Item> {
                     let raw = #raw {
                         #(
-                            #ident_all: {
-                                let ptr = self.#ident_all.as_mut_slice().as_mut_ptr();
-                                unsafe { ::std::ptr::NonNull::new_unchecked(ptr) }
-                            },
+                        #ident_all: {
+                            let ptr = self.#ident_all.as_mut_slice().as_mut_ptr();
+                            unsafe { ::std::ptr::NonNull::new_unchecked(ptr) }
+                        },
                         )*
                     };
                     let slice = ::soa_rs::Slice::with_raw(raw);
@@ -329,10 +329,10 @@ pub fn fields_struct(
             let layout = array;
             let mut offsets = [0usize; #offsets_len];
             #(
-                let array = ::std::alloc::Layout::array::<#ty_tail>(cap)#check;
-                #raise_align_tail
-                let (layout, offset) = layout.extend(array)#check;
-                offsets[#indices] = offset;
+            let array = ::std::alloc::Layout::array::<#ty_tail>(cap)#check;
+            #raise_align_tail
+            let (layout, offset) = layout.extend(array)#check;
+            offsets[#indices] = offset;
             )*
         }
     };
@@ -374,14 +374,16 @@ pub fn fields_struct(
             }
 
             #[inline]
-            unsafe fn with_offsets(ptr: *mut u8, offsets: [usize; #offsets_len]) -> Self {
+            const unsafe fn with_offsets(
+                ptr: ::std::ptr::NonNull<u8>,
+                offsets: [usize; #offsets_len],
+            ) -> Self
+            {
                 Self {
-                    #ident_head: ::std::ptr::NonNull::new_unchecked(ptr.cast()),
+                    #ident_head: ptr.cast(),
                     #(
-                    #ident_tail: ::std::ptr::NonNull::new_unchecked(
-                        ptr.add(offsets[#indices]).cast(),
-                    )
-                    ),*
+                    #ident_tail: ptr.add(offsets[#indices]).cast(),
+                    )*
                 }
             }
         }
@@ -398,15 +400,15 @@ pub fn fields_struct(
             }
 
             #[inline]
-            unsafe fn from_parts(ptr: *mut u8, capacity: usize) -> Self {
+            unsafe fn from_parts(ptr: ::std::ptr::NonNull<u8>, capacity: usize) -> Self {
                 // SAFETY: This should have come from a previous allocation
                 let (_, offsets) = Self::layout_and_offsets_unchecked(capacity);
                 Self::with_offsets(ptr, offsets)
             }
 
             #[inline]
-            fn into_parts(self) -> *mut u8 {
-                self.#ident_head.as_ptr().cast()
+            fn into_parts(self) -> ::std::ptr::NonNull<u8> {
+                self.#ident_head.cast()
             }
 
             #[inline]
@@ -415,9 +417,9 @@ pub fn fields_struct(
                     .expect("capacity overflow");
 
                 let ptr = ::std::alloc::alloc(new_layout);
-                if ptr.is_null() {
+                let Some(ptr) = ::std::ptr::NonNull::new(ptr) else {
                     ::std::alloc::handle_alloc_error(new_layout);
-                }
+                };
 
                 Self::with_offsets(ptr, new_offsets)
             }
@@ -437,9 +439,9 @@ pub fn fields_struct(
                 // Grow allocation first
                 let ptr = self.#ident_head.as_ptr().cast();
                 let ptr = ::std::alloc::realloc(ptr, old_layout, new_layout.size());
-                if ptr.is_null() {
+                let Some(ptr) = ::std::ptr::NonNull::new(ptr) else {
                     ::std::alloc::handle_alloc_error(new_layout);
-                }
+                };
 
                 // Pointer may have moved, can't reuse self
                 let old = Self::with_offsets(ptr, old_offsets);
@@ -448,7 +450,7 @@ pub fn fields_struct(
                 // Copy do destination in reverse order to avoid
                 // overwriting data
                 #(
-                    ::std::ptr::copy(old.#ident_rev.as_ptr(), new.#ident_rev.as_ptr(), length);
+                old.#ident_rev.copy_to(new.#ident_rev, length);
                 )*
 
                 new
@@ -469,16 +471,16 @@ pub fn fields_struct(
                 // Move data before reallocating as some data
                 // may be past the end of the new allocation.
                 // Copy from front to back to avoid overwriting data.
-                let ptr = self.#ident_head.as_ptr().cast();
+                let ptr = self.#ident_head.cast();
                 let dst = Self::with_offsets(ptr, new_offsets);
                 #(
-                    ::std::ptr::copy(self.#ident_all.as_ptr(), dst.#ident_all.as_ptr(), length);
+                self.#ident_all.copy_to(dst.#ident_all, length);
                 )*
 
-                let ptr = ::std::alloc::realloc(ptr, old_layout, new_layout.size());
-                if ptr.is_null() {
+                let ptr = ::std::alloc::realloc(ptr.as_ptr(), old_layout, new_layout.size());
+                let Some(ptr) = ::std::ptr::NonNull::new(ptr) else {
                     ::std::alloc::handle_alloc_error(new_layout);
-                }
+                };
 
                 // Pointer may have moved, can't reuse dst
                 Self::with_offsets(ptr, new_offsets)
@@ -494,33 +496,33 @@ pub fn fields_struct(
             #[inline]
             unsafe fn copy_to(self, dst: Self, count: usize) {
                 #(
-                    ::std::ptr::copy(self.#ident_all.as_ptr(), dst.#ident_all.as_ptr(), count);
+                self.#ident_all.copy_to(dst.#ident_all, count);
                 )*
             }
 
             #[inline]
             unsafe fn set(self, element: #ident) {
-                #(self.#ident_all.as_ptr().write(element.#ident_all);)*
+                #(self.#ident_all.write(element.#ident_all);)*
             }
 
             #[inline]
             unsafe fn get(self) -> #ident {
                 #ident {
-                    #(#ident_all: self.#ident_all.as_ptr().read(),)*
+                    #(#ident_all: self.#ident_all.read(),)*
                 }
             }
 
             #[inline]
             unsafe fn get_ref<'a>(self) -> #item_ref<'a> {
                 #item_ref {
-                    #(#ident_all: self.#ident_all.as_ptr().as_ref().unwrap_unchecked(),)*
+                    #(#ident_all: self.#ident_all.as_ref(),)*
                 }
             }
 
             #[inline]
-            unsafe fn get_mut<'a>(self) -> #item_ref_mut<'a> {
+            unsafe fn get_mut<'a>(mut self) -> #item_ref_mut<'a> {
                 #item_ref_mut {
-                    #(#ident_all: self.#ident_all.as_ptr().as_mut().unwrap_unchecked(),)*
+                    #(#ident_all: self.#ident_all.as_mut(),)*
                 }
             }
 
@@ -528,9 +530,7 @@ pub fn fields_struct(
             unsafe fn offset(self, count: usize) -> Self {
                 Self {
                     #(
-                    #ident_all: ::std::ptr::NonNull::new_unchecked(
-                        self.#ident_all.as_ptr().add(count)
-                    ),
+                    #ident_all: self.#ident_all.add(count),
                     )*
                 }
             }
@@ -539,9 +539,10 @@ pub fn fields_struct(
             unsafe fn slices<'a>(self, len: usize) -> #slices<'a> {
                 #slices {
                     #(
-                        #ident_all: unsafe {
-                            ::std::slice::from_raw_parts(self.#ident_all.as_ptr(), len)
-                        },
+                    #ident_all: ::std::ptr::NonNull::slice_from_raw_parts(
+                        self.#ident_all,
+                        len,
+                    ).as_ref(),
                     )*
                 }
             }
@@ -550,9 +551,10 @@ pub fn fields_struct(
             unsafe fn slices_mut<'a>(self, len: usize) -> #slices_mut<'a> {
                 #slices_mut {
                     #(
-                        #ident_all: unsafe {
-                            ::std::slice::from_raw_parts_mut(self.#ident_all.as_ptr(), len)
-                        },
+                    #ident_all: ::std::ptr::NonNull::slice_from_raw_parts(
+                        self.#ident_all,
+                        len,
+                    ).as_mut(),
                     )*
                 }
             }
@@ -565,7 +567,7 @@ pub fn fields_struct(
             fn as_soa_ref(&self) -> <Self::Item as ::soa_rs::Soars>::Ref<'_> {
                 #item_ref {
                     #(
-                        #ident_all: &self.#ident_all,
+                    #ident_all: &self.#ident_all,
                     )*
                 }
             }

@@ -10,6 +10,7 @@ use std::{
     marker::PhantomData,
     mem::{needs_drop, size_of, ManuallyDrop},
     ops::{Deref, DerefMut},
+    ptr::NonNull,
 };
 
 /// A growable array type that stores the values for each field of `T`
@@ -190,7 +191,7 @@ where
     /// let rebuilt = unsafe { Soa::<Foo>::from_raw_parts(ptr, len, cap) };
     /// assert_eq!(rebuilt, soa![Foo(1), Foo(2)]);
     /// ```
-    pub fn into_raw_parts(self) -> (*mut u8, usize, usize) {
+    pub fn into_raw_parts(self) -> (NonNull<u8>, usize, usize) {
         let me = ManuallyDrop::new(self);
         (me.raw().into_parts(), me.len, me.cap)
     }
@@ -204,7 +205,7 @@ where
     /// details of [`SoaRaw`], it is better not to uphold them manually. Rather,
     /// it only valid to call this method with the output of a previous call to
     /// [`Soa::into_raw_parts`].
-    pub unsafe fn from_raw_parts(ptr: *mut u8, length: usize, capacity: usize) -> Self {
+    pub unsafe fn from_raw_parts(ptr: NonNull<u8>, length: usize, capacity: usize) -> Self {
         Self {
             cap: capacity,
             slice: Slice::with_raw(unsafe { T::Raw::from_parts(ptr, capacity) }),

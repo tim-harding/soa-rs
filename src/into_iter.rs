@@ -6,6 +6,7 @@ use std::{
     fmt::Debug,
     iter::FusedIterator,
     mem::{needs_drop, size_of},
+    ptr::NonNull,
 };
 
 /// An iterator that moves out of a [`Soa`].
@@ -20,7 +21,7 @@ where
     T: Soars,
 {
     pub(crate) iter_raw: IterRaw<T, Self>,
-    pub(crate) ptr: *mut u8,
+    pub(crate) ptr: NonNull<u8>,
     pub(crate) cap: usize,
 }
 

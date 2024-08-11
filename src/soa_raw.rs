@@ -1,3 +1,5 @@
+use std::ptr::NonNull;
+
 use crate::Soars;
 
 /// A low-level utility providing fundamental operations needed by [`Soa`].
@@ -42,7 +44,7 @@ pub unsafe trait SoaRaw: Copy + Clone {
     /// `PREV_CAP == capacity`.
     ///
     /// [`into_parts`]: SoaRaw::into_parts
-    unsafe fn from_parts(ptr: *mut u8, capacity: usize) -> Self;
+    unsafe fn from_parts(ptr: NonNull<u8>, capacity: usize) -> Self;
 
     /// Decomposes a [`SoaRaw`] into its raw components.
     ///
@@ -50,7 +52,7 @@ pub unsafe trait SoaRaw: Copy + Clone {
     /// be used as the first argument to [`from_parts`].
     ///
     /// [`from_parts`]: SoaRaw::from_parts
-    fn into_parts(self) -> *mut u8;
+    fn into_parts(self) -> NonNull<u8>;
 
     /// Allocates room for `capacity` elements.
     ///
