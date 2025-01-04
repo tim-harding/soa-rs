@@ -160,10 +160,10 @@ pub fn fields_struct(
         let ty_mapped = ty_all.iter().map(type_mapper);
         match kind {
             FieldKind::Named => quote! {
-                { #(#[automatically_derived] #vis_all #ident_all: #ty_mapped),* }
+                { #(#[automatically_derived] #[allow(dead_code)] #vis_all #ident_all: #ty_mapped),* }
             },
             FieldKind::Unnamed => quote! {
-                ( #(#[automatically_derived] #vis_all #ty_mapped),* );
+                ( #(#[automatically_derived] #[allow(dead_code)] #vis_all #ty_mapped),* );
             },
         }
     };
@@ -231,9 +231,9 @@ pub fn fields_struct(
                     let array = ::std::mem::ManuallyDrop::new(array);
                     let array = ::std::ptr::from_ref::<::std::mem::ManuallyDrop<[#ident; N]>>(&array);
                     let array = array.cast::<[#ident; N]>();
-                    // SAFETY: Getting a slice this way is okay 
-                    // because the memory comes from an array, 
-                    // which is initialized and well-aligned. 
+                    // SAFETY: Getting a slice this way is okay
+                    // because the memory comes from an array,
+                    // which is initialized and well-aligned.
                     let array = unsafe { &*array };
 
                     Self {
@@ -243,7 +243,7 @@ pub fn fields_struct(
                             let mut i = 0;
                             while i < N {
                                 let src = ::std::ptr::from_ref(&array[i].#ident_all);
-                                // SAFETY: This pointer is safe to read 
+                                // SAFETY: This pointer is safe to read
                                 // because it comes from a reference.
                                 let read = unsafe { src.read() };
                                 uninit[i] = ::std::mem::MaybeUninit::new(read);
