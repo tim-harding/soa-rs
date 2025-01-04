@@ -90,8 +90,6 @@ impl SoaAttrs {
                 derive_parse.append(attr)?;
             } else if path.is_ident("soa_array") {
                 include_array = true;
-            } else {
-                return Err(syn::Error::new_spanned(attr, "Unknown SOA attribute"));
             }
         }
 

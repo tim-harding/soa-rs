@@ -159,7 +159,6 @@ pub enum ZstKind {
     Unit,
     /// struct Unit {};
     Empty,
-    #[allow(unused)]
     /// struct Unit();
     EmptyTuple,
 }
