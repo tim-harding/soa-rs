@@ -30,7 +30,7 @@ pub unsafe trait Soars: AsSoaRef<Item = Self> {
     /// For each field with type `T`, this type has a field with type `&T`.
     ///
     /// [`Slice`]: crate::Slice
-    type Ref<'a>: Copy + Clone + AsSoaRef<Item = Self>
+    type Ref<'a>: AsSoaRef<Item = Self>
     where
         Self: 'a;
 

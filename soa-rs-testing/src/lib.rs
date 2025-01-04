@@ -5,7 +5,7 @@
 // https://github.com/tim-harding/soa-rs/issues/17
 #[allow(dead_code)]
 #[derive(Soars)]
-struct AllowUnknownAttributes(f32);
+struct AllowUnknownAttributes;
 
 use soa_rs::{soa, AsMutSlice, AsSlice, AsSoaRef, Soa, Soars};
 use std::sync::Mutex;
