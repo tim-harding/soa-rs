@@ -667,3 +667,13 @@ fn mutex() {
     #[derive(Soars)]
     struct M(Mutex<usize>);
 }
+
+#[test]
+fn no_dead_code_warning() {
+    #![deny(dead_code)]
+
+    #[derive(Soars)]
+    struct NeverUsed {
+        field: i32,
+    }
+}
