@@ -21,7 +21,7 @@ where
     pub(crate) marker: PhantomData<&'a T>,
 }
 
-impl<'a, T> SliceRef<'a, T>
+impl<T> SliceRef<'_, T>
 where
     T: Soars,
 {
@@ -43,7 +43,7 @@ where
     }
 }
 
-impl<'a, T> Clone for SliceRef<'a, T>
+impl<T> Clone for SliceRef<'_, T>
 where
     T: Soars,
 {
@@ -54,7 +54,7 @@ where
 
 impl<'a, T> Copy for SliceRef<'a, T> where T: 'a + Soars {}
 
-impl<'a, T> AsRef<Slice<T>> for SliceRef<'a, T>
+impl<T> AsRef<Slice<T>> for SliceRef<'_, T>
 where
     T: Soars,
 {
@@ -66,7 +66,7 @@ where
     }
 }
 
-impl<'a, T> Deref for SliceRef<'a, T>
+impl<T> Deref for SliceRef<'_, T>
 where
     T: Soars,
 {
@@ -96,7 +96,7 @@ where
     }
 }
 
-impl<'a, T> Debug for SliceRef<'a, T>
+impl<T> Debug for SliceRef<'_, T>
 where
     T: Soars,
     for<'b> T::Ref<'b>: Debug,
@@ -106,7 +106,7 @@ where
     }
 }
 
-impl<'a, T> PartialOrd for SliceRef<'a, T>
+impl<T> PartialOrd for SliceRef<'_, T>
 where
     T: Soars,
     for<'b> T::Ref<'b>: PartialOrd,
@@ -116,7 +116,7 @@ where
     }
 }
 
-impl<'a, T> Ord for SliceRef<'a, T>
+impl<T> Ord for SliceRef<'_, T>
 where
     T: Soars + Ord,
     for<'b> T::Ref<'b>: Ord,
@@ -126,7 +126,7 @@ where
     }
 }
 
-impl<'a, T> Hash for SliceRef<'a, T>
+impl<T> Hash for SliceRef<'_, T>
 where
     T: Soars,
     for<'b> T::Ref<'b>: Hash,

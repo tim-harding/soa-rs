@@ -22,7 +22,7 @@ where
     pub(crate) _marker: PhantomData<&'a T>,
 }
 
-impl<'a, T> Debug for Iter<'a, T>
+impl<T> Debug for Iter<'_, T>
 where
     T: Soars,
     for<'b> T::Ref<'b>: Debug,
@@ -32,7 +32,7 @@ where
     }
 }
 
-impl<'a, T> Default for Iter<'a, T>
+impl<T> Default for Iter<'_, T>
 where
     T: Soars,
 {
@@ -48,7 +48,7 @@ where
     }
 }
 
-impl<'a, T> Clone for Iter<'a, T>
+impl<T> Clone for Iter<'_, T>
 where
     T: Soars,
 {

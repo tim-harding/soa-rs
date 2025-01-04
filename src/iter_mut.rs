@@ -22,7 +22,7 @@ where
     pub(crate) _marker: PhantomData<&'a mut T>,
 }
 
-impl<'a, T> Debug for IterMut<'a, T>
+impl<T> Debug for IterMut<'_, T>
 where
     T: Soars,
     for<'b> T::Ref<'b>: Debug,
@@ -32,7 +32,7 @@ where
     }
 }
 
-impl<'a, T> Default for IterMut<'a, T>
+impl<T> Default for IterMut<'_, T>
 where
     T: Soars,
 {

@@ -21,7 +21,7 @@ where
     pub(crate) marker: PhantomData<&'a mut T>,
 }
 
-impl<'a, T> SliceMut<'a, T>
+impl<T> SliceMut<'_, T>
 where
     T: Soars,
 {
@@ -43,7 +43,7 @@ where
     }
 }
 
-impl<'a, T> AsRef<Slice<T>> for SliceMut<'a, T>
+impl<T> AsRef<Slice<T>> for SliceMut<'_, T>
 where
     T: Soars,
 {
@@ -52,7 +52,7 @@ where
     }
 }
 
-impl<'a, T> AsMut<Slice<T>> for SliceMut<'a, T>
+impl<T> AsMut<Slice<T>> for SliceMut<'_, T>
 where
     T: Soars,
 {
@@ -61,7 +61,7 @@ where
     }
 }
 
-impl<'a, T> Deref for SliceMut<'a, T>
+impl<T> Deref for SliceMut<'_, T>
 where
     T: Soars,
 {
@@ -75,7 +75,7 @@ where
     }
 }
 
-impl<'a, T> DerefMut for SliceMut<'a, T>
+impl<T> DerefMut for SliceMut<'_, T>
 where
     T: Soars,
 {
@@ -106,7 +106,7 @@ where
     }
 }
 
-impl<'a, T> Debug for SliceMut<'a, T>
+impl<T> Debug for SliceMut<'_, T>
 where
     T: Soars,
     for<'b> T::Ref<'b>: Debug,
@@ -116,7 +116,7 @@ where
     }
 }
 
-impl<'a, T> PartialOrd for SliceMut<'a, T>
+impl<T> PartialOrd for SliceMut<'_, T>
 where
     T: Soars,
     for<'b> T::Ref<'b>: PartialOrd,
@@ -126,7 +126,7 @@ where
     }
 }
 
-impl<'a, T> Ord for SliceMut<'a, T>
+impl<T> Ord for SliceMut<'_, T>
 where
     T: Soars,
     for<'b> T::Ref<'b>: Ord,
@@ -136,7 +136,7 @@ where
     }
 }
 
-impl<'a, T> Hash for SliceMut<'a, T>
+impl<T> Hash for SliceMut<'_, T>
 where
     T: Soars,
     for<'b> T::Ref<'b>: Hash,
