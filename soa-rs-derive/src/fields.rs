@@ -175,7 +175,7 @@ pub fn fields_struct(
         #vis struct #item_ref<'a> #item_ref_def
 
         #[automatically_derived]
-        impl<'a> ::soa_rs::AsSoaRef for #item_ref<'a> {
+        impl ::soa_rs::AsSoaRef for #item_ref<'_> {
             type Item = #ident;
 
             fn as_soa_ref(&self) -> <Self::Item as Soars>::Ref<'_> {
@@ -191,7 +191,7 @@ pub fn fields_struct(
         #vis struct #item_ref_mut<'a> #item_ref_mut_def
 
         #[automatically_derived]
-        impl<'a> ::soa_rs::AsSoaRef for #item_ref_mut<'a> {
+        impl ::soa_rs::AsSoaRef for #item_ref_mut<'_> {
             type Item = #ident;
 
             fn as_soa_ref(&self) -> <Self::Item as Soars>::Ref<'_> {
