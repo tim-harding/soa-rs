@@ -632,7 +632,7 @@ pub fn fields_struct(
 
         #[automatically_derived]
         impl ::soa_rs::AsSoaRef for #ident {
-            type Item = #ident;
+            type Item = Self;
 
             fn as_soa_ref(&self) -> <Self::Item as ::soa_rs::Soars>::Ref<'_> {
                 #item_ref {
