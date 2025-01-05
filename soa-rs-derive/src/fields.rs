@@ -107,7 +107,7 @@ pub fn fields_struct(
         .unzip();
 
     out.append_all(quote! {
-        #[automatically_derived]
+        #[allow(dead_code)]
         #[repr(transparent)]
         #vis struct #deref(::soa_rs::Slice<#ident>);
 
@@ -160,10 +160,10 @@ pub fn fields_struct(
         let ty_mapped = ty_all.iter().map(type_mapper);
         match kind {
             FieldKind::Named => quote! {
-                { #(#[automatically_derived] #[allow(dead_code)] #vis_all #ident_all: #ty_mapped),* }
+                { #(#[allow(dead_code)] #vis_all #ident_all: #ty_mapped),* }
             },
             FieldKind::Unnamed => quote! {
-                ( #(#[automatically_derived] #[allow(dead_code)] #vis_all #ty_mapped),* );
+                ( #(#[allow(dead_code)] #vis_all #ty_mapped),* );
             },
         }
     };
@@ -171,7 +171,7 @@ pub fn fields_struct(
     let item_ref_def = define(&|ty| quote! { &'a #ty });
     out.append_all(quote! {
         #derive_ref
-        #[automatically_derived]
+        #[allow(dead_code)]
         #vis struct #item_ref<'a> #item_ref_def
 
         #[automatically_derived]
@@ -187,7 +187,7 @@ pub fn fields_struct(
     let item_ref_mut_def = define(&|ty| quote! { &'a mut #ty });
     out.append_all(quote! {
         #derive_ref_mut
-        #[automatically_derived]
+        #[allow(dead_code)]
         #vis struct #item_ref_mut<'a> #item_ref_mut_def
 
         #[automatically_derived]
@@ -207,14 +207,14 @@ pub fn fields_struct(
     let slices_def = define(&|ty| quote! { &'a [#ty] });
     out.append_all(quote! {
         #derive_slices
-        #[automatically_derived]
+        #[allow(dead_code)]
         #vis struct #slices<'a> #slices_def
     });
 
     let slices_mut_def = define(&|ty| quote! { &'a mut [#ty] });
     out.append_all(quote! {
         #derive_slices_mut
-        #[automatically_derived]
+        #[allow(dead_code)]
         #vis struct #slices_mut<'a> #slices_mut_def
     });
 
@@ -222,7 +222,7 @@ pub fn fields_struct(
         let array_def = define(&|ty| quote! { [#ty; N] });
         out.append_all(quote! {
             #derive_array
-            #[automatically_derived]
+            #[allow(dead_code)]
             #vis struct #array<const N: usize> #array_def
 
             #[automatically_derived]
@@ -344,7 +344,7 @@ pub fn fields_struct(
     let layout_and_offsets_unchecked_body = layout_and_offsets_body(false);
 
     out.append_all(quote! {
-        #[automatically_derived]
+        #[allow(dead_code)]
         #[derive(Copy, Clone)]
         #vis struct #raw #raw_body
 

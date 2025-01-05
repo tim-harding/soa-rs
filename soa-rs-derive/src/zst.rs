@@ -24,7 +24,7 @@ pub fn zst_struct(ident: Ident, vis: Visibility, kind: ZstKind) -> TokenStream {
             type SlicesMut<'a> = #ident;
         }
 
-        #[automatically_derived]
+        #[allow(dead_code)]
         #vis struct #array<const N: usize>;
 
         #[automatically_derived]
@@ -54,7 +54,7 @@ pub fn zst_struct(ident: Ident, vis: Visibility, kind: ZstKind) -> TokenStream {
         }
 
         // TODO: Consolidate duplication from fields
-        #[automatically_derived]
+        #[allow(dead_code)]
         #[repr(transparent)]
         #vis struct #deref(::soa_rs::Slice<#ident>);
 
@@ -82,7 +82,7 @@ pub fn zst_struct(ident: Ident, vis: Visibility, kind: ZstKind) -> TokenStream {
             }
         }
 
-        #[automatically_derived]
+        #[allow(dead_code)]
         #[derive(Copy, Clone)]
         #vis struct #raw;
 
