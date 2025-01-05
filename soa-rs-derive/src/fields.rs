@@ -129,7 +129,7 @@ pub fn fields_struct(
         #[automatically_derived]
         impl #deref {
             #(
-            #vis_all fn #slice_getters_ref(&self) -> &[#ty_all] {
+            #vis_all const fn #slice_getters_ref(&self) -> &[#ty_all] {
                 let slice = ::std::ptr::NonNull::slice_from_raw_parts(
                     self.0.raw().#ident_all,
                     self.0.len(),
@@ -141,7 +141,7 @@ pub fn fields_struct(
                 unsafe { slice.as_ref() }
             }
 
-            #vis_all fn #slice_getters_mut(&mut self) -> &mut [#ty_all] {
+            #vis_all const fn #slice_getters_mut(&mut self) -> &mut [#ty_all] {
                 let mut slice = ::std::ptr::NonNull::slice_from_raw_parts(
                     self.0.raw().#ident_all,
                     self.0.len(),
