@@ -677,3 +677,17 @@ fn no_dead_code_warning() {
         field: i32,
     }
 }
+
+#[test]
+fn for_each_double_free() {
+    #[derive(Soars)]
+    pub struct Example {
+        pub content: String,
+    }
+
+    let buffer = soa_rs::soa![Example {
+        content: "foo".into(),
+    }];
+
+    buffer.into_iter().for_each(|_| {});
+}
