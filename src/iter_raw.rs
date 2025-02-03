@@ -106,10 +106,12 @@ where
         }
     }
 
+    #[inline]
     fn size_hint(&self) -> (usize, Option<usize>) {
         (self.len, Some(self.len))
     }
 
+    #[inline]
     fn count(self) -> usize
     where
         Self: Sized,
@@ -117,6 +119,7 @@ where
         self.len
     }
 
+    #[inline]
     fn last(mut self) -> Option<Self::Item>
     where
         Self: Sized,
