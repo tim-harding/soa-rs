@@ -117,75 +117,11 @@ where
         self.len
     }
 
-    #[inline]
-    fn nth(&mut self, n: usize) -> Option<Self::Item> {
-        if n >= self.len {
-            self.len = 0;
-            None
-        } else {
-            let raw = self.slice.raw();
-            // SAFETY: n < length so we can offset by at least n
-            let raw = unsafe { raw.offset(n) };
-            // SAFETY: We offset by less than length
-            // so `raw` points to at least one item.
-            let out = Some(unsafe { A::item_from_raw(raw) });
-
-            // nth(n) consumes item n so we need to advance one more
-            self.len -= n + 1;
-            // SAFETY: n < length so we can offset by at least n+1
-            // (we already offset by n)
-            self.slice.raw = unsafe { raw.offset(1) };
-
-            out
-        }
-    }
-
-    fn last(self) -> Option<Self::Item>
+    fn last(mut self) -> Option<Self::Item>
     where
         Self: Sized,
     {
-        if self.len == 0 {
-            None
-        } else {
-            let raw = self.slice.raw();
-            // SAFETY: Offsetting to one before length leaves one item to read
-            Some(unsafe { A::item_from_raw(raw.offset(self.len - 1)) })
-        }
-    }
-
-    fn fold<B, F>(self, init: B, mut f: F) -> B
-    where
-        Self: Sized,
-        F: FnMut(B, Self::Item) -> B,
-    {
-        let Self {
-            slice,
-            len,
-            adapter: _,
-        } = self;
-        let raw = slice.raw();
-        if len == 0 {
-            return init;
-        }
-        let mut acc = init;
-        let mut i = 0;
-        loop {
-            // SAFETY: i < len so offsetting by i leaves at least one item to read
-            let raw = unsafe { A::item_from_raw(raw.offset(i)) };
-            acc = f(acc, raw);
-
-            // SAFETY: see std::slice::Iter::fold
-            //
-            // `i` can't overflow since it'll only reach usize::MAX if the
-            // slice had that length, in which case we'll break out of the loop
-            // after the increment
-            i = unsafe { i.unchecked_add(1) };
-
-            if i == len {
-                break;
-            }
-        }
-        acc
+        self.next_back()
     }
 }
 
@@ -200,19 +136,6 @@ where
             None
         } else {
             self.len -= 1;
-            // SAFETY: After adjusting len, len refers to the last item at the
-            // previous size. Offsetting by len will point to at least one item.
-            Some(unsafe { A::item_from_raw(self.slice.raw.offset(self.len)) })
-        }
-    }
-
-    #[inline]
-    fn nth_back(&mut self, n: usize) -> Option<Self::Item> {
-        if n >= self.len {
-            self.len = 0;
-            None
-        } else {
-            self.len -= n + 1;
             // SAFETY: After adjusting len, len refers to the last item at the
             // previous size. Offsetting by len will point to at least one item.
             Some(unsafe { A::item_from_raw(self.slice.raw.offset(self.len)) })
@@ -258,23 +181,11 @@ macro_rules! iter_with_raw {
                 self.iter_raw.count()
             }
 
-            fn nth(&mut self, n: usize) -> Option<Self::Item> {
-                self.iter_raw.nth(n)
-            }
-
             fn last(self) -> Option<Self::Item>
             where
                 Self: Sized,
             {
                 self.iter_raw.last()
-            }
-
-            fn fold<B, F>(self, init: B, f: F) -> B
-            where
-                Self: Sized,
-                F: FnMut(B, Self::Item) -> B,
-            {
-                self.iter_raw.fold(init, f)
             }
         }
 
