@@ -678,6 +678,8 @@ fn no_dead_code_warning() {
     }
 }
 
+// Regression test for
+// https://github.com/tim-harding/soa-rs/issues/20
 #[test]
 fn for_each_double_free() {
     #[derive(Soars)]
