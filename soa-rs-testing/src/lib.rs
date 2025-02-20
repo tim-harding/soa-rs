@@ -693,3 +693,13 @@ fn for_each_double_free() {
 
     buffer.into_iter().for_each(|_| {});
 }
+
+#[test]
+fn no_transmute_ptr_to_ptr_warning() {
+    #![deny(clippy::transmute_ptr_to_ptr)]
+
+    #[derive(Soars)]
+    struct Dummy {
+        field: i32,
+    }
+}
