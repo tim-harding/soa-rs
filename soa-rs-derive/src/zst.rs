@@ -18,10 +18,10 @@ pub fn zst_struct(ident: Ident, vis: Visibility, kind: ZstKind) -> TokenStream {
         unsafe impl ::soa_rs::Soars for #ident {
             type Raw = #raw;
             type Deref = #deref;
-            type Ref<'a> = #ident;
-            type RefMut<'a> = #ident;
-            type Slices<'a> = #ident;
-            type SlicesMut<'a> = #ident;
+            type Ref<'a> = Self;
+            type RefMut<'a> = Self;
+            type Slices<'a> = Self;
+            type SlicesMut<'a> = Self;
         }
 
         #[allow(dead_code)]
@@ -64,21 +64,23 @@ pub fn zst_struct(ident: Ident, vis: Visibility, kind: ZstKind) -> TokenStream {
 
             fn from_slice(slice: &::soa_rs::Slice<Self::Item>) -> &Self {
                 // SAFETY: Self is `repr(transparent)` of Slice
+                #[allow(clippy::transmute_ptr_to_ptr)]
                 unsafe { ::std::mem::transmute(slice) }
             }
 
             fn from_slice_mut(slice: &mut ::soa_rs::Slice<Self::Item>) -> &mut Self {
                 // SAFETY: Self is `repr(transparent)` of Slice
+                #[allow(clippy::transmute_ptr_to_ptr)]
                 unsafe { ::std::mem::transmute(slice) }
             }
         }
 
         #[automatically_derived]
         impl ::soa_rs::AsSoaRef for #ident {
-            type Item = #ident;
+            type Item = Self;
 
             fn as_soa_ref(&self) -> Self::Item {
-                #ident #unit_construct
+                Self #unit_construct
             }
         }
 

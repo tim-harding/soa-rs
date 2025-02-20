@@ -47,7 +47,7 @@ impl Vec4 {
     }
 }
 
-impl<'a> Vec4Ref<'a> {
+impl Vec4Ref<'_> {
     fn dot(&self, other: &Self) -> f32 {
         self.0 * other.0 + self.1 * other.1 + self.2 * other.2 + self.3 * other.3
     }
