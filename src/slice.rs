@@ -88,9 +88,9 @@ where
     /// - `length` must be valid for the underlying type `T`.
     /// - The lifetime of the returned reference is unconstrained. Ensure that
     ///   the right lifetimes are applied.
-    pub(crate) unsafe fn as_unsized_mut<'a>(&mut self, len: usize) -> &'a mut Slice<T> {
+    pub(crate) unsafe fn as_unsized_mut<'a>(&mut self, len: usize) -> &'a mut Slice<T> { unsafe {
         &mut *(std::ptr::slice_from_raw_parts_mut(self, len) as *mut Slice<T>)
-    }
+    }}
 
     /// Converts to an unsized variant.
     ///
@@ -99,9 +99,9 @@ where
     /// - `length` must be valid for the underlying type `T`.
     /// - The lifetime of the returned reference is unconstrained. Ensure that
     ///   the right lifetimes are applied.
-    pub(crate) unsafe fn as_unsized<'a>(&self, len: usize) -> &'a Slice<T> {
+    pub(crate) unsafe fn as_unsized<'a>(&self, len: usize) -> &'a Slice<T> { unsafe {
         &*(std::ptr::slice_from_raw_parts(self, len) as *const Slice<T>)
-    }
+    }}
 }
 
 impl<T, D> Slice<T, D>
@@ -561,9 +561,9 @@ where
     /// example, [`PhantomData`].
     ///
     /// [`PhantomData`]: std::marker::PhantomData
-    pub(crate) const unsafe fn as_sized(&self) -> Slice<T, ()> {
+    pub(crate) const unsafe fn as_sized(&self) -> Slice<T, ()> { unsafe {
         *(std::ptr::from_ref(self).cast())
-    }
+    }}
 }
 
 impl<T> Clone for Slice<T, ()>

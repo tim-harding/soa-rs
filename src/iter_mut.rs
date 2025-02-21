@@ -54,9 +54,9 @@ where
 {
     type Item = T::RefMut<'a>;
 
-    unsafe fn item_from_raw(raw: <T as Soars>::Raw) -> Self::Item {
+    unsafe fn item_from_raw(raw: <T as Soars>::Raw) -> Self::Item { unsafe {
         raw.get_mut()
-    }
+    }}
 }
 
 impl<'a, T> IterMut<'a, T>

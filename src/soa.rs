@@ -208,13 +208,13 @@ where
     /// details of [`SoaRaw`], it is better not to uphold them manually. Rather,
     /// it only valid to call this method with the output of a previous call to
     /// [`Soa::into_raw_parts`].
-    pub unsafe fn from_raw_parts(ptr: NonNull<u8>, length: usize, capacity: usize) -> Self {
+    pub unsafe fn from_raw_parts(ptr: NonNull<u8>, length: usize, capacity: usize) -> Self { unsafe {
         Self {
             cap: capacity,
             slice: Slice::with_raw(T::Raw::from_parts(ptr, capacity)),
             len: length,
         }
-    }
+    }}
 
     /// Appends an element to the back of a collection.
     ///
