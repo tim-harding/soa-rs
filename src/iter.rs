@@ -78,9 +78,9 @@ where
 {
     type Item = T::Ref<'a>;
 
-    unsafe fn item_from_raw(raw: T::Raw) -> Self::Item { unsafe {
-        raw.get_ref()
-    }}
+    unsafe fn item_from_raw(raw: T::Raw) -> Self::Item {
+        unsafe { raw.get_ref() }
+    }
 }
 
 iter_with_raw!(Iter<'a, T>, 'a);

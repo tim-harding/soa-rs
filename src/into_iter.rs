@@ -31,9 +31,9 @@ where
 {
     type Item = T;
 
-    unsafe fn item_from_raw(raw: T::Raw) -> Self::Item { unsafe {
-        raw.get()
-    }}
+    unsafe fn item_from_raw(raw: T::Raw) -> Self::Item {
+        unsafe { raw.get() }
+    }
 }
 
 impl<T> Default for IntoIter<T>
