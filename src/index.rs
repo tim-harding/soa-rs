@@ -30,9 +30,13 @@ impl<T> SoaIndex<T> for usize
 where
     T: Soars,
 {
-    type Output<'a> = T::Ref<'a> where T: 'a;
+    type Output<'a>
+        = T::Ref<'a>
+    where
+        T: 'a;
 
-    type OutputMut<'a> = T::RefMut<'a>
+    type OutputMut<'a>
+        = T::RefMut<'a>
     where
         T: 'a;
 
@@ -63,11 +67,13 @@ impl<T> SoaIndex<T> for RangeFull
 where
     T: Soars,
 {
-    type Output<'a> = SliceRef<'a, T>
+    type Output<'a>
+        = SliceRef<'a, T>
     where
         T: 'a;
 
-    type OutputMut<'a> = SliceMut<'a, T>
+    type OutputMut<'a>
+        = SliceMut<'a, T>
     where
         T: 'a;
 
@@ -96,11 +102,13 @@ impl<T> SoaIndex<T> for Range<usize>
 where
     T: Soars,
 {
-    type Output<'a> = SliceRef<'a, T>
+    type Output<'a>
+        = SliceRef<'a, T>
     where
         T: 'a;
 
-    type OutputMut<'a> = SliceMut<'a, T>
+    type OutputMut<'a>
+        = SliceMut<'a, T>
     where
         T: 'a;
 
@@ -130,11 +138,13 @@ impl<T> SoaIndex<T> for RangeTo<usize>
 where
     T: Soars,
 {
-    type Output<'a> = SliceRef<'a, T>
+    type Output<'a>
+        = SliceRef<'a, T>
     where
         T: 'a;
 
-    type OutputMut<'a> = SliceMut<'a, T>
+    type OutputMut<'a>
+        = SliceMut<'a, T>
     where
         T: 'a;
 
@@ -153,11 +163,13 @@ impl<T> SoaIndex<T> for RangeToInclusive<usize>
 where
     T: Soars,
 {
-    type Output<'a> = SliceRef<'a, T>
+    type Output<'a>
+        = SliceRef<'a, T>
     where
         T: 'a;
 
-    type OutputMut<'a> = SliceMut<'a, T>
+    type OutputMut<'a>
+        = SliceMut<'a, T>
     where
         T: 'a;
 
@@ -176,11 +188,13 @@ impl<T> SoaIndex<T> for RangeFrom<usize>
 where
     T: Soars,
 {
-    type Output<'a> = SliceRef<'a, T>
+    type Output<'a>
+        = SliceRef<'a, T>
     where
         T: 'a;
 
-    type OutputMut<'a> = SliceMut<'a, T>
+    type OutputMut<'a>
+        = SliceMut<'a, T>
     where
         T: 'a;
 
@@ -199,11 +213,13 @@ impl<T> SoaIndex<T> for RangeInclusive<usize>
 where
     T: Soars,
 {
-    type Output<'a> = SliceRef<'a, T>
+    type Output<'a>
+        = SliceRef<'a, T>
     where
         T: 'a;
 
-    type OutputMut<'a> = SliceMut<'a, T>
+    type OutputMut<'a>
+        = SliceMut<'a, T>
     where
         T: 'a;
 
