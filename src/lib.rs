@@ -294,7 +294,7 @@ macro_rules! soa {
         $crate::Soa::new()
     };
 
-    ($x:expr_2021 $(,$xs:expr_2021)* $(,)?) => {
+    ($x:expr $(,$xs:expr)* $(,)?) => {
         {
             let mut out = $crate::Soa::with($x);
             $(
@@ -304,15 +304,15 @@ macro_rules! soa {
         }
     };
 
-    ($elem:expr_2021; 0) => {
+    ($elem:expr; 0) => {
         soa![]
     };
 
-    ($elem:expr_2021; 1) => {
+    ($elem:expr; 1) => {
         $crate::Soa::with($elem)
     };
 
-    ($elem:expr_2021; $n:expr_2021) => {
+    ($elem:expr; $n:expr) => {
         {
             let elem = $elem;
             let mut out = $crate::Soa::with(elem.clone());
