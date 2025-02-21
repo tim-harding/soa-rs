@@ -26,7 +26,7 @@ pub fn fields_struct(
     } = soa_attrs;
 
     let fields_len = fields.len();
-    let (vis_all, (ty_all, (ident_all, attrs_all))): (Vec<_>, (Vec<_>, (Vec<_>, Vec<_>))) = fields
+    let (vis_all, ty_all, ident_all, attrs_all): (Vec<_>, Vec<_>, Vec<_>, Vec<_>) = fields
         .into_iter()
         .enumerate()
         .map(|(i, field)| {
@@ -39,9 +39,9 @@ pub fn fields_struct(
                 ty,
             } = field;
             let ident: FieldIdent = (i, ident).into();
-            (vis, (ty, (ident, attrs)))
+            (vis, ty, ident, attrs)
         })
-        .unzip();
+        .collect();
 
     let align_all: Result<Vec<_>, syn::Error> = attrs_all
         .into_iter()
@@ -104,7 +104,7 @@ pub fn fields_struct(
                 (format_ident!("f{unnamed}"), format_ident!("f{unnamed}_mut"))
             }
         })
-        .unzip();
+        .collect();
 
     out.append_all(quote! {
         #[allow(dead_code)]
