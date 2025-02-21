@@ -16,7 +16,7 @@ debug = true
 members = ["soa-rs-derive", "soa-rs-testing"]
 
 [dependencies.soa-rs-derive]
-version = "0.7.5"
+version = "0.8.0"
 path = "soa-rs-derive"
 
 [dependencies.serde]
