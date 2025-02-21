@@ -89,7 +89,8 @@ where
     /// - The lifetime of the returned reference is unconstrained. Ensure that
     ///   the right lifetimes are applied.
     pub(crate) unsafe fn as_unsized_mut<'a>(&mut self, len: usize) -> &'a mut Slice<T> {
-        &mut *(std::ptr::slice_from_raw_parts_mut(self, len) as *mut Slice<T>)
+        let ptr = std::ptr::slice_from_raw_parts_mut(self, len) as *mut Slice<T>;
+        unsafe { &mut *ptr }
     }
 
     /// Converts to an unsized variant.
@@ -100,7 +101,8 @@ where
     /// - The lifetime of the returned reference is unconstrained. Ensure that
     ///   the right lifetimes are applied.
     pub(crate) unsafe fn as_unsized<'a>(&self, len: usize) -> &'a Slice<T> {
-        &*(std::ptr::slice_from_raw_parts(self, len) as *const Slice<T>)
+        let ptr = std::ptr::slice_from_raw_parts(self, len) as *const Slice<T>;
+        unsafe { &*ptr }
     }
 }
 
@@ -562,7 +564,8 @@ where
     ///
     /// [`PhantomData`]: std::marker::PhantomData
     pub(crate) const unsafe fn as_sized(&self) -> Slice<T, ()> {
-        *(std::ptr::from_ref(self).cast())
+        let ptr = std::ptr::from_ref(self).cast();
+        unsafe { *ptr }
     }
 }
 

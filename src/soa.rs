@@ -209,9 +209,10 @@ where
     /// it only valid to call this method with the output of a previous call to
     /// [`Soa::into_raw_parts`].
     pub unsafe fn from_raw_parts(ptr: NonNull<u8>, length: usize, capacity: usize) -> Self {
+        let raw = unsafe { T::Raw::from_parts(ptr, capacity) };
         Self {
             cap: capacity,
-            slice: Slice::with_raw(T::Raw::from_parts(ptr, capacity)),
+            slice: Slice::with_raw(raw),
             len: length,
         }
     }

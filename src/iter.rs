@@ -79,7 +79,7 @@ where
     type Item = T::Ref<'a>;
 
     unsafe fn item_from_raw(raw: T::Raw) -> Self::Item {
-        raw.get_ref()
+        unsafe { raw.get_ref() }
     }
 }
 

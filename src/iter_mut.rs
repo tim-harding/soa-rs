@@ -55,7 +55,7 @@ where
     type Item = T::RefMut<'a>;
 
     unsafe fn item_from_raw(raw: <T as Soars>::Raw) -> Self::Item {
-        raw.get_mut()
+        unsafe { raw.get_mut() }
     }
 }
 
