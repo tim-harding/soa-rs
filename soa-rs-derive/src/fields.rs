@@ -303,9 +303,20 @@ pub fn fields_struct(
     let raw_body = define(&|ty| quote! { ::std::ptr::NonNull<#ty> });
 
     let layout_and_offsets_body = |checked: bool| {
-        let check = if checked {
+        let check_head = if checked {
             quote! {
-                ?
+                match
+            }
+        } else {
+            quote! {}
+        };
+
+        let check_tail = if checked {
+            quote! {
+                {
+                    Ok(ok) => ok,
+                    Err(e) => return Err(e),
+                }
             }
         } else {
             quote! {
@@ -316,7 +327,7 @@ pub fn fields_struct(
         let mut raise_align = align_all.iter().map(|align| {
             align.as_ref().map(|align| {
                 quote! {
-                    let array = array.align_to(#align)#check;
+                    let array = #check_head array.align_to(#align) #check_tail;
                 }
             })
         });
@@ -326,15 +337,15 @@ pub fn fields_struct(
 
         let indices = indices.clone();
         quote! {
-            let array = ::std::alloc::Layout::array::<#ty_head>(cap)#check;
+            let array = #check_head ::std::alloc::Layout::array::<#ty_head>(cap) #check_tail;
             #raise_align_head
             let layout = array;
             let mut offsets = [0usize; #offsets_len];
 
             #(
-            let array = ::std::alloc::Layout::array::<#ty_tail>(cap)#check;
+            let array = #check_head ::std::alloc::Layout::array::<#ty_tail>(cap) #check_tail;
             #raise_align_tail
-            let (layout, offset) = layout.extend(array)#check;
+            let (layout, offset) = #check_head layout.extend(array) #check_tail;
             offsets[#indices] = offset;
             )*
         }
@@ -362,7 +373,7 @@ pub fn fields_struct(
         #[automatically_derived]
         impl #raw {
             #[inline]
-            fn layout_and_offsets(cap: usize)
+            const fn layout_and_offsets(cap: usize)
                 -> Result<(::std::alloc::Layout, [usize; #offsets_len]), ::std::alloc::LayoutError>
             {
                 #layout_and_offsets_checked_body
