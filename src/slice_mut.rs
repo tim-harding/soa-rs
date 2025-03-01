@@ -1,4 +1,4 @@
-use crate::{iter_raw::IterRaw, AsMutSlice, AsSlice, IterMut, Slice, SliceRef, Soars};
+use crate::{AsMutSlice, AsSlice, IterMut, Slice, SliceRef, Soars, iter_raw::IterRaw};
 use std::{
     cmp::Ordering,
     fmt::{self, Debug, Formatter},

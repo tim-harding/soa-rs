@@ -7,7 +7,7 @@
 #[derive(Soars)]
 struct AllowUnknownAttributes;
 
-use soa_rs::{soa, AsMutSlice, AsSlice, AsSoaRef, Soa, Soars};
+use soa_rs::{AsMutSlice, AsSlice, AsSoaRef, Soa, Soars, soa};
 use std::sync::Mutex;
 
 #[derive(Soars, Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]

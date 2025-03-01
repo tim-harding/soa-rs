@@ -1,6 +1,6 @@
 use crate::{
-    iter_raw::IterRaw, AsMutSlice, AsSlice, IntoIter, Iter, IterMut, Slice, SliceMut, SliceRef,
-    SoaRaw, Soars,
+    AsMutSlice, AsSlice, IntoIter, Iter, IterMut, Slice, SliceMut, SliceRef, SoaRaw, Soars,
+    iter_raw::IterRaw,
 };
 use std::{
     borrow::{Borrow, BorrowMut},
@@ -8,7 +8,7 @@ use std::{
     fmt::{self, Debug, Formatter},
     hash::{Hash, Hasher},
     marker::PhantomData,
-    mem::{needs_drop, size_of, ManuallyDrop},
+    mem::{ManuallyDrop, needs_drop, size_of},
     ops::{Deref, DerefMut},
     ptr::NonNull,
 };

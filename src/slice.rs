@@ -1,6 +1,6 @@
 use crate::{
-    chunks_exact::ChunksExact, index::SoaIndex, iter_raw::IterRaw, AsMutSlice, AsSlice, Iter,
-    IterMut, SliceMut, SliceRef, SoaDeref, SoaRaw, Soars,
+    AsMutSlice, AsSlice, Iter, IterMut, SliceMut, SliceRef, SoaDeref, SoaRaw, Soars,
+    chunks_exact::ChunksExact, index::SoaIndex, iter_raw::IterRaw,
 };
 use std::{
     cmp::Ordering,

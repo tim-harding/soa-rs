@@ -1,6 +1,6 @@
 use crate::{
-    iter_raw::{iter_with_raw, IterRaw, IterRawAdapter},
     Slice, Soa, SoaRaw, Soars,
+    iter_raw::{IterRaw, IterRawAdapter, iter_with_raw},
 };
 use std::{
     fmt::Debug,

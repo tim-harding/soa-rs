@@ -1,10 +1,10 @@
 use crate::{
-    zst::{zst_struct, ZstKind},
     SoaAttrs, SoaDerive,
+    zst::{ZstKind, zst_struct},
 };
 use proc_macro2::TokenStream;
-use quote::{format_ident, quote, ToTokens, TokenStreamExt};
-use syn::{punctuated::Punctuated, token::Comma, Field, Ident, Index, LitInt, Visibility};
+use quote::{ToTokens, TokenStreamExt, format_ident, quote};
+use syn::{Field, Ident, Index, LitInt, Visibility, punctuated::Punctuated, token::Comma};
 
 pub fn fields_struct(
     ident: Ident,

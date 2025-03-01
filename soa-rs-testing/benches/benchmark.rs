@@ -1,5 +1,5 @@
-use criterion::{criterion_group, criterion_main, Criterion};
-use rand::{rngs::StdRng, RngCore, SeedableRng};
+use criterion::{Criterion, criterion_group, criterion_main};
+use rand::{RngCore, SeedableRng, rngs::StdRng};
 use soa_rs::{Soa, Soars};
 
 struct Rng(StdRng);

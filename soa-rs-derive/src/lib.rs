@@ -3,7 +3,7 @@
 mod fields;
 mod zst;
 
-use fields::{fields_struct, FieldKind};
+use fields::{FieldKind, fields_struct};
 use proc_macro::TokenStream;
 use proc_macro2::{Ident, Span, TokenStream as TokenStream2};
 use quote::{quote, quote_spanned};
@@ -11,8 +11,8 @@ use std::{
     error::Error,
     fmt::{self, Display, Formatter},
 };
-use syn::{parse_macro_input, Attribute, Data, DeriveInput, Fields};
-use zst::{zst_struct, ZstKind};
+use syn::{Attribute, Data, DeriveInput, Fields, parse_macro_input};
+use zst::{ZstKind, zst_struct};
 
 #[proc_macro_derive(Soars, attributes(align, soa_derive, soa_array))]
 pub fn soa(input: TokenStream) -> TokenStream {
