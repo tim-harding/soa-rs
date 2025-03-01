@@ -1,7 +1,7 @@
 [package]
 name = "soa-rs"
 version = "0.8.1"
-edition = "2021"
+edition = "2024"
 license = "MIT"
 description = "A Vec-like structure-of-arrays container"
 homepage = "https://github.com/tim-harding/soa-rs"
