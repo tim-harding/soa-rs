@@ -117,14 +117,12 @@ pub fn fields_struct(
 
             fn from_slice(slice: &::soa_rs::Slice<Self::Item>) -> &Self {
                 // SAFETY: Self is `repr(transparent)` of Slice
-                #[allow(clippy::transmute_ptr_to_ptr)]
-                unsafe { ::std::mem::transmute(slice) }
+                unsafe { &*(slice as *const _ as *const Self) }
             }
 
             fn from_slice_mut(slice: &mut ::soa_rs::Slice<Self::Item>) -> &mut Self {
                 // SAFETY: Self is `repr(transparent)` of Slice
-                #[allow(clippy::transmute_ptr_to_ptr)]
-                unsafe { ::std::mem::transmute(slice) }
+                unsafe { &mut *(slice as *mut _ as *mut Self) }
             }
         }
 
