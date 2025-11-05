@@ -147,6 +147,10 @@
 //!
 //! [`Soars`]: soa_rs_derive::Soars
 #![warn(missing_docs)]
+#![no_std]
+
+#[doc(hidden)]
+pub extern crate alloc as __alloc;
 
 mod soa;
 pub use soa::Soa;
@@ -260,7 +264,7 @@ mod serde;
 /// struct Foo(#[align(8)] u8);
 /// ```
 ///
-/// [`Deref`]: std::ops::Deref
+/// [`Deref`]: core::ops::Deref
 pub use soa_rs_derive::Soars;
 
 /// Creates a [`Soa`] containing the arguments.

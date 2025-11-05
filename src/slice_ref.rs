@@ -1,5 +1,5 @@
 use crate::{AsSlice, Iter, Slice, Soars, iter_raw::IterRaw};
-use std::{
+use core::{
     cmp::Ordering,
     fmt::{self, Debug, Formatter},
     hash::{Hash, Hasher},

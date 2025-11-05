@@ -63,7 +63,7 @@ mod multiple_mutable_borrows {
 mod swap_slices_by_mut_ref {
     /// ```compile_fail,E0277
     /// use soa_rs::{Soa, Soars};
-    /// use std::ops::DerefMut; // Added
+    /// use core::ops::DerefMut; // Added
     ///
     /// #[derive(Soars)]
     /// #[soa_derive(Debug, PartialEq)]
@@ -72,7 +72,7 @@ mod swap_slices_by_mut_ref {
     /// let mut x = Soa::<Foo>::new();
     /// x.push(Foo(0));
     /// let mut y = Soa::<Foo>::new();
-    /// std::mem::swap(x.deref_mut(), y.deref_mut()); // Added
+    /// core::mem::swap(x.deref_mut(), y.deref_mut()); // Added
     /// ```
     mod deref_mut {}
 
@@ -86,7 +86,7 @@ mod swap_slices_by_mut_ref {
     /// let mut x = Soa::<Foo>::new();
     /// x.push(Foo(0));
     /// let mut y = Soa::<Foo>::new();
-    /// std::mem::swap::<Slice<_>>(x.as_mut(), y.as_mut()); // Added
+    /// core::mem::swap::<Slice<_>>(x.as_mut(), y.as_mut()); // Added
     /// ```
     mod as_mut {}
 }

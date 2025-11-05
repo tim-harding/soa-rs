@@ -3,7 +3,7 @@ use serde::{
     de::{Deserialize, Deserializer, SeqAccess, Visitor},
     ser::{Serialize, SerializeSeq, Serializer},
 };
-use std::{
+use core::{
     fmt::{self, Formatter},
     marker::PhantomData,
 };

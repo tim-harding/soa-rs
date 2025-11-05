@@ -3,14 +3,14 @@
 mod fields;
 mod zst;
 
+use core::{
+    error::Error,
+    fmt::{self, Display, Formatter},
+};
 use fields::{FieldKind, fields_struct};
 use proc_macro::TokenStream;
 use proc_macro2::{Ident, Span, TokenStream as TokenStream2};
 use quote::{quote, quote_spanned};
-use std::{
-    error::Error,
-    fmt::{self, Display, Formatter},
-};
 use syn::{Attribute, Data, DeriveInput, Fields, parse_macro_input};
 use zst::{ZstKind, zst_struct};
 

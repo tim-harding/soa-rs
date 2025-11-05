@@ -1,4 +1,4 @@
-use std::ptr::NonNull;
+use core::ptr::NonNull;
 
 use crate::Soars;
 
@@ -181,7 +181,7 @@ pub unsafe trait SoaRaw: Copy + Clone {
     ///
     /// - `count <= length`
     ///
-    /// [`RangeFrom`]: std::ops::RangeFrom
+    /// [`RangeFrom`]: core::ops::RangeFrom
     #[must_use]
     unsafe fn offset(self, count: usize) -> Self;
 

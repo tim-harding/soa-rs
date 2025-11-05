@@ -1,5 +1,5 @@
 use crate::{Slice, SliceRef, SoaRaw, Soars};
-use std::marker::PhantomData;
+use core::marker::PhantomData;
 
 /// An iterator over a [`Slice`] in (non-overlapping) chunks of `chunk_size`
 /// elements.
