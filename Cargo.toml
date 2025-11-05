@@ -23,6 +23,7 @@ path = "soa-rs-derive"
 [dependencies.serde]
 version = "1.0.199"
 optional = true
+default-features = false
 
 [features]
 default = []
