@@ -180,7 +180,7 @@ where
     /// assert_eq!(iter.next(), Some(FooRef(&4)));
     /// assert_eq!(iter.next(), None);
     /// ```
-    pub const fn iter(&self) -> Iter<T> {
+    pub const fn iter(&self) -> Iter<'_, T> {
         Iter {
             iter_raw: IterRaw {
                 // SAFETY: The Iter lifetime is bound to &self,
@@ -211,7 +211,7 @@ where
     /// }
     /// assert_eq!(soa, soa![Foo(2), Foo(4), Foo(8)]);
     /// ```
-    pub fn iter_mut(&mut self) -> IterMut<T> {
+    pub fn iter_mut(&mut self) -> IterMut<'_, T> {
         IterMut {
             iter_raw: IterRaw {
                 // SAFETY: The Iter lifetime is bound to &self,
