@@ -390,6 +390,50 @@ where
         (l, r)
     }
 
+    /// Divides one mutable slice into two at an index without doing bounds checking.
+    ///
+    /// The first will contain all indices from `[0, mid)` (excluding
+    /// the index `mid` itself) and the second will contain all
+    /// indices from `[mid, len)` (excluding the index `len` itself).
+    ///
+    /// For a safe alternative, see [`split_at_mut`].
+    ///
+    /// # Safety
+    ///
+    /// Calling this method with an out-of-bounds index is undefined behavior,
+    /// even if the resulting reference is not used.
+    ///
+    /// [`split_at_mut`]: Slice::split_at_mut
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use soa_rs::{Soa, Soars, soa};
+    /// # #[derive(Soars, Debug, PartialEq)]
+    /// # #[soa_derive(Debug, PartialEq)]
+    /// # struct Foo(usize);
+    /// let mut soa = soa![Foo(1), Foo(2), Foo(3)];
+    /// let (l, r) = unsafe { soa.split_at_mut_unchecked(1) };
+    /// assert_eq!(l, soa![Foo(1)]);
+    /// assert_eq!(r, soa![Foo(2), Foo(3)]);
+    /// ```
+    pub unsafe fn split_at_mut_unchecked(
+        &mut self,
+        mid: usize,
+    ) -> (SliceMut<'_, T>, SliceMut<'_, T>) {
+        let l = SliceMut {
+            slice: unsafe { self.as_sized() },
+            len: mid,
+            marker: PhantomData,
+        };
+        let r = SliceMut {
+            slice: Slice::with_raw(unsafe { self.raw.offset(mid) }),
+            len: self.len() - mid,
+            marker: PhantomData,
+        };
+        (l, r)
+    }
+
     /// Swaps the position of two elements.
     ///
     /// # Arguments
