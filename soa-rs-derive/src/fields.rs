@@ -361,7 +361,8 @@ pub fn fields_struct(
         #[allow(dead_code)]
         #vis struct #raw #impl_generics #where_clause #raw_body
 
-        // Not using the derive because it imposes unnecessary <T: Copy> restrictions on generic params.
+        // Not using the derive because it imposes unnecessary Copy
+        // restrictions on generic params
         impl #impl_generics Copy for #raw #ty_generics #where_clause {}
         impl #impl_generics Clone for #raw #ty_generics #where_clause {
             fn clone(&self) -> Self {
