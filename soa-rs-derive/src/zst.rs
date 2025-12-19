@@ -18,10 +18,10 @@ pub fn zst_struct(ident: Ident, vis: Visibility, kind: Fields) -> TokenStream {
         unsafe impl ::soa_rs::Soars for #ident {
             type Raw = #raw;
             type Deref = #deref;
-            type Ref<'a> = Self;
-            type RefMut<'a> = Self;
-            type Slices<'a> = Self;
-            type SlicesMut<'a> = Self;
+            type Ref<'soa> = Self;
+            type RefMut<'soa> = Self;
+            type Slices<'soa> = Self;
+            type SlicesMut<'soa> = Self;
         }
 
         #[allow(dead_code)]
@@ -135,21 +135,21 @@ pub fn zst_struct(ident: Ident, vis: Visibility, kind: Fields) -> TokenStream {
             unsafe fn get(self) -> #ident { #ident #unit_construct }
 
             #[inline]
-            unsafe fn get_ref<'a>(self) -> <#ident as Soars>::Ref<'a> { #ident #unit_construct }
+            unsafe fn get_ref<'soa>(self) -> <#ident as Soars>::Ref<'soa> { #ident #unit_construct }
 
             #[inline]
-            unsafe fn get_mut<'a>(self) -> <#ident as Soars>::RefMut<'a> { #ident #unit_construct }
+            unsafe fn get_mut<'soa>(self) -> <#ident as Soars>::RefMut<'soa> { #ident #unit_construct }
 
             #[inline]
             unsafe fn offset(self, count: usize) -> Self { Self }
 
             #[inline]
-            unsafe fn slices<'a>(self, len: usize) -> <#ident as Soars>::Slices<'a> {
+            unsafe fn slices<'soa>(self, len: usize) -> <#ident as Soars>::Slices<'soa> {
                 #ident #unit_construct
             }
 
             #[inline]
-            unsafe fn slices_mut<'a>(self, len: usize) -> <#ident as Soars>::SlicesMut<'a> {
+            unsafe fn slices_mut<'soa>(self, len: usize) -> <#ident as Soars>::SlicesMut<'soa> {
                 #ident #unit_construct
             }
         }
