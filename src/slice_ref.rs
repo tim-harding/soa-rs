@@ -1,5 +1,6 @@
 use crate::{AsSlice, Iter, Slice, Soars, iter_raw::IterRaw};
 use core::{
+    borrow::Borrow,
     cmp::Ordering,
     fmt::{self, Debug, Formatter},
     hash::{Hash, Hasher},
@@ -63,6 +64,15 @@ where
         // - len is valid
         // - The returned lifetime is bound to self
         unsafe { self.slice.as_unsized(self.len) }
+    }
+}
+
+impl<T> Borrow<Slice<T>> for SliceRef<'_, T>
+where
+    T: Soars,
+{
+    fn borrow(&self) -> &Slice<T> {
+        self.as_ref()
     }
 }
 
