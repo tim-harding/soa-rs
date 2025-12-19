@@ -172,7 +172,7 @@ mod iter_mut;
 pub use iter_mut::IterMut;
 
 mod slice;
-pub use slice::{Slice, from_raw_parts, from_raw_parts_mut};
+pub use slice::Slice;
 
 mod slice_mut;
 pub use slice_mut::SliceMut;
