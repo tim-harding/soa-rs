@@ -2,7 +2,7 @@ use crate::{
     AsMutSlice, AsSlice, IntoIter, Iter, IterMut, Slice, SliceMut, SliceRef, SoaRaw, Soars,
     iter_raw::IterRaw,
 };
-use std::{
+use core::{
     borrow::{Borrow, BorrowMut},
     cmp::Ordering,
     fmt::{self, Debug, Formatter},

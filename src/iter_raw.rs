@@ -1,5 +1,5 @@
 use crate::{Slice, SoaRaw, Soars};
-use std::{fmt::Debug, iter::FusedIterator, marker::PhantomData};
+use core::{fmt::Debug, iter::FusedIterator, marker::PhantomData};
 
 /// Used by [`IterRaw`] to get the first element from a [`SoaRaw`] in different
 /// forms.
@@ -78,7 +78,7 @@ where
     A: IterRawAdapter<T>,
     for<'a> T::Ref<'a>: Debug,
 {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         // SAFETY: len is valid for this slice
         unsafe { self.slice.as_unsized(self.len).fmt(f) }
     }

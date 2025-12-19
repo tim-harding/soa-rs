@@ -2,7 +2,7 @@ use crate::{
     Slice, SliceMut, SoaRaw, Soars,
     iter_raw::{IterRaw, IterRawAdapter, iter_with_raw},
 };
-use std::{
+use core::{
     fmt::{self, Debug, Formatter},
     iter::FusedIterator,
     marker::PhantomData,

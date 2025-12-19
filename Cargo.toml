@@ -7,10 +7,11 @@ description = "A Vec-like structure-of-arrays container"
 homepage = "https://github.com/tim-harding/soa-rs"
 repository = "https://github.com/tim-harding/soa-rs"
 readme = "README.md"
+categories = ["data-structures", "no-std"]
 
 [profile.bench]
 # For profiling
-debug = true 
+debug = true
 
 [workspace]
 members = ["soa-rs-derive", "soa-rs-testing"]
@@ -22,6 +23,7 @@ path = "soa-rs-derive"
 [dependencies.serde]
 version = "1.0.199"
 optional = true
+default-features = false
 
 [features]
 default = []

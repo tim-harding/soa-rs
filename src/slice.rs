@@ -2,7 +2,7 @@ use crate::{
     AsMutSlice, AsSlice, Iter, IterMut, SliceMut, SliceRef, SoaDeref, SoaRaw, Soars,
     chunks_exact::ChunksExact, index::SoaIndex, iter_raw::IterRaw,
 };
-use std::{
+use core::{
     cmp::Ordering,
     fmt::{self, Debug, Formatter},
     hash::{Hash, Hasher},
@@ -41,7 +41,7 @@ unsafe impl<T: Soars, D: ?Sized> Sync for Slice<T, D> where T: Sync {}
 unsafe impl<T: Soars, D: ?Sized> Send for Slice<T, D> where T: Send {}
 
 /// ```compile_fail,E0277
-/// use std::marker::PhantomData;
+/// use core::marker::PhantomData;
 /// use soa_rs::{soa, Soars};
 ///
 /// fn assert_send<T: Send>(_t: T) {}
@@ -53,7 +53,7 @@ unsafe impl<T: Soars, D: ?Sized> Send for Slice<T, D> where T: Send {}
 /// ```
 ///
 /// ```compile_fail,E0277
-/// use std::marker::PhantomData;
+/// use core::marker::PhantomData;
 /// use soa_rs::{soa, Soars};
 ///
 /// fn assert_sync<T: Sync>(_t: T) {}
@@ -89,7 +89,7 @@ where
     /// - The lifetime of the returned reference is unconstrained. Ensure that
     ///   the right lifetimes are applied.
     pub(crate) unsafe fn as_unsized_mut<'a>(&mut self, len: usize) -> &'a mut Slice<T> {
-        let ptr = std::ptr::slice_from_raw_parts_mut(self, len) as *mut Slice<T>;
+        let ptr = core::ptr::slice_from_raw_parts_mut(self, len) as *mut Slice<T>;
         unsafe { &mut *ptr }
     }
 
@@ -101,7 +101,7 @@ where
     /// - The lifetime of the returned reference is unconstrained. Ensure that
     ///   the right lifetimes are applied.
     pub(crate) unsafe fn as_unsized<'a>(&self, len: usize) -> &'a Slice<T> {
-        let ptr = std::ptr::slice_from_raw_parts(self, len) as *const Slice<T>;
+        let ptr = core::ptr::slice_from_raw_parts(self, len) as *const Slice<T>;
         unsafe { &*ptr }
     }
 }
@@ -169,7 +169,7 @@ where
     ///
     /// ```
     /// # use soa_rs::{Soa, Soars, soa};
-    /// # use std::fmt;
+    /// # use core::fmt;
     /// # #[derive(Soars, Debug, PartialEq)]
     /// # #[soa_derive(Debug, PartialEq)]
     /// # struct Foo(usize);
@@ -201,7 +201,7 @@ where
     ///
     /// ```
     /// # use soa_rs::{Soa, Soars, soa};
-    /// # use std::fmt;
+    /// # use core::fmt;
     /// # #[derive(Soars, Debug, PartialEq)]
     /// # #[soa_derive(Debug, PartialEq)]
     /// # struct Foo(usize);
@@ -236,7 +236,7 @@ where
     /// # Examples
     ///
     /// ```
-    /// # use std::fmt;
+    /// # use core::fmt;
     /// # use soa_rs::{Soa, Soars, soa, Slice, AsSlice};
     /// # #[derive(Soars, Debug, PartialEq)]
     /// # #[soa_derive(PartialEq, Debug)]
@@ -298,7 +298,7 @@ where
     /// # Examples
     ///
     /// ```
-    /// # use std::fmt;
+    /// # use core::fmt;
     /// # use soa_rs::{Soa, Soars, soa};
     /// # #[derive(Soars, Debug, PartialEq)]
     /// # #[soa_derive(Debug, PartialEq)]
@@ -308,7 +308,7 @@ where
     /// assert_eq!(soa.idx(1..3), soa![Foo(40), Foo(30)]);
     /// ```
     ///
-    /// [`Index`]: std::ops::Index
+    /// [`Index`]: core::ops::Index
     /// [`get`]: Slice::get
     pub fn idx<I>(&self, index: I) -> I::Output<'_>
     where
@@ -330,7 +330,7 @@ where
     /// # Examples
     ///
     /// ```
-    /// # use std::fmt;
+    /// # use core::fmt;
     /// # use soa_rs::{Soa, Soars, soa};
     /// # #[derive(Soars, Debug, PartialEq)]
     /// # #[soa_derive(Debug, PartialEq)]
@@ -340,7 +340,7 @@ where
     /// assert_eq!(soa, soa![Foo(10), Foo(42), Foo(30)]);
     /// ```
     ///
-    /// [`IndexMut`]: std::ops::Index
+    /// [`IndexMut`]: core::ops::Index
     /// [`get_mut`]: Slice::get_mut
     pub fn idx_mut<I>(&mut self, index: I) -> I::OutputMut<'_>
     where
@@ -562,9 +562,9 @@ where
     /// in an unbounded way. The caller must ensure proper lifetimes with, for
     /// example, [`PhantomData`].
     ///
-    /// [`PhantomData`]: std::marker::PhantomData
+    /// [`PhantomData`]: core::marker::PhantomData
     pub(crate) const unsafe fn as_sized(&self) -> Slice<T, ()> {
-        let ptr = std::ptr::from_ref(self).cast();
+        let ptr = core::ptr::from_ref(self).cast();
         unsafe { *ptr }
     }
 }

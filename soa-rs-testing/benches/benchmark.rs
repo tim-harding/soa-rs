@@ -17,7 +17,7 @@ impl Rng {
     where
         T: FromIterator<Vec4>,
     {
-        std::iter::repeat_with(|| Vec4::new_rng(self))
+        core::iter::repeat_with(|| Vec4::new_rng(self))
             .take(count)
             .collect()
     }
@@ -83,7 +83,7 @@ fn criterion_benchmark(c: &mut Criterion) {
             soa1.chunks_exact(8)
                 .zip(soa2.chunks_exact(8))
                 .fold([0.; 8], |acc, (a, b)| {
-                    std::array::from_fn(|i| acc[i] + a.idx(i).dot(&b.idx(i)))
+                    core::array::from_fn(|i| acc[i] + a.idx(i).dot(&b.idx(i)))
                 })
                 .into_iter()
                 .sum::<f32>()
@@ -96,7 +96,7 @@ fn criterion_benchmark(c: &mut Criterion) {
             vec1.chunks_exact(8).zip(vec2.chunks_exact(8)).fold(
                 [0.; 8],
                 |acc, (a, b)| {
-                    std::array::from_fn(|i| {
+                    core::array::from_fn(|i| {
                         acc[i] + a[i].dot(&b[i])
                     })
                 },

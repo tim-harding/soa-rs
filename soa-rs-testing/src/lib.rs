@@ -295,7 +295,7 @@ pub fn clone() {
 
 #[test]
 pub fn clone_from() {
-    let mut dst: Soa<_> = std::iter::repeat(Tuple(100, 100, 100)).take(7).collect();
+    let mut dst: Soa<_> = core::iter::repeat(Tuple(100, 100, 100)).take(7).collect();
     let src: Soa<_> = [Tuple(1, 2, 3), Tuple(4, 5, 6), Tuple(7, 8, 9)].into();
     dst.clone_from(&src);
     assert_eq!(dst, src);
@@ -361,8 +361,8 @@ pub fn ordering() {
 
 #[test]
 pub fn hashing() {
+    use core::hash::{Hash, Hasher};
     use std::collections::hash_map::DefaultHasher;
-    use std::hash::{Hash, Hasher};
 
     let mut expected = DefaultHasher::new();
     ABCDE.hash(&mut expected);

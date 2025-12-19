@@ -116,7 +116,7 @@ pub fn fields_struct(
         impl #impl_generics #deref #ty_generics #where_clause {
             #(
             #vis_all const fn #slice_getters_ref(&self) -> &[#ty_all] {
-                let slice = ::std::ptr::NonNull::slice_from_raw_parts(
+                let slice = ::core::ptr::NonNull::slice_from_raw_parts(
                     self.0.raw().#ident_all,
                     self.0.len(),
                 );
@@ -128,7 +128,7 @@ pub fn fields_struct(
             }
 
             #vis_all const fn #slice_getters_mut(&mut self) -> &mut [#ty_all] {
-                let mut slice = ::std::ptr::NonNull::slice_from_raw_parts(
+                let mut slice = ::core::ptr::NonNull::slice_from_raw_parts(
                     self.0.raw().#ident_all,
                     self.0.len(),
                 );
@@ -231,8 +231,8 @@ pub fn fields_struct(
             #[automatically_derived]
             impl #impl_generics_array #array #ty_generics_array #where_clause_array {
                 #vis const fn from_array(array: [#ident #ty_generics; N]) -> Self {
-                    let array = ::std::mem::ManuallyDrop::new(array);
-                    let array = ::std::ptr::from_ref::<::std::mem::ManuallyDrop<[#ident #ty_generics; N]>>(&array);
+                    let array = ::core::mem::ManuallyDrop::new(array);
+                    let array = ::core::ptr::from_ref::<::core::mem::ManuallyDrop<[#ident #ty_generics; N]>>(&array);
                     let array = array.cast::<[#ident #ty_generics; N]>();
                     // SAFETY: Getting a slice this way is okay
                     // because the memory comes from an array,
@@ -242,19 +242,19 @@ pub fn fields_struct(
                     Self {
                         #(
                         #ident_all: {
-                            let mut uninit = [const { ::std::mem::MaybeUninit::uninit() }; N];
+                            let mut uninit = [const { ::core::mem::MaybeUninit::uninit() }; N];
                             let mut i = 0;
                             while i < N {
-                                let src = ::std::ptr::from_ref(&array[i].#ident_all);
+                                let src = ::core::ptr::from_ref(&array[i].#ident_all);
                                 // SAFETY: This pointer is safe to read
                                 // because it comes from a reference.
                                 let read = unsafe { src.read() };
-                                uninit[i] = ::std::mem::MaybeUninit::new(read);
+                                uninit[i] = ::core::mem::MaybeUninit::new(read);
                                 i += 1;
                             }
                             // TODO: Prefer MaybeUninit::transpose when stabilized
                             // SAFETY: MaybeUninit<[T; N]> is repr(transparent) of [T; N]
-                            unsafe { ::std::mem::transmute_copy(&uninit) }
+                            unsafe { ::core::mem::transmute_copy(&uninit) }
                         },
                         )*
                     }
@@ -268,7 +268,7 @@ pub fn fields_struct(
                 fn as_slice(&self) -> ::soa_rs::SliceRef<'_, Self::Item> {
                     let raw = #raw {
                         #(
-                        #ident_all: ::std::ptr::NonNull::from(
+                        #ident_all: ::core::ptr::NonNull::from(
                             self.#ident_all.as_slice()
                         ).cast(),
                         )*
@@ -286,7 +286,7 @@ pub fn fields_struct(
                 fn as_mut_slice(&mut self) -> ::soa_rs::SliceMut<'_, Self::Item> {
                     let raw = #raw {
                         #(
-                        #ident_all: ::std::ptr::NonNull::from(
+                        #ident_all: ::core::ptr::NonNull::from(
                             self.#ident_all.as_mut_slice()
                         ).cast(),
                         )*
@@ -301,9 +301,9 @@ pub fn fields_struct(
         });
     }
 
-    let indices = std::iter::repeat(()).enumerate().map(|(i, ())| i);
+    let indices = core::iter::repeat(()).enumerate().map(|(i, ())| i);
     let offsets_len = fields_len - 1;
-    let raw_body = define(|ty| quote! { ::std::ptr::NonNull<#ty> });
+    let raw_body = define(|ty| quote! { ::core::ptr::NonNull<#ty> });
 
     let layout_and_offsets_body = |checked: bool| {
         let check_head = if checked {
@@ -340,13 +340,13 @@ pub fn fields_struct(
 
         let indices = indices.clone();
         quote! {
-            let array = #check_head ::std::alloc::Layout::array::<#ty_head>(cap) #check_tail;
+            let array = #check_head ::core::alloc::Layout::array::<#ty_head>(cap) #check_tail;
             #raise_align_head
             let layout = array;
             let mut offsets = [0usize; #offsets_len];
 
             #(
-            let array = #check_head ::std::alloc::Layout::array::<#ty_tail>(cap) #check_tail;
+            let array = #check_head ::core::alloc::Layout::array::<#ty_tail>(cap) #check_tail;
             #raise_align_tail
             let (layout, offset) = #check_head layout.extend(array) #check_tail;
             offsets[#indices] = offset;
@@ -384,7 +384,7 @@ pub fn fields_struct(
         impl #impl_generics #raw #ty_generics #where_clause {
             #[inline]
             const fn layout_and_offsets(cap: usize)
-                -> Result<(::std::alloc::Layout, [usize; #offsets_len]), ::std::alloc::LayoutError>
+                -> Result<(::core::alloc::Layout, [usize; #offsets_len]), ::core::alloc::LayoutError>
             {
                 #layout_and_offsets_checked_body
                 Ok((layout, offsets))
@@ -393,7 +393,7 @@ pub fn fields_struct(
             // TODO: Make this const if Option::unwrap_unchecked is const stabilized
             #[inline]
             unsafe fn layout_and_offsets_unchecked(cap: usize)
-                -> (::std::alloc::Layout, [usize; #offsets_len])
+                -> (::core::alloc::Layout, [usize; #offsets_len])
             {
                 #layout_and_offsets_unchecked_body
                 (layout, offsets)
@@ -401,7 +401,7 @@ pub fn fields_struct(
 
             #[inline]
             const unsafe fn with_offsets(
-                ptr: ::std::ptr::NonNull<u8>,
+                ptr: ::core::ptr::NonNull<u8>,
                 offsets: [usize; #offsets_len],
             ) -> Self
             {
@@ -427,19 +427,19 @@ pub fn fields_struct(
             #[inline]
             fn dangling() -> Self {
                 Self {
-                    #(#ident_all: ::std::ptr::NonNull::dangling(),)*
+                    #(#ident_all: ::core::ptr::NonNull::dangling(),)*
                 }
             }
 
             #[inline]
-            unsafe fn from_parts(ptr: ::std::ptr::NonNull<u8>, capacity: usize) -> Self {
+            unsafe fn from_parts(ptr: ::core::ptr::NonNull<u8>, capacity: usize) -> Self {
                 // SAFETY: Caller ensures ptr and capacity are from a previous allocation
                 let (_, offsets) = Self::layout_and_offsets_unchecked(capacity);
                 Self::with_offsets(ptr, offsets)
             }
 
             #[inline]
-            fn into_parts(self) -> ::std::ptr::NonNull<u8> {
+            fn into_parts(self) -> ::core::ptr::NonNull<u8> {
                 self.#ident_head.cast()
             }
 
@@ -449,9 +449,9 @@ pub fn fields_struct(
                     .expect("capacity overflow");
 
                 // SAFETY: Caller ensures that Self is not zero-sized
-                let ptr = ::std::alloc::alloc(new_layout);
-                let Some(ptr) = ::std::ptr::NonNull::new(ptr) else {
-                    ::std::alloc::handle_alloc_error(new_layout);
+                let ptr = ::soa_rs::__alloc::alloc::alloc(new_layout);
+                let Some(ptr) = ::core::ptr::NonNull::new(ptr) else {
+                    ::soa_rs::__alloc::alloc::handle_alloc_error(new_layout);
                 };
 
                 Self::with_offsets(ptr, new_offsets)
@@ -485,9 +485,9 @@ pub fn fields_struct(
                 // - new_capacity is nonzero
                 // - old_layout matches the previous layout because old_capacity
                 //   matches the previously allocated capacity
-                let ptr = ::std::alloc::realloc(ptr, old_layout, new_layout.size());
-                let Some(ptr) = ::std::ptr::NonNull::new(ptr) else {
-                    ::std::alloc::handle_alloc_error(new_layout);
+                let ptr = ::soa_rs::__alloc::alloc::realloc(ptr, old_layout, new_layout.size());
+                let Some(ptr) = ::core::ptr::NonNull::new(ptr) else {
+                    ::soa_rs::__alloc::alloc::handle_alloc_error(new_layout);
                 };
 
                 // Pointer may have moved, can't reuse self
@@ -539,9 +539,9 @@ pub fn fields_struct(
                 // - new_capacity is nonzero
                 // - old_layout matches the previous layout because old_capacity
                 //   matches the previously allocated capacity
-                let ptr = ::std::alloc::realloc(ptr.as_ptr(), old_layout, new_layout.size());
-                let Some(ptr) = ::std::ptr::NonNull::new(ptr) else {
-                    ::std::alloc::handle_alloc_error(new_layout);
+                let ptr = ::soa_rs::__alloc::alloc::realloc(ptr.as_ptr(), old_layout, new_layout.size());
+                let Some(ptr) = ::core::ptr::NonNull::new(ptr) else {
+                    ::soa_rs::__alloc::alloc::handle_alloc_error(new_layout);
                 };
 
                 // Pointer may have moved, can't reuse dst
@@ -556,7 +556,7 @@ pub fn fields_struct(
                 // - This soa was previously allocated
                 // - layout is the previously used layout because old_capacity
                 //   is the previously allocated capacity
-                ::std::alloc::dealloc(self.#ident_head.as_ptr().cast(), layout);
+                ::soa_rs::__alloc::alloc::dealloc(self.#ident_head.as_ptr().cast(), layout);
             }
 
             #[inline]
@@ -624,7 +624,7 @@ pub fn fields_struct(
             unsafe fn slices<'a>(self, len: usize) -> #slices #ty_generics_ref {
                 #slices {
                     #(
-                    #ident_all: ::std::ptr::NonNull::slice_from_raw_parts(
+                    #ident_all: ::core::ptr::NonNull::slice_from_raw_parts(
                         self.#ident_all,
                         len,
                     )
@@ -639,7 +639,7 @@ pub fn fields_struct(
             unsafe fn slices_mut<'a>(self, len: usize) -> #slices_mut #ty_generics_ref {
                 #slices_mut {
                     #(
-                    #ident_all: ::std::ptr::NonNull::slice_from_raw_parts(
+                    #ident_all: ::core::ptr::NonNull::slice_from_raw_parts(
                         self.#ident_all,
                         len,
                     )

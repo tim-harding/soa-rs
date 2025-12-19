@@ -65,13 +65,13 @@ pub fn zst_struct(ident: Ident, vis: Visibility, kind: Fields) -> TokenStream {
             fn from_slice(slice: &::soa_rs::Slice<Self::Item>) -> &Self {
                 // SAFETY: Self is `repr(transparent)` of Slice
                 #[allow(clippy::transmute_ptr_to_ptr)]
-                unsafe { ::std::mem::transmute(slice) }
+                unsafe { ::core::mem::transmute(slice) }
             }
 
             fn from_slice_mut(slice: &mut ::soa_rs::Slice<Self::Item>) -> &mut Self {
                 // SAFETY: Self is `repr(transparent)` of Slice
                 #[allow(clippy::transmute_ptr_to_ptr)]
-                unsafe { ::std::mem::transmute(slice) }
+                unsafe { ::core::mem::transmute(slice) }
             }
         }
 
@@ -96,11 +96,11 @@ pub fn zst_struct(ident: Ident, vis: Visibility, kind: Fields) -> TokenStream {
             fn dangling() -> Self { Self }
 
             #[inline]
-            unsafe fn from_parts(ptr: ::std::ptr::NonNull<u8>, capacity: usize) -> Self { Self }
+            unsafe fn from_parts(ptr: ::core::ptr::NonNull<u8>, capacity: usize) -> Self { Self }
 
             #[inline]
-            fn into_parts(self) -> ::std::ptr::NonNull<u8> {
-                ::std::ptr::NonNull::dangling()
+            fn into_parts(self) -> ::core::ptr::NonNull<u8> {
+                ::core::ptr::NonNull::dangling()
             }
 
             #[inline]

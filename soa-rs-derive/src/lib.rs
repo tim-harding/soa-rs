@@ -3,14 +3,14 @@
 mod fields;
 mod zst;
 
+use core::{
+    error::Error,
+    fmt::{self, Display, Formatter},
+};
 use fields::fields_struct;
 use proc_macro::TokenStream;
 use proc_macro2::TokenStream as TokenStream2;
 use quote::{quote, quote_spanned};
-use std::{
-    error::Error,
-    fmt::{self, Display, Formatter},
-};
 use syn::{Attribute, Data, DeriveInput, parse_macro_input};
 
 #[proc_macro_derive(Soars, attributes(align, soa_derive, soa_array))]
