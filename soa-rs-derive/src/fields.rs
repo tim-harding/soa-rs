@@ -161,7 +161,8 @@ pub fn fields_struct(
         #[allow(dead_code)]
         #vis struct #item_ref #impl_generics_ref #where_clause_ref #item_ref_def
 
-        // Not using the derive because it imposes unnecessary <T: Copy> restrictions on generic params.
+        // Not using the derive because it imposes unnecessary Copy
+        // restrictions on generic params
         impl #impl_generics_ref Copy for #item_ref #ty_generics_ref #where_clause_ref {}
         impl #impl_generics_ref Clone for #item_ref #ty_generics_ref #where_clause_ref {
             fn clone(&self) -> Self {
@@ -205,7 +206,8 @@ pub fn fields_struct(
         #[allow(dead_code)]
         #vis struct #slices #impl_generics_ref #where_clause_ref #slices_def
 
-        // Not using the derive because it imposes unnecessary <T: Copy> restrictions on generic params.
+        // Not using the derive because it imposes unnecessary Copy
+        // restrictions on generic params
         impl #impl_generics_ref Copy for #slices #ty_generics_ref #where_clause_ref {}
         impl #impl_generics_ref Clone for #slices #ty_generics_ref #where_clause_ref {
             fn clone(&self) -> Self {
