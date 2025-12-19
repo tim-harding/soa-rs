@@ -77,7 +77,7 @@ where
     /// Creates a new slice with the given [`SoaRaw`]. This is intended for use
     /// in proc macro code, not user code.
     #[doc(hidden)]
-    pub fn with_raw(raw: T::Raw) -> Self {
+    pub const fn with_raw(raw: T::Raw) -> Self {
         Self { raw, dst: () }
     }
 
@@ -88,7 +88,7 @@ where
     /// - `length` must be valid for the underlying type `T`.
     /// - The lifetime of the returned reference is unconstrained. Ensure that
     ///   the right lifetimes are applied.
-    pub(crate) unsafe fn as_unsized_mut<'a>(&mut self, len: usize) -> &'a mut Slice<T> {
+    pub(crate) const unsafe fn as_unsized_mut<'a>(&mut self, len: usize) -> &'a mut Slice<T> {
         let ptr = core::ptr::slice_from_raw_parts_mut(self, len) as *mut Slice<T>;
         unsafe { &mut *ptr }
     }
@@ -100,7 +100,7 @@ where
     /// - `length` must be valid for the underlying type `T`.
     /// - The lifetime of the returned reference is unconstrained. Ensure that
     ///   the right lifetimes are applied.
-    pub(crate) unsafe fn as_unsized<'a>(&self, len: usize) -> &'a Slice<T> {
+    pub(crate) const unsafe fn as_unsized<'a>(&self, len: usize) -> &'a Slice<T> {
         let ptr = core::ptr::slice_from_raw_parts(self, len) as *const Slice<T>;
         unsafe { &*ptr }
     }
