@@ -40,6 +40,42 @@ pub struct Slice<T: Soars, D: ?Sized = [()]> {
 unsafe impl<T: Soars, D: ?Sized> Sync for Slice<T, D> where T: Sync {}
 unsafe impl<T: Soars, D: ?Sized> Send for Slice<T, D> where T: Send {}
 
+/// Forms a [`Slice`] from a [`SoaRaw`] and a length.
+///
+/// The `len` argument is the number **elements**, not the number of bytes.
+///
+/// # Safety
+///
+/// - `raw` must point `len` consecutive, initialized elements
+/// - The lifetime of the returned reference is unconstrained. Ensure that
+///   the right lifetimes are applied.
+pub const unsafe fn from_raw_parts<'a, T>(raw: T::Raw, len: usize) -> &'a Slice<T>
+where
+    T: Soars,
+{
+    let raw = Slice::with_raw(raw);
+    // SAFETY: Same requirements as the function itself
+    unsafe { raw.as_unsized(len) }
+}
+
+/// Forms a mutable [`Slice`] from a [`SoaRaw`] and a length.
+///
+/// The `len` argument is the number **elements**, not the number of bytes.
+///
+/// # Safety
+///
+/// - `raw` must point `len` consecutive, initialized elements
+/// - The lifetime of the returned reference is unconstrained. Ensure that
+///   the right lifetimes are applied.
+pub const unsafe fn from_raw_parts_mut<'a, T>(raw: T::Raw, len: usize) -> &'a mut Slice<T>
+where
+    T: Soars,
+{
+    let mut raw = Slice::with_raw(raw);
+    // SAFETY: Same requirements as the function itself
+    unsafe { raw.as_unsized_mut(len) }
+}
+
 /// ```compile_fail,E0277
 /// use core::marker::PhantomData;
 /// use soa_rs::{soa, Soars};
