@@ -96,10 +96,6 @@ struct ZstFields {
 #[soa_derive(Debug, PartialEq, Eq, PartialOrd, Ord)]
 struct Tuple(u8, u16, u32);
 
-#[derive(Soars, Debug, PartialEq, Eq, Default)]
-#[soa_derive(Debug, PartialEq, Eq, PartialOrd, Ord)]
-struct Foo(i8, String);
-
 #[derive(Soars, Debug, Clone, Copy, PartialEq, Eq, Default)]
 #[soa_derive(Debug, PartialEq, Eq, PartialOrd, Ord)]
 struct Generics<A, B> {
