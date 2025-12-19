@@ -2,7 +2,7 @@ use crate::{
     Slice, Soa, SoaRaw, Soars,
     iter_raw::{IterRaw, IterRawAdapter, iter_with_raw},
 };
-use std::{
+use core::{
     fmt::Debug,
     iter::FusedIterator,
     mem::{needs_drop, size_of},
@@ -50,7 +50,7 @@ where
     T: Soars,
     for<'a> T::Ref<'a>: Debug,
 {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         write!(f, "{:?}", self.as_slice())
     }
 }

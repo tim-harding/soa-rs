@@ -1,5 +1,5 @@
 use crate::{Slice, SliceMut, SliceRef, SoaRaw, Soars};
-use std::{
+use core::{
     marker::PhantomData,
     ops::{Range, RangeFrom, RangeFull, RangeInclusive, RangeTo, RangeToInclusive},
 };
