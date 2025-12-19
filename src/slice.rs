@@ -49,6 +49,18 @@ unsafe impl<T: Soars, D: ?Sized> Send for Slice<T, D> where T: Send {}
 /// - `raw` must point `len` consecutive, initialized elements
 /// - The lifetime of the returned reference is unconstrained. Ensure that
 ///   the right lifetimes are applied.
+///
+/// # Examples
+///
+/// ```
+/// # use soa_rs::{Soa, Soars, soa, from_raw_parts};
+/// # #[derive(Soars)]
+/// # #[soa_derive(Debug, PartialEq)]
+/// # struct Foo(usize);
+/// let soa = soa![Foo(1), Foo(2), Foo(3)];
+/// let slice = unsafe { from_raw_parts(soa.raw(), soa.len()) };
+/// assert_eq!(&soa, slice);
+/// ```
 pub const unsafe fn from_raw_parts<'a, T>(raw: T::Raw, len: usize) -> &'a Slice<T>
 where
     T: Soars,
@@ -67,6 +79,18 @@ where
 /// - `raw` must point `len` consecutive, initialized elements
 /// - The lifetime of the returned reference is unconstrained. Ensure that
 ///   the right lifetimes are applied.
+///
+/// # Examples
+///
+/// ```
+/// # use soa_rs::{Soa, Soars, soa, from_raw_parts_mut};
+/// # #[derive(Soars)]
+/// # #[soa_derive(Debug, PartialEq)]
+/// # struct Foo(usize);
+/// let mut soa = soa![Foo(1), Foo(2), Foo(3)];
+/// let slice = unsafe { from_raw_parts_mut(soa.raw(), soa.len()) };
+/// assert_eq!(&soa, slice);
+/// ```
 pub const unsafe fn from_raw_parts_mut<'a, T>(raw: T::Raw, len: usize) -> &'a mut Slice<T>
 where
     T: Soars,
