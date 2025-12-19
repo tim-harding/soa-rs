@@ -77,7 +77,7 @@ where
     /// Creates a new slice with the given [`SoaRaw`]. This is intended for use
     /// in proc macro code, not user code.
     #[doc(hidden)]
-    pub fn with_raw(raw: T::Raw) -> Self {
+    pub const fn with_raw(raw: T::Raw) -> Self {
         Self { raw, dst: () }
     }
 
@@ -88,7 +88,7 @@ where
     /// - `length` must be valid for the underlying type `T`.
     /// - The lifetime of the returned reference is unconstrained. Ensure that
     ///   the right lifetimes are applied.
-    pub(crate) unsafe fn as_unsized_mut<'a>(&mut self, len: usize) -> &'a mut Slice<T> {
+    pub(crate) const unsafe fn as_unsized_mut<'a>(&mut self, len: usize) -> &'a mut Slice<T> {
         let ptr = core::ptr::slice_from_raw_parts_mut(self, len) as *mut Slice<T>;
         unsafe { &mut *ptr }
     }
@@ -100,7 +100,7 @@ where
     /// - `length` must be valid for the underlying type `T`.
     /// - The lifetime of the returned reference is unconstrained. Ensure that
     ///   the right lifetimes are applied.
-    pub(crate) unsafe fn as_unsized<'a>(&self, len: usize) -> &'a Slice<T> {
+    pub(crate) const unsafe fn as_unsized<'a>(&self, len: usize) -> &'a Slice<T> {
         let ptr = core::ptr::slice_from_raw_parts(self, len) as *const Slice<T>;
         unsafe { &*ptr }
     }
@@ -347,6 +347,246 @@ where
         I: SoaIndex<T>,
     {
         self.get_mut(index).expect("index out of bounds")
+    }
+
+    /// Divides one slice into two at an index.
+    ///
+    /// The first will contain all indices from `[0, mid)` (excluding
+    /// the index `mid` itself) and the second will contain all
+    /// indices from `[mid, len)` (excluding the index `len` itself).
+    ///
+    /// # Panics
+    ///
+    /// Panics if `mid > len`.  For a non-panicking alternative see
+    /// [`split_at_checked`](Slice::split_at_checked).
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use soa_rs::{Soa, Soars, soa};
+    /// # #[derive(Soars, Debug, PartialEq)]
+    /// # #[soa_derive(Debug, PartialEq)]
+    /// # struct Foo(usize);
+    /// let soa = soa![Foo(1), Foo(2), Foo(3), Foo(4), Foo(5)];
+    /// let (l, r) = soa.split_at(3);
+    /// assert_eq!(l, soa![Foo(1), Foo(2), Foo(3)]);
+    /// assert_eq!(r, soa![Foo(4), Foo(5)]);
+    /// ```
+    #[must_use]
+    pub fn split_at(&self, mid: usize) -> (SliceRef<'_, T>, SliceRef<'_, T>) {
+        match self.split_at_checked(mid) {
+            Some(pair) => pair,
+            None => panic!("mid > len"),
+        }
+    }
+
+    /// Divides one mutable slice into two at an index.
+    ///
+    /// The first will contain all indices from `[0, mid)` (excluding
+    /// the index `mid` itself) and the second will contain all
+    /// indices from `[mid, len)` (excluding the index `len` itself).
+    ///
+    /// # Panics
+    ///
+    /// Panics if `mid > len`.  For a non-panicking alternative see
+    /// [`split_at_mut_checked`](Slice::split_at_mut_checked).
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use soa_rs::{Soa, Soars, soa};
+    /// # #[derive(Soars, Debug, PartialEq)]
+    /// # #[soa_derive(Debug, PartialEq)]
+    /// # struct Foo(usize);
+    /// let mut soa = soa![Foo(1), Foo(2), Foo(3), Foo(4), Foo(5)];
+    /// let (l, r) = soa.split_at_mut(3);
+    /// assert_eq!(l, soa![Foo(1), Foo(2), Foo(3)]);
+    /// assert_eq!(r, soa![Foo(4), Foo(5)]);
+    /// ```
+    #[must_use]
+    pub fn split_at_mut(&mut self, mid: usize) -> (SliceMut<'_, T>, SliceMut<'_, T>) {
+        match self.split_at_mut_checked(mid) {
+            Some(pair) => pair,
+            None => panic!("mid > len"),
+        }
+    }
+
+    /// Divides one slice into two at an index,
+    /// returning `None` if the slice is too short.
+    ///
+    /// If `mid ≤ len` returns a pair of slices where the first will contain all
+    /// indices from `[0, mid)` (excluding the index `mid` itself) and the
+    /// second will contain all indices from `[mid, len)` (excluding the index
+    /// `len` itself).
+    ///
+    /// Otherwise, if `mid > len`, returns `None`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use soa_rs::{Soa, Soars, soa};
+    /// # #[derive(Soars, Debug, PartialEq)]
+    /// # #[soa_derive(Debug, PartialEq)]
+    /// # struct Foo(usize);
+    /// let soa = soa![Foo(1), Foo(2), Foo(3), Foo(4)];
+    ///
+    /// {
+    ///     let (l, r) = soa.split_at_checked(0).unwrap();
+    ///     assert_eq!(l, soa![]);
+    ///     assert_eq!(r, soa);
+    /// }
+    ///
+    /// {
+    ///     let (l, r) = soa.split_at_checked(2).unwrap();
+    ///     assert_eq!(l, soa![Foo(1), Foo(2)]);
+    ///     assert_eq!(r, soa![Foo(3), Foo(4)]);
+    /// }
+    ///
+    /// {
+    ///     let (l, r) = soa.split_at_checked(4).unwrap();
+    ///     assert_eq!(l, soa);
+    ///     assert_eq!(r, soa![]);
+    /// }
+    ///
+    /// assert_eq!(None, soa.split_at_checked(5));
+    #[must_use]
+    pub fn split_at_checked(&self, mid: usize) -> Option<(SliceRef<'_, T>, SliceRef<'_, T>)> {
+        // SAFETY:
+        // Don't use `bool::then_some` here because constructing an invalid reference is unsound,
+        // even if it is not accessed
+        (mid <= self.len()).then(|| unsafe { self.split_at_unchecked(mid) })
+    }
+
+    /// Divides one mutable slice into two at an index,
+    /// returning `None` if the slice is too short.
+    ///
+    /// If `mid ≤ len` returns a pair of slices where the first will contain all
+    /// indices from `[0, mid)` (excluding the index `mid` itself) and the
+    /// second will contain all indices from `[mid, len)` (excluding the index
+    /// `len` itself).
+    ///
+    /// Otherwise, if `mid > len`, returns `None`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use soa_rs::{Soa, Soars, soa};
+    /// # #[derive(Soars, Debug, PartialEq)]
+    /// # #[soa_derive(Debug, PartialEq)]
+    /// # struct Foo(usize);
+    /// let mut soa = soa![Foo(1), Foo(2), Foo(3), Foo(4)];
+    ///
+    /// {
+    ///     let (l, r) = soa.split_at_mut_checked(0).unwrap();
+    ///     assert_eq!(l, soa![]);
+    ///     assert_eq!(r, soa![Foo(1), Foo(2), Foo(3), Foo(4)]);
+    /// }
+    ///
+    /// {
+    ///     let (l, r) = soa.split_at_mut_checked(2).unwrap();
+    ///     assert_eq!(l, soa![Foo(1), Foo(2)]);
+    ///     assert_eq!(r, soa![Foo(3), Foo(4)]);
+    /// }
+    ///
+    /// {
+    ///     let (l, r) = soa.split_at_mut_checked(4).unwrap();
+    ///     assert_eq!(l, soa![Foo(1), Foo(2), Foo(3), Foo(4)]);
+    ///     assert_eq!(r, soa![]);
+    /// }
+    ///
+    /// assert_eq!(None, soa.split_at_mut_checked(5));
+    #[must_use]
+    pub fn split_at_mut_checked(
+        &mut self,
+        mid: usize,
+    ) -> Option<(SliceMut<'_, T>, SliceMut<'_, T>)> {
+        // SAFETY:
+        // Don't use `bool::then_some` here because constructing an invalid reference is unsound,
+        // even if it is not accessed
+        (mid <= self.len()).then(|| unsafe { self.split_at_mut_unchecked(mid) })
+    }
+
+    /// Divides one slice into two at an index without doing bounds checking.
+    ///
+    /// The first will contain all indices from `[0, mid)` (excluding
+    /// the index `mid` itself) and the second will contain all
+    /// indices from `[mid, len)` (excluding the index `len` itself).
+    ///
+    /// For a safe alternative, see [`split_at`].
+    ///
+    /// # Safety
+    ///
+    /// Calling this method with an out-of-bounds index is undefined behavior,
+    /// even if the resulting reference is not used.
+    ///
+    /// [`split_at`]: Slice::split_at
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use soa_rs::{Soa, Soars, soa};
+    /// # #[derive(Soars, Debug, PartialEq)]
+    /// # #[soa_derive(Debug, PartialEq)]
+    /// # struct Foo(usize);
+    /// let soa = soa![Foo(1), Foo(2), Foo(3)];
+    /// let (l, r) = unsafe { soa.split_at_unchecked(2) };
+    /// assert_eq!(l, soa![Foo(1), Foo(2)]);
+    /// assert_eq!(r, soa![Foo(3)]);
+    /// ```
+    #[must_use]
+    pub unsafe fn split_at_unchecked(&self, mid: usize) -> (SliceRef<'_, T>, SliceRef<'_, T>) {
+        let (l, r, r_len) = self.split_at_parts(mid);
+        // SAFETY: Lifetime matches that of self
+        let l = unsafe { SliceRef::from_slice(l, mid) };
+        let r = unsafe { SliceRef::from_slice(r, r_len) };
+        (l, r)
+    }
+
+    /// Divides one mutable slice into two at an index without doing bounds checking.
+    ///
+    /// The first will contain all indices from `[0, mid)` (excluding
+    /// the index `mid` itself) and the second will contain all
+    /// indices from `[mid, len)` (excluding the index `len` itself).
+    ///
+    /// For a safe alternative, see [`split_at_mut`].
+    ///
+    /// # Safety
+    ///
+    /// Calling this method with an out-of-bounds index is undefined behavior,
+    /// even if the resulting reference is not used.
+    ///
+    /// [`split_at_mut`]: Slice::split_at_mut
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use soa_rs::{Soa, Soars, soa};
+    /// # #[derive(Soars, Debug, PartialEq)]
+    /// # #[soa_derive(Debug, PartialEq)]
+    /// # struct Foo(usize);
+    /// let mut soa = soa![Foo(1), Foo(2), Foo(3)];
+    /// let (l, r) = unsafe { soa.split_at_mut_unchecked(1) };
+    /// assert_eq!(l, soa![Foo(1)]);
+    /// assert_eq!(r, soa![Foo(2), Foo(3)]);
+    /// ```
+    #[must_use]
+    pub unsafe fn split_at_mut_unchecked(
+        &mut self,
+        mid: usize,
+    ) -> (SliceMut<'_, T>, SliceMut<'_, T>) {
+        let (l, r, r_len) = self.split_at_parts(mid);
+        // SAFETY: Lifetime matches that of self
+        let l = unsafe { SliceMut::from_slice(l, mid) };
+        let r = unsafe { SliceMut::from_slice(r, r_len) };
+        (l, r)
+    }
+
+    fn split_at_parts(&self, mid: usize) -> (Slice<T, ()>, Slice<T, ()>, usize) {
+        (
+            unsafe { self.as_sized() },
+            Slice::with_raw(unsafe { self.raw.offset(mid) }),
+            self.len() - mid,
+        )
     }
 
     /// Swaps the position of two elements.
