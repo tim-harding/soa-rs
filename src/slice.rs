@@ -372,6 +372,7 @@ where
     /// assert_eq!(l, soa![Foo(1), Foo(2), Foo(3)]);
     /// assert_eq!(r, soa![Foo(4), Foo(5)]);
     /// ```
+    #[must_use]
     pub fn split_at(&self, mid: usize) -> (SliceRef<'_, T>, SliceRef<'_, T>) {
         match self.split_at_checked(mid) {
             Some(pair) => pair,
@@ -402,6 +403,7 @@ where
     /// assert_eq!(l, soa![Foo(1), Foo(2), Foo(3)]);
     /// assert_eq!(r, soa![Foo(4), Foo(5)]);
     /// ```
+    #[must_use]
     pub fn split_at_mut(&mut self, mid: usize) -> (SliceMut<'_, T>, SliceMut<'_, T>) {
         match self.split_at_mut_checked(mid) {
             Some(pair) => pair,
@@ -447,6 +449,7 @@ where
     /// }
     ///
     /// assert_eq!(None, soa.split_at_checked(5));
+    #[must_use]
     pub fn split_at_checked(&self, mid: usize) -> Option<(SliceRef<'_, T>, SliceRef<'_, T>)> {
         // SAFETY:
         // Don't use `bool::then_some` here because constructing an invalid reference is unsound,
@@ -492,6 +495,7 @@ where
     /// }
     ///
     /// assert_eq!(None, soa.split_at_mut_checked(5));
+    #[must_use]
     pub fn split_at_mut_checked(
         &mut self,
         mid: usize,
@@ -529,6 +533,7 @@ where
     /// assert_eq!(l, soa![Foo(1), Foo(2)]);
     /// assert_eq!(r, soa![Foo(3)]);
     /// ```
+    #[must_use]
     pub unsafe fn split_at_unchecked(&self, mid: usize) -> (SliceRef<'_, T>, SliceRef<'_, T>) {
         let (l, r, r_len) = self.split_at_parts(mid);
         // SAFETY: Lifetime matches that of self
@@ -564,6 +569,7 @@ where
     /// assert_eq!(l, soa![Foo(1)]);
     /// assert_eq!(r, soa![Foo(2), Foo(3)]);
     /// ```
+    #[must_use]
     pub unsafe fn split_at_mut_unchecked(
         &mut self,
         mid: usize,
