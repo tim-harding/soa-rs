@@ -149,6 +149,10 @@
 #![warn(missing_docs)]
 #![no_std]
 
+/// `::alloc` is not available at the top level the way that `::std` and
+/// `::core` are. We don't want to do the `extern` inside the macro because
+/// multiple invocations will cause name conflicts. Therefore, we re-export it
+/// from the library for consumption instead.
 #[doc(hidden)]
 pub extern crate alloc as __alloc;
 
