@@ -7,12 +7,11 @@ use core::{
     error::Error,
     fmt::{self, Display, Formatter},
 };
-use fields::{FieldKind, fields_struct};
+use fields::fields_struct;
 use proc_macro::TokenStream;
-use proc_macro2::{Ident, Span, TokenStream as TokenStream2};
+use proc_macro2::TokenStream as TokenStream2;
 use quote::{quote, quote_spanned};
-use syn::{Attribute, Data, DeriveInput, Fields, parse_macro_input};
-use zst::{ZstKind, zst_struct};
+use syn::{Attribute, Data, DeriveInput, parse_macro_input};
 
 #[proc_macro_derive(Soars, attributes(align, soa_derive, soa_array))]
 pub fn soa(input: TokenStream) -> TokenStream {
@@ -36,28 +35,12 @@ fn soa_inner(input: DeriveInput) -> Result<TokenStream2, SoarsError> {
         vis,
         data,
         attrs,
-        generics: _,
+        generics,
     } = input;
 
-    let attrs = SoaAttrs::new(attrs)?;
+    let attrs = SoaAttrs::new(&attrs)?;
     match data {
-        Data::Struct(strukt) => match strukt.fields {
-            Fields::Named(fields) => Ok(fields_struct(
-                ident,
-                vis,
-                fields.named,
-                FieldKind::Named,
-                attrs,
-            )?),
-            Fields::Unnamed(fields) => Ok(fields_struct(
-                ident,
-                vis,
-                fields.unnamed,
-                FieldKind::Unnamed,
-                attrs,
-            )?),
-            Fields::Unit => Ok(zst_struct(ident, vis, ZstKind::Unit)),
-        },
+        Data::Struct(strukt) => Ok(fields_struct(ident, vis, strukt.fields, attrs, generics)?),
         Data::Enum(_) | Data::Union(_) => Err(SoarsError::NotAStruct),
     }
 }
@@ -81,8 +64,8 @@ struct SoaAttrs {
 }
 
 impl SoaAttrs {
-    pub fn new(attributes: Vec<Attribute>) -> Result<Self, syn::Error> {
-        let mut derive_parse = SoaDeriveParse::new();
+    pub fn new(attributes: &[Attribute]) -> Result<Self, syn::Error> {
+        let mut derive_parse = SoaDeriveParse::default();
         let mut include_array = false;
         for attr in attributes {
             let path = attr.path();
@@ -110,16 +93,6 @@ struct SoaDeriveParse {
 }
 
 impl SoaDeriveParse {
-    pub fn new() -> Self {
-        Self {
-            r#ref: copy_clone(),
-            ref_mut: vec![],
-            slices: copy_clone(),
-            slices_mut: vec![],
-            array: vec![],
-        }
-    }
-
     fn into_derive(self) -> SoaDerive {
         let Self {
             r#ref: reff,
@@ -147,7 +120,7 @@ impl SoaDeriveParse {
         }
     }
 
-    pub fn append(&mut self, attr: Attribute) -> Result<(), syn::Error> {
+    pub fn append(&mut self, attr: &Attribute) -> Result<(), syn::Error> {
         let mut collected = vec![];
         let mut mask = SoaDeriveMask::new();
         attr.parse_nested_meta(|meta| {
@@ -185,17 +158,6 @@ impl SoaDeriveParse {
 
         Ok(())
     }
-}
-
-fn copy_clone() -> Vec<syn::Path> {
-    vec![str_to_path("Copy"), str_to_path("Clone")]
-}
-
-fn str_to_path(s: &str) -> syn::Path {
-    syn::Path::from(syn::PathSegment {
-        ident: Ident::new(s, Span::call_site()),
-        arguments: syn::PathArguments::None,
-    })
 }
 
 #[derive(Debug, Clone, Default)]

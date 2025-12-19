@@ -96,6 +96,28 @@ struct ZstFields {
 #[soa_derive(Debug, PartialEq, Eq, PartialOrd, Ord)]
 struct Tuple(u8, u16, u32);
 
+#[derive(Soars, Debug, Clone, Copy, PartialEq, Eq, Default)]
+#[soa_derive(Debug, PartialEq, Eq, PartialOrd, Ord)]
+struct Generics<A, B> {
+    a: A,
+    b: B,
+    c: i32,
+}
+
+#[test]
+pub fn generics() {
+    let mut soa = Soa::<Generics<u8, f64>>::new();
+    let elements = [
+        Generics { a: 1, b: 2.0, c: 3 },
+        Generics { a: 4, b: 5.0, c: 6 },
+        Generics { a: 7, b: 8.0, c: 9 },
+    ];
+    for element in elements {
+        soa.push(element);
+    }
+    assert!(elements.into_iter().eq(soa.into_iter()));
+}
+
 #[test]
 pub fn tuple() {
     let mut soa = Soa::<Tuple>::new();

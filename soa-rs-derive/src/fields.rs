@@ -1,52 +1,37 @@
-use crate::{
-    SoaAttrs, SoaDerive,
-    zst::{ZstKind, zst_struct},
-};
+use crate::{SoaAttrs, SoaDerive, zst::zst_struct};
 use proc_macro2::TokenStream;
-use quote::{ToTokens, TokenStreamExt, format_ident, quote};
-use syn::{Field, Ident, Index, LitInt, Visibility, punctuated::Punctuated, token::Comma};
+use quote::{TokenStreamExt, format_ident, quote};
+use std::borrow::Cow;
+use syn::{Fields, Generics, Ident, Index, LitInt, Member, Visibility};
 
 pub fn fields_struct(
     ident: Ident,
     vis: Visibility,
-    fields: Punctuated<Field, Comma>,
-    kind: FieldKind,
+    fields: Fields,
     soa_attrs: SoaAttrs,
+    generics: Generics,
 ) -> Result<TokenStream, syn::Error> {
     let SoaAttrs {
         derive:
             SoaDerive {
-                r#ref: derive_ref,
-                ref_mut: derive_ref_mut,
-                slices: derive_slices,
-                slices_mut: derive_slices_mut,
-                array: derive_array,
+                r#ref: ref derive_ref,
+                ref_mut: ref derive_ref_mut,
+                slices: ref derive_slices,
+                slices_mut: ref derive_slices_mut,
+                array: ref derive_array,
             },
         include_array,
     } = soa_attrs;
 
     let fields_len = fields.len();
-    let (vis_all, ty_all, ident_all, attrs_all): (Vec<_>, Vec<_>, Vec<_>, Vec<_>) = fields
-        .into_iter()
-        .enumerate()
-        .map(|(i, field)| {
-            let Field {
-                attrs,
-                vis,
-                mutability: _,
-                ident,
-                colon_token: _,
-                ty,
-            } = field;
-            let ident: FieldIdent = (i, ident).into();
-            (vis, ty, ident, attrs)
-        })
-        .collect();
+    let ident_all = fields.members().collect::<Vec<_>>();
+    let (vis_all, ty_all): (Vec<_>, Vec<_>) =
+        fields.iter().map(|field| (&field.vis, &field.ty)).collect();
 
-    let align_all: Result<Vec<_>, syn::Error> = attrs_all
-        .into_iter()
-        .map(|attrs| {
-            for attr in attrs {
+    let align_all = fields
+        .iter()
+        .map(|field| {
+            for attr in &field.attrs {
                 if attr.path().is_ident("align") {
                     let align_literal: LitInt = attr.parse_args()?;
                     let align: usize = align_literal.base10_parse()?;
@@ -61,30 +46,17 @@ pub fn fields_struct(
             }
             Ok(None)
         })
-        .collect();
+        .collect::<syn::Result<Vec<_>>>()?;
 
-    let align_all = align_all?;
+    let ident_rev = ident_all.iter().rev();
 
-    let ident_rev: Vec<_> = ident_all.iter().cloned().rev().collect();
-
-    let (_vis_head, ident_head, ty_head) = match (
-        vis_all.first().cloned(),
-        ty_all.first().cloned(),
-        ident_all.first().cloned(),
-    ) {
-        (Some(vis), Some(ty), Some(ident)) => (vis, ident, ty),
-        _ => {
-            let zst_kind = match kind {
-                FieldKind::Named => ZstKind::Empty,
-                FieldKind::Unnamed => ZstKind::EmptyTuple,
-            };
-            return Ok(zst_struct(ident, vis, zst_kind));
-        }
+    let (Some(_vis_head), Some((ident_head, ident_tail)), Some((&ty_head, ty_tail))) = (
+        vis_all.first(),
+        ident_all.split_first(),
+        ty_all.split_first(),
+    ) else {
+        return Ok(zst_struct(ident, vis, fields));
     };
-
-    let _vis_tail: Vec<_> = vis_all.iter().skip(1).cloned().collect();
-    let ty_tail: Vec<_> = ty_all.iter().skip(1).cloned().collect();
-    let ident_tail: Vec<_> = ident_all.iter().skip(1).cloned().collect();
 
     let deref = format_ident!("{ident}Deref");
     let item_ref = format_ident!("{ident}Ref");
@@ -96,24 +68,38 @@ pub fn fields_struct(
 
     let mut out = TokenStream::new();
 
-    let (slice_getters_ref, slice_getters_mut): (Vec<_>, Vec<_>) = ident_all
-        .iter()
-        .map(|ident| match ident {
-            FieldIdent::Named(named) => (named.clone(), format_ident!("{named}_mut")),
-            FieldIdent::Unnamed(unnamed) => {
-                (format_ident!("f{unnamed}"), format_ident!("f{unnamed}_mut"))
-            }
-        })
-        .collect();
+    let slice_getters_ref = ident_all.iter().map(|ident| match ident {
+        Member::Named(named) => Cow::Borrowed(named),
+        Member::Unnamed(Index { index, span }) => {
+            Cow::Owned(Ident::new(&format!("f{index}"), *span))
+        }
+    });
+    let slice_getters_mut = ident_all.iter().map(|ident| match ident {
+        Member::Named(named) => format_ident!("{named}_mut"),
+        Member::Unnamed(Index { index, span }) => Ident::new(&format!("f{index}_mut"), *span),
+    });
+
+    let (impl_generics, ty_generics, where_clause) = generics.split_for_impl();
+
+    let mut generics_ref = generics.clone();
+    generics_ref.params.push(syn::parse_quote!('a));
+    let (impl_generics_ref, ty_generics_ref, where_clause_ref) = generics_ref.split_for_impl();
+
+    let mut generics_array = generics.clone();
+    generics_array
+        .params
+        .push(syn::parse_quote!(const N: usize));
+    let (impl_generics_array, ty_generics_array, where_clause_array) =
+        generics_array.split_for_impl();
 
     out.append_all(quote! {
         #[allow(dead_code)]
         #[repr(transparent)]
-        #vis struct #deref(::soa_rs::Slice<#ident>);
+        #vis struct #deref #impl_generics #where_clause (::soa_rs::Slice<#ident #ty_generics>);
 
         #[automatically_derived]
-        impl ::soa_rs::SoaDeref for #deref {
-            type Item = #ident;
+        impl #impl_generics ::soa_rs::SoaDeref for #deref #ty_generics #where_clause {
+            type Item = #ident #ty_generics;
 
             fn from_slice(slice: &::soa_rs::Slice<Self::Item>) -> &Self {
                 // SAFETY: Self is `repr(transparent)` of Slice
@@ -127,7 +113,7 @@ pub fn fields_struct(
         }
 
         #[automatically_derived]
-        impl #deref {
+        impl #impl_generics #deref #ty_generics #where_clause {
             #(
             #vis_all const fn #slice_getters_ref(&self) -> &[#ty_all] {
                 let slice = ::core::ptr::NonNull::slice_from_raw_parts(
@@ -156,27 +142,36 @@ pub fn fields_struct(
         }
     });
 
-    let define = |type_mapper: &dyn Fn(&syn::Type) -> TokenStream| {
-        let ty_mapped = ty_all.iter().map(type_mapper);
-        match kind {
-            FieldKind::Named => quote! {
-                { #(#[allow(dead_code)] #vis_all #ident_all: #ty_mapped),* }
-            },
-            FieldKind::Unnamed => quote! {
-                ( #(#[allow(dead_code)] #vis_all #ty_mapped),* );
-            },
+    let define = |type_mapper: fn(&syn::Type) -> TokenStream| {
+        let ty_mapped = ty_all.iter().copied().map(type_mapper);
+        if let Fields::Named(_) = fields {
+            quote! {
+                { #(#vis_all #ident_all: #ty_mapped),* }
+            }
+        } else {
+            quote! {
+                ( #(#vis_all #ty_mapped),* );
+            }
         }
     };
 
-    let item_ref_def = define(&|ty| quote! { &'a #ty });
+    let item_ref_def = define(|ty| quote! { &'a #ty });
     out.append_all(quote! {
         #derive_ref
         #[allow(dead_code)]
-        #vis struct #item_ref<'a> #item_ref_def
+        #vis struct #item_ref #impl_generics_ref #where_clause_ref #item_ref_def
+
+        // Not using the derive because it imposes unnecessary <T: Copy> restrictions on generic params.
+        impl #impl_generics_ref Copy for #item_ref #ty_generics_ref #where_clause_ref {}
+        impl #impl_generics_ref Clone for #item_ref #ty_generics_ref #where_clause_ref {
+            fn clone(&self) -> Self {
+                *self
+            }
+        }
 
         #[automatically_derived]
-        impl ::soa_rs::AsSoaRef for #item_ref<'_> {
-            type Item = #ident;
+        impl #impl_generics_ref ::soa_rs::AsSoaRef for #item_ref #ty_generics_ref #where_clause_ref {
+            type Item = #ident #ty_generics;
 
             fn as_soa_ref(&self) -> <Self::Item as Soars>::Ref<'_> {
                 *self
@@ -184,15 +179,15 @@ pub fn fields_struct(
         }
     });
 
-    let item_ref_mut_def = define(&|ty| quote! { &'a mut #ty });
+    let item_ref_mut_def = define(|ty| quote! { &'a mut #ty });
     out.append_all(quote! {
         #derive_ref_mut
         #[allow(dead_code)]
-        #vis struct #item_ref_mut<'a> #item_ref_mut_def
+        #vis struct #item_ref_mut #impl_generics_ref #where_clause_ref #item_ref_mut_def
 
         #[automatically_derived]
-        impl ::soa_rs::AsSoaRef for #item_ref_mut<'_> {
-            type Item = #ident;
+        impl #impl_generics_ref ::soa_rs::AsSoaRef for #item_ref_mut #ty_generics_ref #where_clause_ref {
+            type Item = #ident #ty_generics;
 
             fn as_soa_ref(&self) -> <Self::Item as Soars>::Ref<'_> {
                 #item_ref {
@@ -204,33 +199,41 @@ pub fn fields_struct(
         }
     });
 
-    let slices_def = define(&|ty| quote! { &'a [#ty] });
+    let slices_def = define(|ty| quote! { &'a [#ty] });
     out.append_all(quote! {
         #derive_slices
         #[allow(dead_code)]
-        #vis struct #slices<'a> #slices_def
+        #vis struct #slices #impl_generics_ref #where_clause_ref #slices_def
+
+        // Not using the derive because it imposes unnecessary <T: Copy> restrictions on generic params.
+        impl #impl_generics_ref Copy for #slices #ty_generics_ref #where_clause_ref {}
+        impl #impl_generics_ref Clone for #slices #ty_generics_ref #where_clause_ref {
+            fn clone(&self) -> Self {
+                *self
+            }
+        }
     });
 
-    let slices_mut_def = define(&|ty| quote! { &'a mut [#ty] });
+    let slices_mut_def = define(|ty| quote! { &'a mut [#ty] });
     out.append_all(quote! {
         #derive_slices_mut
         #[allow(dead_code)]
-        #vis struct #slices_mut<'a> #slices_mut_def
+        #vis struct #slices_mut #impl_generics_ref #where_clause_ref #slices_mut_def
     });
 
     if include_array {
-        let array_def = define(&|ty| quote! { [#ty; N] });
+        let array_def = define(|ty| quote! { [#ty; N] });
         out.append_all(quote! {
             #derive_array
             #[allow(dead_code)]
-            #vis struct #array<const N: usize> #array_def
+            #vis struct #array #impl_generics_array #where_clause_array #array_def
 
             #[automatically_derived]
-            impl<const N: usize> #array<N> {
-                #vis const fn from_array(array: [#ident; N]) -> Self {
+            impl #impl_generics_array #array #ty_generics_array #where_clause_array {
+                #vis const fn from_array(array: [#ident #ty_generics; N]) -> Self {
                     let array = ::core::mem::ManuallyDrop::new(array);
-                    let array = ::core::ptr::from_ref::<::core::mem::ManuallyDrop<[#ident; N]>>(&array);
-                    let array = array.cast::<[#ident; N]>();
+                    let array = ::core::ptr::from_ref::<::core::mem::ManuallyDrop<[#ident #ty_generics; N]>>(&array);
+                    let array = array.cast::<[#ident #ty_generics; N]>();
                     // SAFETY: Getting a slice this way is okay
                     // because the memory comes from an array,
                     // which is initialized and well-aligned.
@@ -259,8 +262,8 @@ pub fn fields_struct(
             }
 
             #[automatically_derived]
-            impl<const N: usize> ::soa_rs::AsSlice for #array<N> {
-                type Item = #ident;
+            impl #impl_generics_array ::soa_rs::AsSlice for #array #ty_generics_array #where_clause_array {
+                type Item = #ident #ty_generics;
 
                 fn as_slice(&self) -> ::soa_rs::SliceRef<'_, Self::Item> {
                     let raw = #raw {
@@ -279,7 +282,7 @@ pub fn fields_struct(
             }
 
             #[automatically_derived]
-            impl<const N: usize> ::soa_rs::AsMutSlice for #array<N> {
+            impl #impl_generics_array ::soa_rs::AsMutSlice for #array #ty_generics_array #where_clause_array {
                 fn as_mut_slice(&mut self) -> ::soa_rs::SliceMut<'_, Self::Item> {
                     let raw = #raw {
                         #(
@@ -300,7 +303,7 @@ pub fn fields_struct(
 
     let indices = core::iter::repeat(()).enumerate().map(|(i, ())| i);
     let offsets_len = fields_len - 1;
-    let raw_body = define(&|ty| quote! { ::core::ptr::NonNull<#ty> });
+    let raw_body = define(|ty| quote! { ::core::ptr::NonNull<#ty> });
 
     let layout_and_offsets_body = |checked: bool| {
         let check_head = if checked {
@@ -333,7 +336,7 @@ pub fn fields_struct(
         });
 
         let raise_align_head = raise_align.next().flatten();
-        let raise_align_tail: Vec<_> = raise_align.collect();
+        let raise_align_tail = raise_align;
 
         let indices = indices.clone();
         quote! {
@@ -356,22 +359,30 @@ pub fn fields_struct(
 
     out.append_all(quote! {
         #[allow(dead_code)]
-        #[derive(Copy, Clone)]
-        #vis struct #raw #raw_body
+        #vis struct #raw #impl_generics #where_clause #raw_body
+
+        // Not using the derive because it imposes unnecessary Copy
+        // restrictions on generic params
+        impl #impl_generics Copy for #raw #ty_generics #where_clause {}
+        impl #impl_generics Clone for #raw #ty_generics #where_clause {
+            fn clone(&self) -> Self {
+                *self
+            }
+        }
 
         // SAFETY: Self::Deref is repr(transparent) with soa_rs::Slice<Self::Raw>
         #[automatically_derived]
-        unsafe impl ::soa_rs::Soars for #ident {
-            type Raw = #raw;
-            type Deref = #deref;
-            type Ref<'a> = #item_ref<'a> where Self: 'a;
-            type RefMut<'a> = #item_ref_mut<'a> where Self: 'a;
-            type Slices<'a> = #slices<'a> where Self: 'a;
-            type SlicesMut<'a> = #slices_mut<'a> where Self: 'a;
+        unsafe impl #impl_generics ::soa_rs::Soars for #ident #ty_generics #where_clause {
+            type Raw = #raw #ty_generics;
+            type Deref = #deref #ty_generics;
+            type Ref<'a> = #item_ref #ty_generics_ref where Self: 'a;
+            type RefMut<'a> = #item_ref_mut #ty_generics_ref where Self: 'a;
+            type Slices<'a> = #slices #ty_generics_ref where Self: 'a;
+            type SlicesMut<'a> = #slices_mut #ty_generics_ref where Self: 'a;
         }
 
         #[automatically_derived]
-        impl #raw {
+        impl #impl_generics #raw #ty_generics #where_clause {
             #[inline]
             const fn layout_and_offsets(cap: usize)
                 -> Result<(::core::alloc::Layout, [usize; #offsets_len]), ::core::alloc::LayoutError>
@@ -411,8 +422,8 @@ pub fn fields_struct(
         }
 
         #[automatically_derived]
-        unsafe impl ::soa_rs::SoaRaw for #raw {
-            type Item = #ident;
+        unsafe impl #impl_generics ::soa_rs::SoaRaw for #raw #ty_generics #where_clause {
+            type Item = #ident #ty_generics;
 
             #[inline]
             fn dangling() -> Self {
@@ -558,7 +569,7 @@ pub fn fields_struct(
             }
 
             #[inline]
-            unsafe fn set(self, element: #ident) {
+            unsafe fn set(self, element: Self::Item) {
                 #(
                 // SAFETY: Caller ensures that self points to a soa subset
                 // with at least one element
@@ -567,7 +578,7 @@ pub fn fields_struct(
             }
 
             #[inline]
-            unsafe fn get(self) -> #ident {
+            unsafe fn get(self) -> Self::Item {
                 #ident {
                     #(
                     // SAFETY: Caller ensures that self points to a soa subset
@@ -578,7 +589,7 @@ pub fn fields_struct(
             }
 
             #[inline]
-            unsafe fn get_ref<'a>(self) -> #item_ref<'a> {
+            unsafe fn get_ref<'a>(self) -> #item_ref #ty_generics_ref {
                 #item_ref {
                     #(
                     // SAFETY: Caller ensures that self points to a soa subset
@@ -589,7 +600,7 @@ pub fn fields_struct(
             }
 
             #[inline]
-            unsafe fn get_mut<'a>(mut self) -> #item_ref_mut<'a> {
+            unsafe fn get_mut<'a>(mut self) -> #item_ref_mut #ty_generics_ref {
                 #item_ref_mut {
                     #(
                     // SAFETY: Caller ensures that self points to a soa subset
@@ -611,7 +622,7 @@ pub fn fields_struct(
             }
 
             #[inline]
-            unsafe fn slices<'a>(self, len: usize) -> #slices<'a> {
+            unsafe fn slices<'a>(self, len: usize) -> #slices #ty_generics_ref {
                 #slices {
                     #(
                     #ident_all: ::core::ptr::NonNull::slice_from_raw_parts(
@@ -626,7 +637,7 @@ pub fn fields_struct(
             }
 
             #[inline]
-            unsafe fn slices_mut<'a>(self, len: usize) -> #slices_mut<'a> {
+            unsafe fn slices_mut<'a>(self, len: usize) -> #slices_mut #ty_generics_ref {
                 #slices_mut {
                     #(
                     #ident_all: ::core::ptr::NonNull::slice_from_raw_parts(
@@ -642,7 +653,7 @@ pub fn fields_struct(
         }
 
         #[automatically_derived]
-        impl ::soa_rs::AsSoaRef for #ident {
+        impl #impl_generics ::soa_rs::AsSoaRef for #ident #ty_generics #where_clause {
             type Item = Self;
 
             fn as_soa_ref(&self) -> <Self::Item as ::soa_rs::Soars>::Ref<'_> {
@@ -656,43 +667,4 @@ pub fn fields_struct(
     });
 
     Ok(out)
-}
-
-#[derive(Clone, PartialEq, Eq)]
-enum FieldIdent {
-    Named(Ident),
-    Unnamed(usize),
-}
-
-impl From<(usize, Option<Ident>)> for FieldIdent {
-    fn from(value: (usize, Option<Ident>)) -> Self {
-        match value {
-            (_, Some(ident)) => Self::Named(ident),
-            (i, None) => Self::Unnamed(i),
-        }
-    }
-}
-
-impl ToTokens for FieldIdent {
-    fn to_tokens(&self, tokens: &mut TokenStream) {
-        match self {
-            FieldIdent::Named(ident) => ident.to_tokens(tokens),
-            FieldIdent::Unnamed(i) => Index::from(*i).to_tokens(tokens),
-        }
-    }
-}
-
-impl core::fmt::Display for FieldIdent {
-    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        match self {
-            FieldIdent::Named(ident) => write!(f, "{ident}"),
-            FieldIdent::Unnamed(i) => write!(f, "{i}"),
-        }
-    }
-}
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
-pub enum FieldKind {
-    Named,
-    Unnamed,
 }

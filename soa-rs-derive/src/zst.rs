@@ -1,15 +1,15 @@
 use proc_macro2::{Ident, TokenStream};
 use quote::{format_ident, quote};
-use syn::Visibility;
+use syn::{Fields, Visibility};
 
-pub fn zst_struct(ident: Ident, vis: Visibility, kind: ZstKind) -> TokenStream {
+pub fn zst_struct(ident: Ident, vis: Visibility, kind: Fields) -> TokenStream {
     let raw = format_ident!("{ident}SoaRaw");
     let deref = format_ident!("{ident}Deref");
     let array = format_ident!("{ident}Array");
     let unit_construct = match kind {
-        ZstKind::Unit => quote! {},
-        ZstKind::Empty => quote! { {} },
-        ZstKind::EmptyTuple => quote! { () },
+        Fields::Unit => quote! {},
+        Fields::Named(_) => quote! { {} },
+        Fields::Unnamed(_) => quote! { () },
     };
 
     quote! {
@@ -154,13 +154,4 @@ pub fn zst_struct(ident: Ident, vis: Visibility, kind: ZstKind) -> TokenStream {
             }
         }
     }
-}
-
-pub enum ZstKind {
-    /// struct Unit;
-    Unit,
-    /// struct Unit {};
-    Empty,
-    /// struct Unit();
-    EmptyTuple,
 }
