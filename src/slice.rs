@@ -377,16 +377,10 @@ where
     /// assert_eq!(r, soa![Foo(3)]);
     /// ```
     pub unsafe fn split_at_unchecked(&self, mid: usize) -> (SliceRef<'_, T>, SliceRef<'_, T>) {
-        let l = SliceRef {
-            slice: unsafe { self.as_sized() },
-            len: mid,
-            marker: PhantomData,
-        };
-        let r = SliceRef {
-            slice: Slice::with_raw(unsafe { self.raw.offset(mid) }),
-            len: self.len() - mid,
-            marker: PhantomData,
-        };
+        let (l, r, r_len) = self.split_at_parts(mid);
+        // SAFETY: Lifetime matches that of self
+        let l = unsafe { SliceRef::from_slice(l, mid) };
+        let r = unsafe { SliceRef::from_slice(r, r_len) };
         (l, r)
     }
 
@@ -421,17 +415,19 @@ where
         &mut self,
         mid: usize,
     ) -> (SliceMut<'_, T>, SliceMut<'_, T>) {
-        let l = SliceMut {
-            slice: unsafe { self.as_sized() },
-            len: mid,
-            marker: PhantomData,
-        };
-        let r = SliceMut {
-            slice: Slice::with_raw(unsafe { self.raw.offset(mid) }),
-            len: self.len() - mid,
-            marker: PhantomData,
-        };
+        let (l, r, r_len) = self.split_at_parts(mid);
+        // SAFETY: Lifetime matches that of self
+        let l = unsafe { SliceMut::from_slice(l, mid) };
+        let r = unsafe { SliceMut::from_slice(r, r_len) };
         (l, r)
+    }
+
+    fn split_at_parts(&self, mid: usize) -> (Slice<T, ()>, Slice<T, ()>, usize) {
+        (
+            unsafe { self.as_sized() },
+            Slice::with_raw(unsafe { self.raw.offset(mid) }),
+            self.len() - mid,
+        )
     }
 
     /// Swaps the position of two elements.
