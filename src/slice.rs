@@ -379,6 +379,36 @@ where
         }
     }
 
+    /// Divides one mutable slice into two at an index.
+    ///
+    /// The first will contain all indices from `[0, mid)` (excluding
+    /// the index `mid` itself) and the second will contain all
+    /// indices from `[mid, len)` (excluding the index `len` itself).
+    ///
+    /// # Panics
+    ///
+    /// Panics if `mid > len`.  For a non-panicking alternative see
+    /// [`split_at_mut_checked`](Slice::split_at_mut_checked).
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use soa_rs::{Soa, Soars, soa};
+    /// # #[derive(Soars, Debug, PartialEq)]
+    /// # #[soa_derive(Debug, PartialEq)]
+    /// # struct Foo(usize);
+    /// let mut soa = soa![Foo(1), Foo(2), Foo(3), Foo(4), Foo(5)];
+    /// let (l, r) = soa.split_at_mut(3);
+    /// assert_eq!(l, soa![Foo(1), Foo(2), Foo(3)]);
+    /// assert_eq!(r, soa![Foo(4), Foo(5)]);
+    /// ```
+    pub fn split_at_mut(&mut self, mid: usize) -> (SliceMut<'_, T>, SliceMut<'_, T>) {
+        match self.split_at_mut_checked(mid) {
+            Some(pair) => pair,
+            None => panic!("mid > len"),
+        }
+    }
+
     /// Divides one slice into two at an index,
     /// returning `None` if the slice is too short.
     ///
