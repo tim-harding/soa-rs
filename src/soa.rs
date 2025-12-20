@@ -679,31 +679,18 @@ where
     }
 }
 
-// NOTE: Copy is the required bound because calling Clone::clone on a
-// stack-allocated element is unsound in the presence of interior mutability
-// unless the fields are written back, which we also can't do because of &self.
 impl<T> Clone for Soa<T>
 where
-    T: Soars + Copy,
+    T: SoaClone,
 {
     fn clone(&self) -> Self {
-        let mut out = Self::with_capacity(self.len);
-        for i in 0..self.len {
-            // SAFETY: i is in-bounds
-            let el = unsafe { self.raw.offset(i).get() };
-            out.push(el);
-        }
-        out
+        self.iter().map(SoaClone::soa_clone).collect()
     }
 
     fn clone_from(&mut self, source: &Self) {
         self.clear();
         self.reserve_exact(source.len);
-        for i in 0..source.len {
-            // SAFETY: i is in-bounds
-            let el = unsafe { source.raw.offset(i).get() };
-            self.push(el);
-        }
+        self.extend(source.iter().map(SoaClone::soa_clone));
     }
 }
 

@@ -7,7 +7,7 @@
 #[derive(Soars)]
 struct AllowUnknownAttributes;
 
-use soa_rs::{AsMutSlice, AsSlice, AsSoaRef, Soa, Soars, soa};
+use soa_rs::{AsMutSlice, AsSlice, AsSoaRef, Soa, SoaClone, Soars, soa};
 use std::sync::Mutex;
 
 #[derive(Soars, Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -81,7 +81,7 @@ struct Unit;
 #[soa_derive(Debug, PartialEq, Eq, PartialOrd, Ord)]
 struct Empty {}
 
-#[derive(Soars, Debug, Clone, Copy, PartialEq, Eq, Default)]
+#[derive(Soars, SoaClone, Clone, Copy, PartialEq, Eq, Default, Debug)]
 #[soa_derive(Debug, PartialEq, Eq, PartialOrd, Ord)]
 struct EmptyTuple();
 
@@ -92,7 +92,7 @@ struct ZstFields {
     b: (),
 }
 
-#[derive(Soars, Debug, Clone, Copy, PartialEq, Eq, Default)]
+#[derive(Soars, SoaClone, Debug, Clone, Copy, PartialEq, Eq, Default)]
 #[soa_derive(Debug, PartialEq, Eq, PartialOrd, Ord)]
 struct Tuple(u8, u16, u32);
 
@@ -291,7 +291,7 @@ pub fn clone() {
 
 #[test]
 pub fn clone_from() {
-    let mut dst: Soa<_> = core::iter::repeat(Tuple(100, 100, 100)).take(7).collect();
+    let mut dst: Soa<_> = std::iter::repeat_n(Tuple(100, 100, 100), 7).collect();
     let src: Soa<_> = [Tuple(1, 2, 3), Tuple(4, 5, 6), Tuple(7, 8, 9)].into();
     dst.clone_from(&src);
     assert_eq!(dst, src);
