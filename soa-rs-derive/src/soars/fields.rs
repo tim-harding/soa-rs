@@ -1,4 +1,4 @@
-use crate::{soars_derive::{SoaAttrs, SoaDerive}, zst::zst_struct};
+use crate::soars::{soa_attrs::SoaAttrs, soa_derive::SoaDerive, zst::zst_struct};
 use proc_macro2::TokenStream;
 use quote::{TokenStreamExt, format_ident, quote};
 use std::borrow::Cow;
