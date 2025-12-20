@@ -33,17 +33,12 @@ fn input_to_tokens(input: DeriveInput) -> Result<TokenStream2, syn::Error> {
     let members: Vec<_> = fields
         .into_iter()
         .enumerate()
-        .map(|(i, field)| {
-            field
-                .ident
-                .clone()
-                .map(syn::Member::Named)
-                .unwrap_or_else(|| {
-                    syn::Member::Unnamed(syn::Index {
-                        index: i as u32,
-                        span: field.span(),
-                    })
-                })
+        .map(|(i, field)| match field.ident {
+            Some(ident) => syn::Member::Named(ident),
+            None => syn::Member::Unnamed(syn::Index {
+                index: i as u32,
+                span: field.span(),
+            }),
         })
         .collect();
 
