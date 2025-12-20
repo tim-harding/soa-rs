@@ -61,8 +61,7 @@ fn generate_impl(
 
     // Generate the struct construction based on field type
     let construction = match fields {
-        syn::Fields::Named(_) => {
-            // For named structs, use field: value syntax
+        syn::Fields::Named(_) | syn::Fields::Unnamed(_) => {
             let field_clones = field_idents.iter().map(|ident| {
                 quote! {
                     #ident: item.#ident.clone()
@@ -74,17 +73,7 @@ fn generate_impl(
                 }
             }
         }
-        syn::Fields::Unnamed(_) => {
-            // For tuple structs, just use values without field names
-            let field_clones = field_idents.iter().map(|ident| {
-                quote! {
-                    item.#ident.clone()
-                }
-            });
-            quote! {
-                Self(#(#field_clones),*)
-            }
-        }
+
         syn::Fields::Unit => {
             quote! { Self }
         }
