@@ -1,4 +1,6 @@
-use crate::{AsMutSlice, AsSlice, IterMut, Slice, SliceRef, Soars, iter_raw::IterRaw};
+use crate::{
+    AsMutSlice, AsSlice, IterMut, Slice, SliceRef, SoaClone, Soars, Vec, iter_raw::IterRaw,
+};
 use core::{
     borrow::{Borrow, BorrowMut},
     cmp::Ordering,
@@ -181,6 +183,16 @@ where
     T: Soars,
     for<'a> T::Ref<'a>: Eq,
 {
+}
+
+impl<T> From<SliceMut<'_, T>> for Vec<T>
+where
+    T: SoaClone,
+{
+    /// Allocate a `Vec<T>` and fill it by cloning `value`'s items.
+    fn from(value: SliceMut<T>) -> Self {
+        value.as_ref().into()
+    }
 }
 
 impl<T> AsSlice for SliceMut<'_, T>

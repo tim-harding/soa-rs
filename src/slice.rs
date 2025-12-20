@@ -1,5 +1,5 @@
 use crate::{
-    AsMutSlice, AsSlice, Iter, IterMut, SliceMut, SliceRef, SoaDeref, SoaRaw, Soars,
+    AsMutSlice, AsSlice, Iter, IterMut, SliceMut, SliceRef, SoaClone, SoaDeref, SoaRaw, Soars, Vec,
     chunks_exact::ChunksExact, index::SoaIndex, iter_raw::IterRaw,
 };
 use core::{
@@ -29,7 +29,6 @@ use core::{
 /// pointers alongside the length. Therefore, SoA slice references cannot be
 /// created on the stack and returned like normal slices can.
 ///
-/// [`Vec`]: crate::__alloc::vec::Vec
 /// [`Soa`]: crate::Soa
 /// [`SliceRef`]: crate::SliceRef
 /// [`SliceMut`]: crate::SliceMut
@@ -963,6 +962,26 @@ where
 {
     fn as_mut(&mut self) -> &mut Self {
         self
+    }
+}
+
+impl<T> From<&Slice<T>> for Vec<T>
+where
+    T: SoaClone,
+{
+    /// Allocate a `Vec<T>` and fill it by cloning `value`'s items.
+    fn from(value: &Slice<T>) -> Self {
+        value.iter().map(SoaClone::soa_clone).collect()
+    }
+}
+
+impl<T> From<&mut Slice<T>> for Vec<T>
+where
+    T: SoaClone,
+{
+    /// Allocate a `Vec<T>` and fill it by cloning `value`'s items.
+    fn from(value: &mut Slice<T>) -> Self {
+        value.as_ref().into()
     }
 }
 
