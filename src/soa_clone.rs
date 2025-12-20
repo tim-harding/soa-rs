@@ -28,10 +28,10 @@ pub trait SoaClone: Soars {
 
 /// Analogous to [`clone`] or [`to_owned`], but for SoA array elements.
 ///
-/// The opposite of [`FromSoaRef`].
+/// The opposite of [`SoaClone`].
 ///
-/// [`to_owned`]: std::borrow::ToOwned::to_owned
-/// [`clone`]: std::clone::Clone::clone
+/// [`to_owned`]: crate::__alloc::borrow::ToOwned::to_owned
+/// [`clone`]: core::clone::Clone::clone
 pub trait SoaToOwned<T>: AsSoaRef {
     /// Construct an owned value from an SoA element.
     ///
@@ -51,7 +51,7 @@ pub trait SoaToOwned<T>: AsSoaRef {
     fn soa_to_owned(&self) -> T;
 }
 
-/// Reflexive auto-implementation. Whenever [`FromSoaRef`] is implemented, so to
+/// Reflexive auto-implementation. Whenever [`SoaClone`] is implemented, so to
 /// is this one going in the opposite direction. This is analogous to the
 /// relationship between [`From`] and [`Into`].
 impl<S, D> SoaToOwned<D> for S

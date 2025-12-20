@@ -24,6 +24,7 @@ use core::{
 ///
 /// See the top-level [`soa_rs`] docs for usage examples.
 ///
+/// [`Vec`]: crate::__alloc::vec::Vec
 /// [`soa_rs`]: crate
 pub struct Soa<T>
 where

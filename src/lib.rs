@@ -3,6 +3,8 @@
 //! Soars makes it simple to work with the structure-of-arrays memory layout.
 //! What [`Vec`] is to array-of-structures, [`Soa`] is to structure-of-arrays.
 //!
+//! [`Vec`]: __alloc::vec::Vec
+//!
 //! # Examples
 //!
 //! First, derive [`Soars`] for your type:
@@ -186,8 +188,8 @@ pub use soa_deref::SoaDeref;
 mod soars;
 pub use soars::Soars;
 
-mod from_soa_ref;
-pub use from_soa_ref::{SoaClone, SoaToOwned};
+mod soa_clone;
+pub use soa_clone::{SoaClone, SoaToOwned};
 
 mod soa_raw;
 #[doc(hidden)]
@@ -274,7 +276,7 @@ mod serde;
 /// [`Deref`]: core::ops::Deref
 pub use soa_rs_derive::Soars;
 
-/// Derive macro for the [`FromSoaRef`] trait.
+/// Derive macro for the [`SoaClone`] trait.
 ///
 /// This macro generates an implementation that constructs an owned value
 /// by cloning all fields from an SoA reference.

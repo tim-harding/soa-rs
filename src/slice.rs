@@ -12,7 +12,7 @@ use core::{
 
 /// A dynamically-sized view into the contents of a [`Soa`].
 ///
-/// [`Slice`] and [`Soa`] have the same relationship as `[T]` and [`Vec`]. The
+/// [`Slice`] and [`Soa`] have the same relationship as `[T]` and `Vec`. The
 /// related types [`SliceRef`] and [`SliceMut`] are equivalent to `&[T]` and
 /// `&mut [T]`.
 ///
@@ -29,6 +29,7 @@ use core::{
 /// pointers alongside the length. Therefore, SoA slice references cannot be
 /// created on the stack and returned like normal slices can.
 ///
+/// [`Vec`]: crate::__alloc::vec::Vec
 /// [`Soa`]: crate::Soa
 /// [`SliceRef`]: crate::SliceRef
 /// [`SliceMut`]: crate::SliceMut
