@@ -11,7 +11,7 @@ use fields::fields_struct;
 use proc_macro::TokenStream;
 use proc_macro2::TokenStream as TokenStream2;
 use quote::{quote, quote_spanned};
-use syn::{Attribute, Data, DeriveInput, parse_macro_input};
+use syn::{spanned::Spanned, Attribute, Data, DeriveInput, parse_macro_input};
 
 #[proc_macro_derive(Soars, attributes(align, soa_derive, soa_array))]
 pub fn soa(input: TokenStream) -> TokenStream {
@@ -22,6 +22,22 @@ pub fn soa(input: TokenStream) -> TokenStream {
         Err(e) => match e {
             SoarsError::NotAStruct => quote_spanned! {
                 span => compile_error!("Soars only applies to structs");
+            },
+            SoarsError::Syn(e) => e.into_compile_error(),
+        },
+    }
+    .into()
+}
+
+#[proc_macro_derive(FromSoaRef)]
+pub fn from_soa_ref(input: TokenStream) -> TokenStream {
+    let input: DeriveInput = parse_macro_input!(input);
+    let span = input.ident.span();
+    match from_soa_ref_inner(input) {
+        Ok(tokens) => tokens,
+        Err(e) => match e {
+            SoarsError::NotAStruct => quote_spanned! {
+                span => compile_error!("FromSoaRef only applies to structs");
             },
             SoarsError::Syn(e) => e.into_compile_error(),
         },
@@ -41,6 +57,82 @@ fn soa_inner(input: DeriveInput) -> Result<TokenStream2, SoarsError> {
     let attrs = SoaAttrs::new(&attrs)?;
     match data {
         Data::Struct(strukt) => Ok(fields_struct(ident, vis, strukt.fields, attrs, generics)?),
+        Data::Enum(_) | Data::Union(_) => Err(SoarsError::NotAStruct),
+    }
+}
+
+fn from_soa_ref_inner(input: DeriveInput) -> Result<TokenStream2, SoarsError> {
+    let DeriveInput {
+        ident,
+        data,
+        generics,
+        ..
+    } = input;
+
+    match data {
+        Data::Struct(strukt) => {
+            let fields = strukt.fields;
+
+            // Get field identifiers
+            let field_idents: Vec<_> = fields
+                .iter()
+                .enumerate()
+                .map(|(i, field)| {
+                    field.ident.clone().map(syn::Member::Named).unwrap_or_else(|| {
+                        syn::Member::Unnamed(syn::Index {
+                            index: i as u32,
+                            span: field.span(),
+                        })
+                    })
+                })
+                .collect();
+
+            let (impl_generics, ty_generics, where_clause) = generics.split_for_impl();
+
+            // Generate the struct construction based on field type
+            let construction = match fields {
+                syn::Fields::Named(_) => {
+                    // For named structs, use field: value syntax
+                    let field_clones = field_idents.iter().map(|ident| {
+                        quote! {
+                            #ident: r.#ident.clone()
+                        }
+                    });
+                    quote! {
+                        Self {
+                            #(#field_clones),*
+                        }
+                    }
+                }
+                syn::Fields::Unnamed(_) => {
+                    // For tuple structs, just use values without field names
+                    let field_clones = field_idents.iter().map(|ident| {
+                        quote! {
+                            r.#ident.clone()
+                        }
+                    });
+                    quote! {
+                        Self(#(#field_clones),*)
+                    }
+                }
+                syn::Fields::Unit => {
+                    quote! { Self }
+                }
+            };
+
+            Ok(quote! {
+                #[automatically_derived]
+                impl #impl_generics ::soa_rs::FromSoaRef for #ident #ty_generics #where_clause {
+                    fn from_soa_ref<R>(item: &R) -> Self
+                    where
+                        R: ::soa_rs::AsSoaRef<Item = Self>,
+                    {
+                        let r = item.as_soa_ref();
+                        #construction
+                    }
+                }
+            })
+        }
         Data::Enum(_) | Data::Union(_) => Err(SoarsError::NotAStruct),
     }
 }

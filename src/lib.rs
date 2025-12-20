@@ -187,7 +187,7 @@ mod soars;
 pub use soars::Soars;
 
 mod from_soa_ref;
-pub use from_soa_ref::OwnedFromFields;
+pub use from_soa_ref::FromSoaRef;
 
 mod soa_raw;
 #[doc(hidden)]
@@ -273,6 +273,30 @@ mod serde;
 ///
 /// [`Deref`]: core::ops::Deref
 pub use soa_rs_derive::Soars;
+
+/// Derive macro for the [`FromSoaRef`] trait.
+///
+/// This macro generates an implementation that constructs an owned value
+/// by cloning all fields from an SoA reference.
+///
+/// # Example
+///
+/// ```
+/// use soa_rs::{Soars, FromSoaRef, soa};
+///
+/// #[derive(Soars, FromSoaRef, Debug, PartialEq, Clone)]
+/// #[soa_derive(Debug)]
+/// struct Point {
+///     x: i32,
+///     y: i32,
+/// }
+///
+/// let soa = soa![Point { x: 1, y: 2 }, Point { x: 3, y: 4 }];
+/// let point_ref = soa.idx(0);
+/// let owned = Point::from_soa_ref(&point_ref);
+/// assert_eq!(owned, Point { x: 1, y: 2 });
+/// ```
+pub use soa_rs_derive::FromSoaRef;
 
 /// Creates a [`Soa`] containing the arguments.
 ///
