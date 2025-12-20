@@ -1,5 +1,6 @@
 use crate::{AsMutSlice, AsSlice, IterMut, Slice, SliceRef, Soars, iter_raw::IterRaw};
 use core::{
+    borrow::{Borrow, BorrowMut},
     cmp::Ordering,
     fmt::{self, Debug, Formatter},
     hash::{Hash, Hasher},
@@ -58,6 +59,24 @@ where
 {
     fn as_mut(&mut self) -> &mut Slice<T> {
         self.deref_mut()
+    }
+}
+
+impl<T> Borrow<Slice<T>> for SliceMut<'_, T>
+where
+    T: Soars,
+{
+    fn borrow(&self) -> &Slice<T> {
+        self.as_ref()
+    }
+}
+
+impl<T> BorrowMut<Slice<T>> for SliceMut<'_, T>
+where
+    T: Soars,
+{
+    fn borrow_mut(&mut self) -> &mut Slice<T> {
+        self.as_mut()
     }
 }
 

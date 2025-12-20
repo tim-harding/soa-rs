@@ -82,7 +82,7 @@ pub fn fields_struct(
     let (impl_generics, ty_generics, where_clause) = generics.split_for_impl();
 
     let mut generics_ref = generics.clone();
-    generics_ref.params.push(syn::parse_quote!('a));
+    generics_ref.params.push(syn::parse_quote!('soa));
     let (impl_generics_ref, ty_generics_ref, where_clause_ref) = generics_ref.split_for_impl();
 
     let mut generics_array = generics.clone();
@@ -155,13 +155,14 @@ pub fn fields_struct(
         }
     };
 
-    let item_ref_def = define(|ty| quote! { &'a #ty });
+    let item_ref_def = define(|ty| quote! { &'soa #ty });
     out.append_all(quote! {
         #derive_ref
         #[allow(dead_code)]
         #vis struct #item_ref #impl_generics_ref #where_clause_ref #item_ref_def
 
-        // Not using the derive because it imposes unnecessary <T: Copy> restrictions on generic params.
+        // Not using the derive because it imposes unnecessary Copy
+        // restrictions on generic params
         impl #impl_generics_ref Copy for #item_ref #ty_generics_ref #where_clause_ref {}
         impl #impl_generics_ref Clone for #item_ref #ty_generics_ref #where_clause_ref {
             fn clone(&self) -> Self {
@@ -179,7 +180,7 @@ pub fn fields_struct(
         }
     });
 
-    let item_ref_mut_def = define(|ty| quote! { &'a mut #ty });
+    let item_ref_mut_def = define(|ty| quote! { &'soa mut #ty });
     out.append_all(quote! {
         #derive_ref_mut
         #[allow(dead_code)]
@@ -199,13 +200,14 @@ pub fn fields_struct(
         }
     });
 
-    let slices_def = define(|ty| quote! { &'a [#ty] });
+    let slices_def = define(|ty| quote! { &'soa [#ty] });
     out.append_all(quote! {
         #derive_slices
         #[allow(dead_code)]
         #vis struct #slices #impl_generics_ref #where_clause_ref #slices_def
 
-        // Not using the derive because it imposes unnecessary <T: Copy> restrictions on generic params.
+        // Not using the derive because it imposes unnecessary Copy
+        // restrictions on generic params
         impl #impl_generics_ref Copy for #slices #ty_generics_ref #where_clause_ref {}
         impl #impl_generics_ref Clone for #slices #ty_generics_ref #where_clause_ref {
             fn clone(&self) -> Self {
@@ -214,7 +216,7 @@ pub fn fields_struct(
         }
     });
 
-    let slices_mut_def = define(|ty| quote! { &'a mut [#ty] });
+    let slices_mut_def = define(|ty| quote! { &'soa mut [#ty] });
     out.append_all(quote! {
         #derive_slices_mut
         #[allow(dead_code)]
@@ -375,10 +377,10 @@ pub fn fields_struct(
         unsafe impl #impl_generics ::soa_rs::Soars for #ident #ty_generics #where_clause {
             type Raw = #raw #ty_generics;
             type Deref = #deref #ty_generics;
-            type Ref<'a> = #item_ref #ty_generics_ref where Self: 'a;
-            type RefMut<'a> = #item_ref_mut #ty_generics_ref where Self: 'a;
-            type Slices<'a> = #slices #ty_generics_ref where Self: 'a;
-            type SlicesMut<'a> = #slices_mut #ty_generics_ref where Self: 'a;
+            type Ref<'soa> = #item_ref #ty_generics_ref where Self: 'soa;
+            type RefMut<'soa> = #item_ref_mut #ty_generics_ref where Self: 'soa;
+            type Slices<'soa> = #slices #ty_generics_ref where Self: 'soa;
+            type SlicesMut<'soa> = #slices_mut #ty_generics_ref where Self: 'soa;
         }
 
         #[automatically_derived]
@@ -589,7 +591,7 @@ pub fn fields_struct(
             }
 
             #[inline]
-            unsafe fn get_ref<'a>(self) -> #item_ref #ty_generics_ref {
+            unsafe fn get_ref<'soa>(self) -> #item_ref #ty_generics_ref {
                 #item_ref {
                     #(
                     // SAFETY: Caller ensures that self points to a soa subset
@@ -600,7 +602,7 @@ pub fn fields_struct(
             }
 
             #[inline]
-            unsafe fn get_mut<'a>(mut self) -> #item_ref_mut #ty_generics_ref {
+            unsafe fn get_mut<'soa>(mut self) -> #item_ref_mut #ty_generics_ref {
                 #item_ref_mut {
                     #(
                     // SAFETY: Caller ensures that self points to a soa subset
@@ -622,7 +624,7 @@ pub fn fields_struct(
             }
 
             #[inline]
-            unsafe fn slices<'a>(self, len: usize) -> #slices #ty_generics_ref {
+            unsafe fn slices<'soa>(self, len: usize) -> #slices #ty_generics_ref {
                 #slices {
                     #(
                     #ident_all: ::core::ptr::NonNull::slice_from_raw_parts(
@@ -637,7 +639,7 @@ pub fn fields_struct(
             }
 
             #[inline]
-            unsafe fn slices_mut<'a>(self, len: usize) -> #slices_mut #ty_generics_ref {
+            unsafe fn slices_mut<'soa>(self, len: usize) -> #slices_mut #ty_generics_ref {
                 #slices_mut {
                     #(
                     #ident_all: ::core::ptr::NonNull::slice_from_raw_parts(
