@@ -282,8 +282,8 @@ pub use soa_rs_derive::Soars;
 /// # Example
 ///
 /// ```
-/// # use soa_rs::{Soars, FromSoaRef, SoaClone, soa};
-/// #[derive(Soars, FromSoaRef, Debug, PartialEq, Clone)]
+/// # use soa_rs::{Soars, SoaClone, soa};
+/// #[derive(Soars, SoaClone, Debug, PartialEq, Clone)]
 /// #[soa_derive(Debug)]
 /// struct Foo(u8, u16);
 /// let soa = soa![Foo(1, 2), Foo(3, 4)];
@@ -291,7 +291,7 @@ pub use soa_rs_derive::Soars;
 /// let owned = Foo::soa_clone(point_ref);
 /// assert_eq!(owned, Foo(3, 4));
 /// ```
-pub use soa_rs_derive::FromSoaRef;
+pub use soa_rs_derive::SoaClone;
 
 /// Creates a [`Soa`] containing the arguments.
 ///

@@ -10,8 +10,8 @@ pub trait SoaClone: Soars {
     /// # Example
     ///
     /// ```
-    /// # use soa_rs::{Soars, FromSoaRef, soa, SoaClone};
-    /// #[derive(Soars, FromSoaRef, Debug, PartialEq, Clone)]
+    /// # use soa_rs::{Soars, soa, SoaClone};
+    /// #[derive(Soars, SoaClone, Debug, PartialEq, Clone)]
     /// #[soa_derive(Debug)]
     /// struct Point {
     ///     x: i32,
@@ -38,8 +38,8 @@ pub trait SoaToOwned<T>: AsSoaRef {
     /// # Example
     ///
     /// ```
-    /// # use soa_rs::{Soars, FromSoaRef, soa, SoaToOwned};
-    /// #[derive(Soars, FromSoaRef, Debug, PartialEq, Clone)]
+    /// # use soa_rs::{Soars, SoaClone, soa, SoaToOwned};
+    /// #[derive(Soars, SoaClone, Debug, PartialEq, Clone)]
     /// #[soa_derive(Debug)]
     /// struct Point(f32, f32);
     ///

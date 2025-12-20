@@ -3,7 +3,7 @@ use proc_macro2::TokenStream as TokenStream2;
 use quote::quote;
 use syn::{Data, DeriveInput, parse_macro_input, spanned::Spanned};
 
-pub fn from_soa_ref(input: TokenStream) -> TokenStream {
+pub fn soa_clone(input: TokenStream) -> TokenStream {
     let input: DeriveInput = parse_macro_input!(input);
     match input_to_tokens(input) {
         Ok(tokens) => tokens,

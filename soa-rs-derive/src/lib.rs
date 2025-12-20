@@ -10,10 +10,10 @@ pub fn derive_soars(input: TokenStream) -> TokenStream {
     soa(input)
 }
 
-mod from_soa_ref;
-use from_soa_ref::from_soa_ref;
+mod soa_clone;
+use soa_clone::soa_clone;
 
-#[proc_macro_derive(FromSoaRef)]
-pub fn derive_from_soa_ref(input: TokenStream) -> TokenStream {
-    from_soa_ref(input)
+#[proc_macro_derive(SoaClone)]
+pub fn derive_soa_clone(input: TokenStream) -> TokenStream {
+    soa_clone(input)
 }
