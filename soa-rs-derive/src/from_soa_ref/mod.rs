@@ -5,14 +5,14 @@ use syn::{Data, DeriveInput, Generics, Ident, parse_macro_input, spanned::Spanne
 
 pub fn from_soa_ref(input: TokenStream) -> TokenStream {
     let input: DeriveInput = parse_macro_input!(input);
-    match from_soa_ref_derive(input) {
+    match input_to_tokens(input) {
         Ok(tokens) => tokens,
         Err(e) => e.into_compile_error(),
     }
     .into()
 }
 
-fn from_soa_ref_derive(input: DeriveInput) -> Result<TokenStream2, syn::Error> {
+fn input_to_tokens(input: DeriveInput) -> Result<TokenStream2, syn::Error> {
     let DeriveInput {
         ident,
         data,
@@ -20,8 +20,8 @@ fn from_soa_ref_derive(input: DeriveInput) -> Result<TokenStream2, syn::Error> {
         ..
     } = input;
 
-    let strukt = match data {
-        Data::Struct(strukt) => strukt,
+    let fields = match data {
+        Data::Struct(strukt) => strukt.fields,
         Data::Enum(_) | Data::Union(_) => {
             return Err(syn::Error::new_spanned(
                 ident,
@@ -30,11 +30,8 @@ fn from_soa_ref_derive(input: DeriveInput) -> Result<TokenStream2, syn::Error> {
         }
     };
 
-    let fields = strukt.fields;
-
-    // Get field identifiers
-    let field_idents: Vec<_> = fields
-        .iter()
+    let members: Vec<_> = fields
+        .into_iter()
         .enumerate()
         .map(|(i, field)| {
             field
@@ -50,13 +47,13 @@ fn from_soa_ref_derive(input: DeriveInput) -> Result<TokenStream2, syn::Error> {
         })
         .collect();
 
-    generate_impl(ident, generics, field_idents)
+    generate_impl(ident, generics, members)
 }
 
 fn generate_impl(
     ident: Ident,
     generics: Generics,
-    field_idents: Vec<syn::Member>,
+    members: Vec<syn::Member>,
 ) -> Result<TokenStream2, syn::Error> {
     let (impl_generics, ty_generics, where_clause) = generics.split_for_impl();
 
@@ -66,7 +63,7 @@ fn generate_impl(
             fn from_soa_ref(item: <Self as ::soa_rs::Soars>::Ref<'_>) -> Self {
                 Self {
                     #(
-                    #field_idents: item.#field_idents.clone(),
+                    #members: item.#members.clone(),
                     )*
                 }
             }
