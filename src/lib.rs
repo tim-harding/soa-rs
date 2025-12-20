@@ -186,8 +186,8 @@ pub use soa_deref::SoaDeref;
 mod soars;
 pub use soars::Soars;
 
-mod owned_from_fields;
-pub use owned_from_fields::OwnedFromFields;
+mod from_soa_ref;
+pub use from_soa_ref::OwnedFromFields;
 
 mod soa_raw;
 #[doc(hidden)]
