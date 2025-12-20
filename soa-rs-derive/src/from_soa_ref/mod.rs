@@ -46,8 +46,8 @@ fn input_to_tokens(input: DeriveInput) -> Result<TokenStream2, syn::Error> {
 
     Ok(quote! {
         #[automatically_derived]
-        impl #impl_generics ::soa_rs::FromSoaRef for #ident #ty_generics #where_clause {
-            fn from_soa_ref(item: <Self as ::soa_rs::Soars>::Ref<'_>) -> Self {
+        impl #impl_generics ::soa_rs::SoaClone for #ident #ty_generics #where_clause {
+            fn soa_clone(item: <Self as ::soa_rs::Soars>::Ref<'_>) -> Self {
                 Self {
                     #(
                     #members: item.#members.clone(),
