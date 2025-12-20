@@ -20,35 +20,37 @@ fn from_soa_ref_derive(input: DeriveInput) -> Result<TokenStream2, syn::Error> {
         ..
     } = input;
 
-    match data {
-        Data::Struct(strukt) => {
-            let fields = strukt.fields;
-
-            // Get field identifiers
-            let field_idents: Vec<_> = fields
-                .iter()
-                .enumerate()
-                .map(|(i, field)| {
-                    field
-                        .ident
-                        .clone()
-                        .map(syn::Member::Named)
-                        .unwrap_or_else(|| {
-                            syn::Member::Unnamed(syn::Index {
-                                index: i as u32,
-                                span: field.span(),
-                            })
-                        })
-                })
-                .collect();
-
-            generate_impl(ident, generics, field_idents)
+    let strukt = match data {
+        Data::Struct(strukt) => strukt,
+        Data::Enum(_) | Data::Union(_) => {
+            return Err(syn::Error::new_spanned(
+                ident,
+                "FromSoaRef only applies to structs",
+            ));
         }
-        Data::Enum(_) | Data::Union(_) => Err(syn::Error::new_spanned(
-            ident,
-            "FromSoaRef only applies to structs",
-        )),
-    }
+    };
+
+    let fields = strukt.fields;
+
+    // Get field identifiers
+    let field_idents: Vec<_> = fields
+        .iter()
+        .enumerate()
+        .map(|(i, field)| {
+            field
+                .ident
+                .clone()
+                .map(syn::Member::Named)
+                .unwrap_or_else(|| {
+                    syn::Member::Unnamed(syn::Index {
+                        index: i as u32,
+                        span: field.span(),
+                    })
+                })
+        })
+        .collect();
+
+    generate_impl(ident, generics, field_idents)
 }
 
 fn generate_impl(
