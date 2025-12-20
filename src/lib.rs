@@ -187,7 +187,7 @@ mod soars;
 pub use soars::Soars;
 
 mod from_soa_ref;
-pub use from_soa_ref::SoaRefToOwned;
+pub use from_soa_ref::{FromSoaRef, SoaRefToOwned};
 
 mod soa_raw;
 #[doc(hidden)]
@@ -288,7 +288,7 @@ pub use soa_rs_derive::Soars;
 /// struct Foo(u8, u16);
 /// let soa = soa![Foo(1, 2), Foo(3, 4)];
 /// let point_ref = soa.idx(1);
-/// let owned = Foo::from_soa_ref(&point_ref);
+/// let owned = Foo::from_soa_ref(point_ref);
 /// assert_eq!(owned, Foo(3, 4));
 /// ```
 pub use soa_rs_derive::FromSoaRef;

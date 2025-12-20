@@ -18,7 +18,7 @@ use crate::Soars;
 ///
 /// let soa = soa![Point { x: 1, y: 2 }, Point { x: 3, y: 4 }];
 /// let point_ref = soa.idx(0);
-/// let owned = Point::from_soa_ref(&point_ref);
+/// let owned = Point::from_soa_ref(point_ref);
 /// assert_eq!(owned, Point { x: 1, y: 2 });
 /// ```
 pub trait FromSoaRef: Soars {

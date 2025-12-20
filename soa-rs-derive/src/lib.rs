@@ -95,7 +95,7 @@ fn from_soa_ref_inner(input: DeriveInput) -> Result<TokenStream2, SoarsError> {
                     // For named structs, use field: value syntax
                     let field_clones = field_idents.iter().map(|ident| {
                         quote! {
-                            #ident: r.#ident.clone()
+                            #ident: item.#ident.clone()
                         }
                     });
                     quote! {
@@ -108,7 +108,7 @@ fn from_soa_ref_inner(input: DeriveInput) -> Result<TokenStream2, SoarsError> {
                     // For tuple structs, just use values without field names
                     let field_clones = field_idents.iter().map(|ident| {
                         quote! {
-                            r.#ident.clone()
+                            item.#ident.clone()
                         }
                     });
                     quote! {
@@ -123,11 +123,7 @@ fn from_soa_ref_inner(input: DeriveInput) -> Result<TokenStream2, SoarsError> {
             Ok(quote! {
                 #[automatically_derived]
                 impl #impl_generics ::soa_rs::FromSoaRef for #ident #ty_generics #where_clause {
-                    fn from_soa_ref<R>(item: &R) -> Self
-                    where
-                        R: ::soa_rs::AsSoaRef<Item = Self>,
-                    {
-                        let r = item.as_soa_ref();
+                    fn from_soa_ref(item: <Self as ::soa_rs::Soars>::Ref<'_>) -> Self {
                         #construction
                     }
                 }
