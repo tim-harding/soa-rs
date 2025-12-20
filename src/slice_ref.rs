@@ -1,6 +1,4 @@
-use __alloc::vec::Vec;
-
-use crate::{AsSlice, Iter, Slice, SoaClone, Soars, iter_raw::IterRaw};
+use crate::{AsSlice, Iter, Slice, SoaClone, Soars, Vec, iter_raw::IterRaw};
 use core::{
     borrow::Borrow,
     cmp::Ordering,

@@ -3,8 +3,6 @@
 //! Soars makes it simple to work with the structure-of-arrays memory layout.
 //! What [`Vec`] is to array-of-structures, [`Soa`] is to structure-of-arrays.
 //!
-//! [`Vec`]: __alloc::vec::Vec
-//!
 //! # Examples
 //!
 //! First, derive [`Soars`] for your type:
@@ -157,6 +155,7 @@
 /// from the library for consumption instead.
 #[doc(hidden)]
 pub extern crate alloc as __alloc;
+pub(crate) use __alloc::vec::Vec;
 
 mod soa;
 pub use soa::Soa;

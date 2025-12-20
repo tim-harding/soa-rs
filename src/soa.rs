@@ -1,6 +1,6 @@
 use crate::{
-    __alloc::vec::Vec, AsMutSlice, AsSlice, IntoIter, Iter, IterMut, Slice, SliceMut, SliceRef,
-    SoaClone, SoaRaw, Soars, iter_raw::IterRaw,
+    AsMutSlice, AsSlice, IntoIter, Iter, IterMut, Slice, SliceMut, SliceRef, SoaClone, SoaRaw,
+    Soars, Vec, iter_raw::IterRaw,
 };
 use core::{
     borrow::{Borrow, BorrowMut},

@@ -1,6 +1,6 @@
-use __alloc::vec::Vec;
-
-use crate::{AsMutSlice, AsSlice, IterMut, Slice, SliceRef, SoaClone, Soars, iter_raw::IterRaw};
+use crate::{
+    AsMutSlice, AsSlice, IterMut, Slice, SliceRef, SoaClone, Soars, Vec, iter_raw::IterRaw,
+};
 use core::{
     borrow::{Borrow, BorrowMut},
     cmp::Ordering,

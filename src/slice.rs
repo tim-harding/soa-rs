@@ -1,7 +1,5 @@
-use __alloc::vec::Vec;
-
 use crate::{
-    AsMutSlice, AsSlice, Iter, IterMut, SliceMut, SliceRef, SoaClone, SoaDeref, SoaRaw, Soars,
+    AsMutSlice, AsSlice, Iter, IterMut, SliceMut, SliceRef, SoaClone, SoaDeref, SoaRaw, Soars, Vec,
     chunks_exact::ChunksExact, index::SoaIndex, iter_raw::IterRaw,
 };
 use core::{
@@ -31,7 +29,6 @@ use core::{
 /// pointers alongside the length. Therefore, SoA slice references cannot be
 /// created on the stack and returned like normal slices can.
 ///
-/// [`Vec`]: crate::__alloc::vec::Vec
 /// [`Soa`]: crate::Soa
 /// [`SliceRef`]: crate::SliceRef
 /// [`SliceMut`]: crate::SliceMut
