@@ -282,19 +282,14 @@ pub use soa_rs_derive::Soars;
 /// # Example
 ///
 /// ```
-/// use soa_rs::{Soars, FromSoaRef, soa};
-///
+/// # use soa_rs::{Soars, FromSoaRef, soa};
 /// #[derive(Soars, FromSoaRef, Debug, PartialEq, Clone)]
 /// #[soa_derive(Debug)]
-/// struct Point {
-///     x: i32,
-///     y: i32,
-/// }
-///
-/// let soa = soa![Point { x: 1, y: 2 }, Point { x: 3, y: 4 }];
-/// let point_ref = soa.idx(0);
-/// let owned = Point::from_soa_ref(&point_ref);
-/// assert_eq!(owned, Point { x: 1, y: 2 });
+/// struct Foo(u8, u16);
+/// let soa = soa![Foo(1, 2), Foo(3, 4)];
+/// let point_ref = soa.idx(1);
+/// let owned = Foo::from_soa_ref(&point_ref);
+/// assert_eq!(owned, Foo(3, 4));
 /// ```
 pub use soa_rs_derive::FromSoaRef;
 
