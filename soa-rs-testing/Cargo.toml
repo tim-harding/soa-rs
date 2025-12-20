@@ -2,6 +2,7 @@
 name = "soa-rs-testing"
 version = "0.6.0"
 edition = "2024"
+publish = false
 
 [dependencies]
 criterion = "0.5.1"
