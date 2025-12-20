@@ -42,7 +42,7 @@ fn from_soa_ref_derive(input: DeriveInput) -> Result<TokenStream2, syn::Error> {
                 })
                 .collect();
 
-            generate_impl(ident, generics, fields, field_idents)
+            generate_impl(ident, generics, field_idents)
         }
         Data::Enum(_) | Data::Union(_) => Err(syn::Error::new_spanned(
             ident,
@@ -54,36 +54,19 @@ fn from_soa_ref_derive(input: DeriveInput) -> Result<TokenStream2, syn::Error> {
 fn generate_impl(
     ident: Ident,
     generics: Generics,
-    fields: syn::Fields,
     field_idents: Vec<syn::Member>,
 ) -> Result<TokenStream2, syn::Error> {
     let (impl_generics, ty_generics, where_clause) = generics.split_for_impl();
-
-    // Generate the struct construction based on field type
-    let construction = match fields {
-        syn::Fields::Named(_) | syn::Fields::Unnamed(_) => {
-            let field_clones = field_idents.iter().map(|ident| {
-                quote! {
-                    #ident: item.#ident.clone()
-                }
-            });
-            quote! {
-                Self {
-                    #(#field_clones),*
-                }
-            }
-        }
-
-        syn::Fields::Unit => {
-            quote! { Self }
-        }
-    };
 
     Ok(quote! {
         #[automatically_derived]
         impl #impl_generics ::soa_rs::FromSoaRef for #ident #ty_generics #where_clause {
             fn from_soa_ref(item: <Self as ::soa_rs::Soars>::Ref<'_>) -> Self {
-                #construction
+                Self {
+                    #(
+                    #field_idents: item.#field_idents.clone(),
+                    )*
+                }
             }
         }
     })
