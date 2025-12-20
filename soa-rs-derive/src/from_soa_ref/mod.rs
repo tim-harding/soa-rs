@@ -1,7 +1,7 @@
 use proc_macro::TokenStream;
 use proc_macro2::TokenStream as TokenStream2;
 use quote::quote;
-use syn::{Data, DeriveInput, Generics, Ident, parse_macro_input, spanned::Spanned};
+use syn::{Data, DeriveInput, parse_macro_input, spanned::Spanned};
 
 pub fn from_soa_ref(input: TokenStream) -> TokenStream {
     let input: DeriveInput = parse_macro_input!(input);
@@ -42,14 +42,6 @@ fn input_to_tokens(input: DeriveInput) -> Result<TokenStream2, syn::Error> {
         })
         .collect();
 
-    generate_impl(ident, generics, members)
-}
-
-fn generate_impl(
-    ident: Ident,
-    generics: Generics,
-    members: Vec<syn::Member>,
-) -> Result<TokenStream2, syn::Error> {
     let (impl_generics, ty_generics, where_clause) = generics.split_for_impl();
 
     Ok(quote! {
