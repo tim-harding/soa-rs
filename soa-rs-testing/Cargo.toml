@@ -1,7 +1,8 @@
 [package]
 name = "soa-rs-testing"
-version = "0.6.0"
+version = "0.9.0"
 edition = "2024"
+publish = false
 
 [dependencies]
 criterion = "0.5.1"
@@ -10,7 +11,7 @@ serde = "1.0.199"
 serde_json = "1.0.116"
 
 [dependencies.soa-rs]
-version = "0.8.1"
+version = "0.9.1"
 path = ".."
 features = ["serde"]
 
