@@ -393,7 +393,7 @@ pub fn fields_struct(
                 Ok((layout, offsets))
             }
 
-            // TODO: Make this const if Option::unwrap_unchecked is const stabilized
+            // TODO: Make this const if Result::unwrap_unchecked is const stabilized
             #[inline]
             unsafe fn layout_and_offsets_unchecked(cap: usize)
                 -> (::core::alloc::Layout, [usize; #offsets_len])
