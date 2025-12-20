@@ -1,6 +1,7 @@
+use crate::__alloc::vec::Vec;
 use crate::{
-    AsMutSlice, AsSlice, IntoIter, Iter, IterMut, Slice, SliceMut, SliceRef, SoaRaw, Soars,
-    iter_raw::IterRaw,
+    AsMutSlice, AsSlice, IntoIter, Iter, IterMut, Slice, SliceMut, SliceRef, SoaClone, SoaRaw,
+    Soars, iter_raw::IterRaw,
 };
 use core::{
     borrow::{Borrow, BorrowMut},
@@ -24,7 +25,6 @@ use core::{
 ///
 /// See the top-level [`soa_rs`] docs for usage examples.
 ///
-/// [`Vec`]: crate::__alloc::vec::Vec
 /// [`soa_rs`]: crate
 pub struct Soa<T>
 where
@@ -751,7 +751,7 @@ where
 {
     /// Allocate a `Soa<T>` and fill it by cloning `value`'s items.
     fn from(value: &[T; N]) -> Self {
-        value.iter().cloned().collect()
+        value.as_ref().into()
     }
 }
 
@@ -761,7 +761,7 @@ where
 {
     /// Allocate a `Soa<T>` and fill it by cloning `value`'s items.
     fn from(value: &mut [T; N]) -> Self {
-        value.iter().cloned().collect()
+        value.as_ref().into()
     }
 }
 
@@ -781,7 +781,57 @@ where
 {
     /// Allocate a `Soa<T>` and fill it by cloning `value`'s items.
     fn from(value: &mut [T]) -> Self {
-        value.iter().cloned().collect()
+        value.as_ref().into()
+    }
+}
+
+impl<T> From<Soa<T>> for Vec<T>
+where
+    T: Soars,
+{
+    /// Allocate a `Vec<T>` and fill it by moving the contents of `value`.
+    fn from(value: Soa<T>) -> Self {
+        value.into_iter().collect()
+    }
+}
+
+impl<T> From<&Slice<T>> for Vec<T>
+where
+    T: SoaClone,
+{
+    /// Allocate a `Vec<T>` and fill it by cloning `value`'s items.
+    fn from(value: &Slice<T>) -> Self {
+        value.iter().map(SoaClone::soa_clone).collect()
+    }
+}
+
+impl<T> From<&mut Slice<T>> for Vec<T>
+where
+    T: SoaClone,
+{
+    /// Allocate a `Vec<T>` and fill it by cloning `value`'s items.
+    fn from(value: &mut Slice<T>) -> Self {
+        value.as_ref().into()
+    }
+}
+
+impl<T> From<SliceRef<'_, T>> for Vec<T>
+where
+    T: SoaClone,
+{
+    /// Allocate a `Vec<T>` and fill it by cloning `value`'s items.
+    fn from(value: SliceRef<T>) -> Self {
+        value.as_ref().into()
+    }
+}
+
+impl<T> From<SliceMut<'_, T>> for Vec<T>
+where
+    T: SoaClone,
+{
+    /// Allocate a `Vec<T>` and fill it by cloning `value`'s items.
+    fn from(value: SliceMut<T>) -> Self {
+        value.as_ref().into()
     }
 }
 
