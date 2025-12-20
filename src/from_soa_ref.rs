@@ -1,4 +1,4 @@
-use crate::AsSoaRef;
+use crate::Soars;
 
 /// Construct an owned value by cloning fields from an SoA reference.
 ///
@@ -21,9 +21,30 @@ use crate::AsSoaRef;
 /// let owned = Point::from_soa_ref(&point_ref);
 /// assert_eq!(owned, Point { x: 1, y: 2 });
 /// ```
-pub trait FromSoaRef {
+pub trait FromSoaRef: Soars {
     /// Constructs `Self` by cloning all fields from the SoA reference.
-    fn from_soa_ref<R>(item: &R) -> Self
-    where
-        R: AsSoaRef<Item = Self>;
+    fn from_soa_ref(item: <Self as Soars>::Ref<'_>) -> Self;
+}
+
+/// Analogous to [`clone`] or [`to_owned`], but for SoA array elements.
+///
+/// The opposite of [`FromSoaRef`].
+///
+/// [`to_owned`]: std::borrow::ToOwned::to_owned
+/// [`clone`]: std::clone::Clone::clone
+pub trait SoaRefToOwned<T>
+where
+    T: FromSoaRef,
+{
+    /// Construct an owned value from an SoA element.
+    fn soa_ref_to_owned(self) -> T;
+}
+
+impl<'a, T> SoaRefToOwned<T> for <T as Soars>::Ref<'a>
+where
+    T: FromSoaRef,
+{
+    fn soa_ref_to_owned(self) -> T {
+        T::from_soa_ref(self)
+    }
 }

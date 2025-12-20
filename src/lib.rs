@@ -187,7 +187,7 @@ mod soars;
 pub use soars::Soars;
 
 mod from_soa_ref;
-pub use from_soa_ref::FromSoaRef;
+pub use from_soa_ref::SoaRefToOwned;
 
 mod soa_raw;
 #[doc(hidden)]
