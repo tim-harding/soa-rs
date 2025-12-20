@@ -1,5 +1,7 @@
+use __alloc::vec::Vec;
+
 use crate::{
-    AsMutSlice, AsSlice, Iter, IterMut, SliceMut, SliceRef, SoaDeref, SoaRaw, Soars,
+    AsMutSlice, AsSlice, Iter, IterMut, SliceMut, SliceRef, SoaClone, SoaDeref, SoaRaw, Soars,
     chunks_exact::ChunksExact, index::SoaIndex, iter_raw::IterRaw,
 };
 use core::{
@@ -963,6 +965,26 @@ where
 {
     fn as_mut(&mut self) -> &mut Self {
         self
+    }
+}
+
+impl<T> From<&Slice<T>> for Vec<T>
+where
+    T: SoaClone,
+{
+    /// Allocate a `Vec<T>` and fill it by cloning `value`'s items.
+    fn from(value: &Slice<T>) -> Self {
+        value.iter().map(SoaClone::soa_clone).collect()
+    }
+}
+
+impl<T> From<&mut Slice<T>> for Vec<T>
+where
+    T: SoaClone,
+{
+    /// Allocate a `Vec<T>` and fill it by cloning `value`'s items.
+    fn from(value: &mut Slice<T>) -> Self {
+        value.as_ref().into()
     }
 }
 
