@@ -689,7 +689,6 @@ where
 
     fn clone_from(&mut self, source: &Self) {
         self.clear();
-        self.reserve_exact(source.len);
         self.extend(source.iter().map(SoaClone::soa_clone));
     }
 }
@@ -699,6 +698,9 @@ where
     T: Soars,
 {
     fn extend<I: IntoIterator<Item = T>>(&mut self, iter: I) {
+        let iter = iter.into_iter();
+        let (lower, _) = iter.size_hint();
+        self.reserve(lower);
         for item in iter {
             self.push(item);
         }
