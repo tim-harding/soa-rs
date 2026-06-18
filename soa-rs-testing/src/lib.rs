@@ -725,3 +725,28 @@ fn no_transmute_ptr_to_ptr_warning() {
         field: i32,
     }
 }
+
+#[cfg(miri)]
+mod ub_tests {
+    use super::*;
+
+    #[test]
+    fn append_clears_source_after_raw_move() {
+        // `Soa::append` raw-reads every element out of `other` and pushes those
+        // values into `self`, but it leaves `other.len` unchanged and then calls
+        // `other.clear()`. For owned fields, `clear` drops the stale source slot
+        // and frees the allocation that is now owned by `self`; miri reports UB
+        // when `self` later reads/drops the dangling owner.
+        #[derive(Soars)]
+        struct Owned {
+            value: Box<u8>,
+        }
+
+        let mut dst = Soa::<Owned>::new();
+        let mut src = soa![Owned {
+            value: Box::new(1),
+        }];
+
+        dst.append(&mut src);
+    }
+}
