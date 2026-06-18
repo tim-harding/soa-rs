@@ -732,20 +732,17 @@ mod ub_tests {
 
     #[test]
     fn append_clears_source_after_raw_move() {
-        // `Soa::append` raw-reads every element out of `other` and pushes those
-        // values into `self`, but it leaves `other.len` unchanged and then calls
-        // `other.clear()`. For owned fields, `clear` drops the stale source slot
-        // and frees the allocation that is now owned by `self`; miri reports UB
-        // when `self` later reads/drops the dangling owner.
+        // Regression test: `Soa::append` raw-moves elements out of `other`.
+        // Once a slot has been moved, `other` must no longer treat it as live,
+        // or owned fields can be dropped twice. Miri catches the old behavior
+        // as a dangling `Box` when `dst` is dropped.
         #[derive(Soars)]
         struct Owned {
             value: Box<u8>,
         }
 
         let mut dst = Soa::<Owned>::new();
-        let mut src = soa![Owned {
-            value: Box::new(1),
-        }];
+        let mut src = soa![Owned { value: Box::new(1) }];
 
         dst.append(&mut src);
     }
