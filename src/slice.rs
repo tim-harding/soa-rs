@@ -257,7 +257,7 @@ where
     where
         I: SoaIndex<T>,
     {
-        index.get(self)
+        index.get(self.as_slice())
     }
 
     /// Returns a mutable reference to an element or subslice depending on the
@@ -282,7 +282,7 @@ where
     where
         I: SoaIndex<T>,
     {
-        index.get_mut(self)
+        index.get_mut(self.as_mut_slice())
     }
 
     /// Returns a reference to the element at the given index.
@@ -374,10 +374,7 @@ where
     /// ```
     #[must_use]
     pub fn split_at(&self, mid: usize) -> (SliceRef<'_, T>, SliceRef<'_, T>) {
-        match self.split_at_checked(mid) {
-            Some(pair) => pair,
-            None => panic!("mid > len"),
-        }
+        self.as_slice().split_at(mid)
     }
 
     /// Divides one mutable slice into two at an index.
@@ -405,10 +402,7 @@ where
     /// ```
     #[must_use]
     pub fn split_at_mut(&mut self, mid: usize) -> (SliceMut<'_, T>, SliceMut<'_, T>) {
-        match self.split_at_mut_checked(mid) {
-            Some(pair) => pair,
-            None => panic!("mid > len"),
-        }
+        self.as_mut_slice().split_at_mut(mid)
     }
 
     /// Divides one slice into two at an index,
@@ -451,10 +445,7 @@ where
     /// assert_eq!(None, soa.split_at_checked(5));
     #[must_use]
     pub fn split_at_checked(&self, mid: usize) -> Option<(SliceRef<'_, T>, SliceRef<'_, T>)> {
-        // SAFETY:
-        // Don't use `bool::then_some` here because constructing an invalid reference is unsound,
-        // even if it is not accessed
-        (mid <= self.len()).then(|| unsafe { self.split_at_unchecked(mid) })
+        self.as_slice().split_at_checked(mid)
     }
 
     /// Divides one mutable slice into two at an index,
@@ -500,10 +491,7 @@ where
         &mut self,
         mid: usize,
     ) -> Option<(SliceMut<'_, T>, SliceMut<'_, T>)> {
-        // SAFETY:
-        // Don't use `bool::then_some` here because constructing an invalid reference is unsound,
-        // even if it is not accessed
-        (mid <= self.len()).then(|| unsafe { self.split_at_mut_unchecked(mid) })
+        self.as_mut_slice().split_at_mut_checked(mid)
     }
 
     /// Divides one slice into two at an index without doing bounds checking.
@@ -535,11 +523,8 @@ where
     /// ```
     #[must_use]
     pub unsafe fn split_at_unchecked(&self, mid: usize) -> (SliceRef<'_, T>, SliceRef<'_, T>) {
-        let (l, r, r_len) = self.split_at_parts(mid);
-        // SAFETY: Lifetime matches that of self
-        let l = unsafe { SliceRef::from_slice(l, mid) };
-        let r = unsafe { SliceRef::from_slice(r, r_len) };
-        (l, r)
+        // SAFETY: The caller guarantees that mid is in bounds
+        unsafe { self.as_slice().split_at_unchecked(mid) }
     }
 
     /// Divides one mutable slice into two at an index without doing bounds checking.
@@ -574,19 +559,8 @@ where
         &mut self,
         mid: usize,
     ) -> (SliceMut<'_, T>, SliceMut<'_, T>) {
-        let (l, r, r_len) = self.split_at_parts(mid);
-        // SAFETY: Lifetime matches that of self
-        let l = unsafe { SliceMut::from_slice(l, mid) };
-        let r = unsafe { SliceMut::from_slice(r, r_len) };
-        (l, r)
-    }
-
-    fn split_at_parts(&self, mid: usize) -> (Slice<T, ()>, Slice<T, ()>, usize) {
-        (
-            unsafe { self.as_sized() },
-            Slice::with_raw(unsafe { self.raw.offset(mid) }),
-            self.len() - mid,
-        )
+        // SAFETY: The caller guarantees that mid is in bounds
+        unsafe { self.as_mut_slice().split_at_mut_unchecked(mid) }
     }
 
     /// Swaps the position of two elements.
@@ -727,14 +701,14 @@ where
     /// assert_eq!(iter.next(), Some(soa![Foo('l'), Foo('o')].as_slice()));
     /// assert_eq!(iter.next(), Some(soa![Foo('r'), Foo('e')].as_slice()));
     /// assert!(iter.next().is_none());
-    /// assert_eq!(iter.remainder(), &soa![Foo('m')]);
+    /// assert_eq!(iter.remainder(), soa![Foo('m')]);
     /// ```
     pub fn chunks_exact(&self, chunk_size: usize) -> ChunksExact<'_, T> {
         if chunk_size == 0 {
             panic!("chunk size must be nonzero")
         }
 
-        ChunksExact::new(self, chunk_size)
+        ChunksExact::new(self.as_slice(), chunk_size)
     }
 
     /// Returns a collection of slices for each field of the slice.

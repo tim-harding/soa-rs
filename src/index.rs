@@ -1,8 +1,5 @@
 use crate::{Slice, SliceMut, SliceRef, SoaRaw, Soars};
-use core::{
-    marker::PhantomData,
-    ops::{Range, RangeFrom, RangeFull, RangeInclusive, RangeTo, RangeToInclusive},
-};
+use core::ops::{Range, RangeFrom, RangeFull, RangeInclusive, RangeTo, RangeToInclusive};
 
 /// A helper trait for indexing operations.
 pub trait SoaIndex<T>
@@ -20,10 +17,10 @@ where
         T: 'a;
 
     /// Returns the output at this location, if in bounds.
-    fn get(self, slice: &Slice<T>) -> Option<Self::Output<'_>>;
+    fn get<'a>(self, slice: SliceRef<'a, T>) -> Option<Self::Output<'a>>;
 
     /// Returns the mutable output at this location, if in bounds.
-    fn get_mut(self, slice: &mut Slice<T>) -> Option<Self::OutputMut<'_>>;
+    fn get_mut<'a>(self, slice: SliceMut<'a, T>) -> Option<Self::OutputMut<'a>>;
 }
 
 impl<T> SoaIndex<T> for usize
@@ -41,25 +38,17 @@ where
         T: 'a;
 
     #[inline]
-    fn get(self, slice: &Slice<T>) -> Option<Self::Output<'_>> {
-        if self < slice.len() {
-            // SAFETY: Offsetting by less than the length leaves
-            // at least one item to read
-            Some(unsafe { slice.raw().offset(self).get_ref() })
-        } else {
-            None
-        }
+    fn get<'a>(self, slice: SliceRef<'a, T>) -> Option<Self::Output<'a>> {
+        // SAFETY: Offsetting by less than the length leaves
+        // at least one item to read
+        (self < slice.len()).then(|| unsafe { slice.raw().offset(self).get_ref() })
     }
 
     #[inline]
-    fn get_mut(self, slice: &mut Slice<T>) -> Option<Self::OutputMut<'_>> {
-        if self < slice.len() {
-            // SAFETY: Offsetting by less than the length leaves
-            // at least one item to read
-            Some(unsafe { slice.raw().offset(self).get_mut() })
-        } else {
-            None
-        }
+    fn get_mut<'a>(self, slice: SliceMut<'a, T>) -> Option<Self::OutputMut<'a>> {
+        // SAFETY: Offsetting by less than the length leaves
+        // at least one item to read
+        (self < slice.len()).then(|| unsafe { slice.raw().offset(self).get_mut() })
     }
 }
 
@@ -78,23 +67,13 @@ where
         T: 'a;
 
     #[inline]
-    fn get(self, slice: &Slice<T>) -> Option<Self::Output<'_>> {
-        Some(SliceRef {
-            // SAFETY: The lifetime is bound to the given slice
-            slice: unsafe { slice.as_sized() },
-            len: slice.len(),
-            marker: PhantomData,
-        })
+    fn get<'a>(self, slice: SliceRef<'a, T>) -> Option<Self::Output<'a>> {
+        Some(slice)
     }
 
     #[inline]
-    fn get_mut(self, slice: &mut Slice<T>) -> Option<Self::OutputMut<'_>> {
-        Some(SliceMut {
-            // SAFETY: The lifetime is bound to the given slice
-            slice: unsafe { slice.as_sized() },
-            len: slice.len(),
-            marker: PhantomData,
-        })
+    fn get_mut<'a>(self, slice: SliceMut<'a, T>) -> Option<Self::OutputMut<'a>> {
+        Some(slice)
     }
 }
 
@@ -113,23 +92,29 @@ where
         T: 'a;
 
     #[inline]
-    fn get(self, slice: &Slice<T>) -> Option<Self::Output<'_>> {
+    fn get<'a>(self, slice: SliceRef<'a, T>) -> Option<Self::Output<'a>> {
         let len = self.len();
-        (len + self.start <= slice.len()).then(|| SliceRef {
-            // SAFETY: The above bounds check ensures we won't be able to access
-            // the slice out of bounds.
-            slice: Slice::with_raw(unsafe { slice.raw.offset(self.start) }),
-            len,
-            marker: PhantomData,
+        (len + self.start <= slice.len()).then(|| {
+            // SAFETY:
+            // - The above bounds check ensures we won't be able to access the
+            //   slice out of bounds.
+            // - The returned lifetime is that of the given slice.
+            let raw = unsafe { slice.raw().offset(self.start) };
+            unsafe { SliceRef::from_slice(Slice::with_raw(raw), len) }
         })
     }
 
     #[inline]
-    fn get_mut(self, slice: &mut Slice<T>) -> Option<Self::OutputMut<'_>> {
-        self.get(slice).map(|s| SliceMut {
-            slice: unsafe { s.as_sized() },
-            len: s.len(),
-            marker: PhantomData,
+    fn get_mut<'a>(self, slice: SliceMut<'a, T>) -> Option<Self::OutputMut<'a>> {
+        let len = self.len();
+        (len + self.start <= slice.len()).then(|| {
+            // SAFETY:
+            // - The above bounds check ensures we won't be able to access the
+            //   slice out of bounds.
+            // - The returned lifetime is that of the given slice, which is
+            //   consumed to prevent aliasing.
+            let raw = unsafe { slice.raw().offset(self.start) };
+            unsafe { SliceMut::from_slice(Slice::with_raw(raw), len) }
         })
     }
 }
@@ -149,12 +134,12 @@ where
         T: 'a;
 
     #[inline]
-    fn get(self, slice: &Slice<T>) -> Option<Self::Output<'_>> {
+    fn get<'a>(self, slice: SliceRef<'a, T>) -> Option<Self::Output<'a>> {
         (0..self.end).get(slice)
     }
 
     #[inline]
-    fn get_mut(self, slice: &mut Slice<T>) -> Option<Self::OutputMut<'_>> {
+    fn get_mut<'a>(self, slice: SliceMut<'a, T>) -> Option<Self::OutputMut<'a>> {
         (0..self.end).get_mut(slice)
     }
 }
@@ -174,12 +159,12 @@ where
         T: 'a;
 
     #[inline]
-    fn get(self, slice: &Slice<T>) -> Option<Self::Output<'_>> {
+    fn get<'a>(self, slice: SliceRef<'a, T>) -> Option<Self::Output<'a>> {
         (0..self.end + 1).get(slice)
     }
 
     #[inline]
-    fn get_mut(self, slice: &mut Slice<T>) -> Option<Self::OutputMut<'_>> {
+    fn get_mut<'a>(self, slice: SliceMut<'a, T>) -> Option<Self::OutputMut<'a>> {
         (0..self.end + 1).get_mut(slice)
     }
 }
@@ -199,12 +184,12 @@ where
         T: 'a;
 
     #[inline]
-    fn get(self, slice: &Slice<T>) -> Option<Self::Output<'_>> {
+    fn get<'a>(self, slice: SliceRef<'a, T>) -> Option<Self::Output<'a>> {
         (self.start..slice.len()).get(slice)
     }
 
     #[inline]
-    fn get_mut(self, slice: &mut Slice<T>) -> Option<Self::OutputMut<'_>> {
+    fn get_mut<'a>(self, slice: SliceMut<'a, T>) -> Option<Self::OutputMut<'a>> {
         (self.start..slice.len()).get_mut(slice)
     }
 }
@@ -224,12 +209,12 @@ where
         T: 'a;
 
     #[inline]
-    fn get(self, slice: &Slice<T>) -> Option<Self::Output<'_>> {
+    fn get<'a>(self, slice: SliceRef<'a, T>) -> Option<Self::Output<'a>> {
         (*self.start()..*self.end() + 1).get(slice)
     }
 
     #[inline]
-    fn get_mut(self, slice: &mut Slice<T>) -> Option<Self::OutputMut<'_>> {
+    fn get_mut<'a>(self, slice: SliceMut<'a, T>) -> Option<Self::OutputMut<'a>> {
         (*self.start()..*self.end() + 1).get_mut(slice)
     }
 }

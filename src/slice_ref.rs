@@ -1,4 +1,7 @@
-use crate::{AsSlice, Iter, Slice, SoaClone, Soars, Vec, iter_raw::IterRaw};
+use crate::{
+    AsSlice, Iter, Slice, SoaClone, SoaRaw, Soars, Vec, chunks_exact::ChunksExact,
+    index::SoaIndex, iter_raw::IterRaw,
+};
 use core::{
     borrow::Borrow,
     cmp::Ordering,
@@ -41,6 +44,141 @@ where
             len,
             marker: PhantomData,
         }
+    }
+}
+
+/// These methods shadow their [`Slice`] counterparts, which are reached by
+/// [`Deref`] and would otherwise shorten the lifetime to the borrow of `self`
+/// rather than the lifetime of the data.
+impl<'a, T> SliceRef<'a, T>
+where
+    T: Soars,
+{
+    /// Returns a reference to an element or subslice, or [`None`] if out of
+    /// bounds. See [`Slice::get`].
+    #[inline]
+    pub fn get<I>(self, index: I) -> Option<I::Output<'a>>
+    where
+        I: SoaIndex<T>,
+    {
+        index.get(self)
+    }
+
+    /// Returns a reference to an element or subslice. See [`Slice::idx`].
+    ///
+    /// # Panics
+    ///
+    /// Panics if the index is out of bounds.
+    #[inline]
+    pub fn idx<I>(self, index: I) -> I::Output<'a>
+    where
+        I: SoaIndex<T>,
+    {
+        self.get(index).expect("index out of bounds")
+    }
+
+    /// Returns an iterator over the elements. See [`Slice::iter`].
+    pub fn iter(self) -> Iter<'a, T> {
+        self.into_iter()
+    }
+
+    /// Divides one slice into two at an index. See [`Slice::split_at`].
+    ///
+    /// # Panics
+    ///
+    /// Panics if `mid > len`.
+    ///
+    /// # Examples
+    ///
+    /// A batching iterator, which requires that the halves keep the lifetime of
+    /// the data rather than that of the borrow:
+    ///
+    /// ```
+    /// # use soa_rs::{Soars, SliceRef, AsSlice, soa};
+    /// # #[derive(Soars, Debug, PartialEq)]
+    /// # #[soa_derive(Debug, PartialEq)]
+    /// # struct Foo(usize);
+    /// struct Batches<'a, T: Soars> {
+    ///     batch_size: usize,
+    ///     data: SliceRef<'a, T>,
+    /// }
+    ///
+    /// impl<'a, T: Soars> Iterator for Batches<'a, T> {
+    ///     type Item = SliceRef<'a, T>;
+    ///
+    ///     fn next(&mut self) -> Option<Self::Item> {
+    ///         let (batch, rest) = self.data.split_at(self.batch_size.min(self.data.len()));
+    ///         self.data = rest;
+    ///         (!batch.is_empty()).then_some(batch)
+    ///     }
+    /// }
+    ///
+    /// let soa = soa![Foo(1), Foo(2), Foo(3), Foo(4), Foo(5)];
+    /// let batches: Vec<_> = Batches { batch_size: 2, data: soa.as_slice() }.collect();
+    /// assert_eq!(batches, [soa![Foo(1), Foo(2)], soa![Foo(3), Foo(4)], soa![Foo(5)]]);
+    /// ```
+    #[must_use]
+    pub fn split_at(self, mid: usize) -> (Self, Self) {
+        match self.split_at_checked(mid) {
+            Some(pair) => pair,
+            None => panic!("mid > len"),
+        }
+    }
+
+    /// Divides one slice into two at an index, returning [`None`] if the slice
+    /// is too short. See [`Slice::split_at_checked`].
+    #[must_use]
+    pub fn split_at_checked(self, mid: usize) -> Option<(Self, Self)> {
+        // Don't use `bool::then_some` here because constructing an invalid
+        // slice is unsound, even if it is not accessed
+        // SAFETY: The above bounds check
+        (mid <= self.len()).then(|| unsafe { self.split_at_unchecked(mid) })
+    }
+
+    /// Divides one slice into two at an index without doing bounds checking.
+    /// See [`Slice::split_at_unchecked`].
+    ///
+    /// # Safety
+    ///
+    /// Calling this method with an out-of-bounds index is undefined behavior,
+    /// even if the resulting slice is not used.
+    #[must_use]
+    pub unsafe fn split_at_unchecked(self, mid: usize) -> (Self, Self) {
+        // SAFETY:
+        // - The caller guarantees that mid is in bounds
+        // - Both halves inherit the lifetime of self
+        let l = unsafe { Self::from_slice(self.slice, mid) };
+        let raw = unsafe { self.raw().offset(mid) };
+        let r = unsafe { Self::from_slice(Slice::with_raw(raw), self.len() - mid) };
+        (l, r)
+    }
+
+    /// Returns the first element, or [`None`] if empty. See [`Slice::first`].
+    pub fn first(self) -> Option<T::Ref<'a>> {
+        self.get(0)
+    }
+
+    /// Returns the last element, or [`None`] if empty. See [`Slice::last`].
+    pub fn last(self) -> Option<T::Ref<'a>> {
+        self.get(self.len().checked_sub(1)?)
+    }
+
+    /// Returns an iterator over `chunk_size` elements at a time. See
+    /// [`Slice::chunks_exact`].
+    ///
+    /// # Panics
+    ///
+    /// Panics if `chunk_size` is 0.
+    pub fn chunks_exact(self, chunk_size: usize) -> ChunksExact<'a, T> {
+        ChunksExact::new(self, chunk_size)
+    }
+
+    /// Returns a collection of slices for each field. See [`Slice::slices`].
+    pub fn slices(self) -> T::Slices<'a> {
+        // SAFETY:
+        // - The returned lifetime is that of self
+        // - len elements are allocated and initialized
+        unsafe { self.raw().slices(self.len()) }
     }
 }
 

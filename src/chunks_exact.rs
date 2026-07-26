@@ -26,16 +26,13 @@ impl<'a, T> ChunksExact<'a, T>
 where
     T: Soars,
 {
-    pub(crate) fn new(slice: &'a Slice<T>, chunk_size: usize) -> Self {
+    pub(crate) fn new(slice: SliceRef<'a, T>, chunk_size: usize) -> Self {
         let len = slice.len();
         let rem_len = len % chunk_size;
         let fst_len = len - rem_len;
-        let remainder = slice.idx(fst_len..);
-        // SAFETY: Lifetime of self is bound to the passed slice
-        let slice = unsafe { slice.as_sized() };
         Self {
-            slice,
-            remainder,
+            remainder: slice.idx(fst_len..),
+            slice: slice.slice,
             parts_remaining: fst_len / chunk_size,
             chunk_size,
         }
@@ -43,8 +40,8 @@ where
 
     /// Returns the remainder of the original slice that has not been yielded by
     /// the iterator.
-    pub fn remainder(&self) -> &Slice<T> {
-        self.remainder.as_ref()
+    pub fn remainder(&self) -> SliceRef<'a, T> {
+        self.remainder
     }
 }
 
