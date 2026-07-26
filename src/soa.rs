@@ -525,26 +525,20 @@ where
     /// assert_eq!(soa2, soa![]);
     /// ```
     pub fn append(&mut self, other: &mut Self) {
-        let other_len = other.len;
-        let new_len = self.len.checked_add(other_len).expect("capacity overflow");
-        if other_len == 0 {
-            return;
-        }
-
-        self.reserve(other_len);
+        let len_new = self.len.checked_add(other.len).expect("capacity overflow");
+        self.reserve(other.len);
 
         // SAFETY:
-        // - `reserve` ensured `self` has capacity for `new_len`.
-        // - `other_len` came from `other.len`, so the source range is initialized.
-        // - The memory is disjoint as both `self` and `other` are `&mut` and cannot overlap
-        // We treat the bitwise copy as a bulk move, so `other` must stop owning
-        // those slots immediately by setting `other.len` to zero.
-        other.len = 0;
+        // - `reserve` ensured `self` has capacity for `new_len`
+        // - the source range is initialized
+        // - `self` and `other` are `&mut` and cannot overlap
         unsafe {
             let dst = self.raw().offset(self.len);
-            other.raw().copy_to(dst, other_len);
+            other.raw().copy_to(dst, other.len);
         }
-        self.len = new_len;
+
+        other.len = 0;
+        self.len = len_new;
     }
 
     /// Clears the vector, removing all values.
