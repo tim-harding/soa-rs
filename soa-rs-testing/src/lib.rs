@@ -567,7 +567,7 @@ fn chunks_exact() {
     assert_eq!(soa_iter.next(), Some(soa![A, B, C, D].as_slice()));
     assert_eq!(soa_iter.next(), Some(soa![E, A, B, C].as_slice()));
     assert_eq!(soa_iter.next(), None);
-    assert_eq!(soa_iter.remainder(), &soa![D, E, A].as_slice());
+    assert_eq!(soa_iter.remainder(), soa![D, E, A].as_slice());
 }
 
 #[test]
@@ -745,5 +745,96 @@ mod ub_tests {
         let mut src = soa![Owned { value: Box::new(1) }];
 
         dst.append(&mut src);
+    }
+}
+
+// Regression tests for
+// https://github.com/tim-harding/soa-rs/issues/45
+mod subslice_lifetimes {
+    use super::*;
+    use soa_rs::{SliceMut, SliceRef};
+
+    struct Batches<'a, T: Soars> {
+        batch_size: usize,
+        data: SliceRef<'a, T>,
+    }
+
+    impl<'a, T: Soars> Iterator for Batches<'a, T> {
+        type Item = SliceRef<'a, T>;
+
+        fn next(&mut self) -> Option<Self::Item> {
+            let (batch, rest) = self.data.split_at(self.batch_size.min(self.data.len()));
+            self.data = rest;
+            (!batch.is_empty()).then_some(batch)
+        }
+    }
+
+    #[test]
+    fn split_at_keeps_data_lifetime() {
+        let soa = soa![A, B, C, D, E];
+        let batches: Vec<_> = Batches {
+            batch_size: 2,
+            data: soa.as_slice(),
+        }
+        .collect();
+        assert_eq!(
+            batches,
+            [
+                soa![A, B].as_slice(),
+                soa![C, D].as_slice(),
+                soa![E].as_slice(),
+            ]
+        );
+    }
+
+    #[test]
+    fn split_at_mut_keeps_data_lifetime() {
+        let mut soa = soa![A, B, C, D, E];
+        let mut rest: SliceMut<'_, El> = soa.as_mut_slice();
+        while !rest.is_empty() {
+            let mid = 2.min(rest.len());
+            let (batch, next) = rest.split_at_mut(mid);
+            for item in batch {
+                *item.foo += 100;
+            }
+            rest = next;
+        }
+        let expected: Soa<El> = ABCDE
+            .into_iter()
+            .map(|el| El {
+                foo: el.foo + 100,
+                ..el
+            })
+            .collect();
+        assert_eq!(soa, expected);
+    }
+
+    #[test]
+    fn idx_keeps_data_lifetime() {
+        let soa = soa![A, B, C, D, E];
+        let outer: SliceRef<'_, El> = soa.as_slice();
+        // Each subslice must outlive the temporary it was derived from
+        let inner: SliceRef<'_, El> = outer.idx(1..4);
+        let innermost: SliceRef<'_, El> = inner.idx(1..);
+        assert_eq!(innermost, soa![C, D].as_slice());
+    }
+
+    #[test]
+    fn chunks_exact_remainder_keeps_data_lifetime() {
+        let soa: Soa<_> = ABCDE.into_iter().cycle().take(11).collect();
+        let remainder = soa.chunks_exact(4).remainder();
+        assert_eq!(remainder, soa![D, E, A].as_slice());
+    }
+
+    #[test]
+    fn slice_mut_still_reborrows() {
+        // `iter_mut` is deliberately not shadowed, so it keeps reborrowing
+        // rather than consuming the `SliceMut`.
+        let mut soa = soa![A, B];
+        let mut slice = soa.as_mut_slice();
+        for item in slice.iter_mut() {
+            *item.foo += 1;
+        }
+        assert_eq!(slice.len(), 2);
     }
 }
