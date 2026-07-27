@@ -1,6 +1,6 @@
 [package]
 name = "soa-rs-derive"
-version = "1.0.0"
+version = "1.0.1"
 edition = "2024"
 license = "MIT"
 description = "Proc macro derive for soa-rs"
