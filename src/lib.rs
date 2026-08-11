@@ -185,7 +185,7 @@ mod soa_deref;
 pub use soa_deref::SoaDeref;
 
 mod soars;
-pub use soars::Soars;
+pub use soars::{Soars, SoarsMutPacked, SoarsPacked};
 
 mod soa_clone;
 pub use soa_clone::{SoaClone, SoaToOwned};
@@ -213,18 +213,46 @@ mod serde;
 /// Deriving Soars for some struct `Foo` will create the following additional
 /// structs:
 ///
-/// | Struct         | Field type | Use                                          |
-/// |----------------|------------|----------------------------------------------|
-/// | `FooSoaRaw`    | `*mut T`   | Low-level, unsafe memory handling for SoA    |
-/// | `FooRef`       | `&T`       | SoA element reference                        |
-/// | `FooRefMut`    | `&mut T`   | Mutable SoA element reference                |
-/// | `FooSlices`    | `&[T]`     | SoA fields                                   |
-/// | `FooSlicesMut` | `&mut [T]` | Mutable SoA fields                           |
-/// | `FooArray`     | `[T; N]`   | `const`-compatible SoA                       |
-/// | `FooDeref`     |            | SoA [`Deref`] target, provides slice getters |
+/// | Struct             | Field type | Use                                          |
+/// |--------------------|------------|----------------------------------------------|
+/// | `FooSoaRaw`        | `*mut T`   | Low-level, unsafe memory handling for SoA    |
+/// | `FooRef`           | `&T`       | SoA element reference                        |
+/// | `FooRefMut`        | `&mut T`   | Mutable SoA element reference                |
+/// | `FooRefPacked`     | `&T`       | Compact element ref (`NonNull` + index)      |
+/// | `FooRefMutPacked`  | `&mut T`   | Compact mutable element ref                  |
+/// | `FooSlices`        | `&[T]`     | SoA fields                                   |
+/// | `FooSlicesMut`     | `&mut [T]` | Mutable SoA fields                           |
+/// | `FooArray`         | `[T; N]`   | `const`-compatible SoA                       |
+/// | `FooDeref`         |            | SoA [`Deref`] target, provides slice getters |
+///
+/// Packed types (`FooRefPacked`, `FooRefMutPacked`) are opt-in (see below).
 ///
 /// The [`Soars`] trait implementation for `Foo` references these as associated
 /// types. [`AsSoaRef`] is also implemented for `Foo`, `FooRef`, and `FooRefMut`.
+///
+/// # Packed references
+///
+/// By default, packed element references are not generated. Enable them with
+/// `include`:
+///
+/// ```
+/// # use soa_rs::{Soars, soa};
+/// #[derive(Soars)]
+/// #[soa_derive(include(RefPacked, RefMutPacked))]
+/// struct Foo {
+///     value: usize,
+/// }
+///
+/// let soa = soa![Foo { value: 1 }, Foo { value: 2 }];
+/// let packed = soa.get_packed(1).unwrap();
+/// assert_eq!(*packed.value(), 2);
+/// ```
+///
+/// Packed types implement [`SoarsPacked`] / [`SoarsMutPacked`] and are required
+/// by [`Slice::get_packed`] / [`Slice::get_packed_mut`]. They store a pointer to
+/// the SoA raw storage and a validated index instead of materializing all field
+/// references up front. Their size is fixed (two pointers) regardless of field
+/// count.
 ///
 /// # Arrays
 ///
