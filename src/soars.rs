@@ -72,7 +72,8 @@ pub unsafe trait Soars: AsSoaRef<Item = Self> {
 ///
 /// Implemented automatically by the [`Soars`](crate::Soars) derive when
 /// `#[soa_derive(include(RefPacked))]` is present. Required by
-/// [`Slice::get_packed`](crate::Slice::get_packed).
+/// [`Slice::get_packed`](crate::Slice::get_packed) and
+/// [`Slice::iter_packed`](crate::Slice::iter_packed).
 ///
 /// # Safety
 ///
@@ -107,7 +108,8 @@ pub unsafe trait SoarsPacked: Soars {
 ///
 /// Implemented automatically by the [`Soars`](crate::Soars) derive when
 /// `#[soa_derive(include(RefMutPacked))]` is present. Required by
-/// [`Slice::get_packed_mut`](crate::Slice::get_packed_mut).
+/// [`Slice::get_packed_mut`](crate::Slice::get_packed_mut) and
+/// [`Slice::iter_packed_mut`](crate::Slice::iter_packed_mut).
 ///
 /// # Safety
 ///

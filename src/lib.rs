@@ -172,6 +172,12 @@ pub use iter::Iter;
 mod iter_mut;
 pub use iter_mut::IterMut;
 
+mod iter_packed;
+pub use iter_packed::IterPacked;
+
+mod iter_packed_mut;
+pub use iter_packed_mut::IterPackedMut;
+
 mod slice;
 pub use slice::Slice;
 

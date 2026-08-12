@@ -843,6 +843,52 @@ mod ref_packed_tests {
         *unpacked.x = 55.0;
         assert_eq!(*soa.get_packed(0).unwrap().x(), 55.0f32);
     }
+
+    #[test]
+    fn iter_packed_yields_in_order() {
+        let soa = make_soa();
+        let xs: Vec<_> = soa.iter_packed().map(|p| *p.x()).collect();
+        assert_eq!(xs, [1.0, 4.0, 7.0]);
+        assert_eq!(soa.iter_packed().len(), 3);
+    }
+
+    #[test]
+    fn iter_packed_empty() {
+        let soa = Soa::<Particle>::new();
+        assert_eq!(soa.iter_packed().count(), 0);
+        assert!(soa.iter_packed().next().is_none());
+    }
+
+    #[test]
+    fn iter_packed_next_back() {
+        let soa = make_soa();
+        let mut iter = soa.iter_packed();
+        assert_eq!(*iter.next_back().unwrap().x(), 7.0);
+        assert_eq!(*iter.next().unwrap().x(), 1.0);
+        assert_eq!(*iter.next().unwrap().x(), 4.0);
+        assert!(iter.next().is_none());
+        assert!(iter.next_back().is_none());
+    }
+
+    #[test]
+    fn iter_packed_mut_mutation_visible() {
+        let mut soa = make_soa();
+        for mut packed in soa.iter_packed_mut() {
+            *packed.x() *= 10.0;
+        }
+        let xs: Vec<_> = soa.iter_packed().map(|p| *p.x()).collect();
+        assert_eq!(xs, [10.0, 40.0, 70.0]);
+    }
+
+    #[test]
+    fn iter_packed_mut_next_back() {
+        let mut soa = make_soa();
+        let mut iter = soa.iter_packed_mut();
+        *iter.next_back().unwrap().x() = 99.0;
+        drop(iter);
+        assert_eq!(*soa.get_packed(2).unwrap().x(), 99.0);
+        assert_eq!(*soa.get_packed(0).unwrap().x(), 1.0);
+    }
 }
 
 #[cfg(miri)]
