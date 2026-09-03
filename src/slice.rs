@@ -680,7 +680,7 @@ where
     /// assert_eq!(soa.last(), None);
     /// ```
     pub fn last(&self) -> Option<T::Ref<'_>> {
-        self.get(self.len().saturating_sub(1))
+        self.get(self.len().wrapping_sub(1))
     }
 
     /// Returns a mutable reference to the last element of the slice, or None if empty.
@@ -699,7 +699,7 @@ where
     /// assert_eq!(soa, soa![Foo(0), Foo(1), Foo(5)]);
     /// ```
     pub fn last_mut(&mut self) -> Option<T::RefMut<'_>> {
-        self.get_mut(self.len().saturating_sub(1))
+        self.get_mut(self.len().wrapping_sub(1))
     }
 
     /// Returns an iterator over `chunk_size` elements of the slice at a time,
