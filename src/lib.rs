@@ -178,6 +178,9 @@ pub use iter_packed::IterPacked;
 mod iter_packed_mut;
 pub use iter_packed_mut::IterPackedMut;
 
+mod packed_pointer;
+pub use packed_pointer::{PackedMutPointer, PackedPointer};
+
 mod slice;
 pub use slice::Slice;
 

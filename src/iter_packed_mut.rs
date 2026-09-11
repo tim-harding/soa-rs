@@ -1,9 +1,5 @@
 use crate::SoarsMutPacked;
-use core::{
-    iter::FusedIterator,
-    marker::PhantomData,
-    ptr::NonNull,
-};
+use core::{iter::FusedIterator, marker::PhantomData, ptr::NonNull};
 
 /// Mutable packed [`Slice`] iterator.
 ///

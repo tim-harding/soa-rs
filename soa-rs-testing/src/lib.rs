@@ -741,9 +741,24 @@ mod ref_packed_tests {
 
     fn make_soa() -> Soa<Particle> {
         soa![
-            Particle { x: 1.0, y: 2.0, mass: 3.0, active: true },
-            Particle { x: 4.0, y: 5.0, mass: 6.0, active: false },
-            Particle { x: 7.0, y: 8.0, mass: 9.0, active: true },
+            Particle {
+                x: 1.0,
+                y: 2.0,
+                mass: 3.0,
+                active: true
+            },
+            Particle {
+                x: 4.0,
+                y: 5.0,
+                mass: 6.0,
+                active: false
+            },
+            Particle {
+                x: 7.0,
+                y: 8.0,
+                mass: 9.0,
+                active: true
+            },
         ]
     }
 
@@ -783,10 +798,7 @@ mod ref_packed_tests {
     #[test]
     fn get_packed_size() {
         // RefPacked is always 2 pointers: NonNull<SoaRaw> + usize
-        assert_eq!(
-            size_of::<ParticleRefPacked<'_>>(),
-            2 * size_of::<usize>()
-        );
+        assert_eq!(size_of::<ParticleRefPacked<'_>>(), 2 * size_of::<usize>());
     }
 
     #[test]

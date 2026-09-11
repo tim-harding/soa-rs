@@ -76,7 +76,6 @@ pub fn fields_struct(
     let array = format_ident!("{ident}Array");
     let raw = format_ident!("{ident}SoaRaw");
 
-
     let mut out = TokenStream::new();
 
     let slice_getters_ref: Vec<_> = ident_all
@@ -218,9 +217,7 @@ pub fn fields_struct(
             #derive_ref_packed
             #[allow(dead_code)]
             #vis struct #item_ref_packed #impl_generics_ref #where_clause_ref {
-                raw: ::core::ptr::NonNull<#raw #ty_generics>,
-                idx: usize,
-                _marker: ::core::marker::PhantomData<&'soa #ident #ty_generics>,
+                ptr: ::soa_rs::PackedPointer<'soa, #raw #ty_generics>,
             }
 
             // Derive would impose unnecessary Copy restrictions on generic params
@@ -232,23 +229,16 @@ pub fn fields_struct(
             }
 
             impl #impl_generics_ref #item_ref_packed #ty_generics_ref #where_clause_ref {
-                #[inline]
-                unsafe fn new_unchecked(
-                    raw: ::core::ptr::NonNull<#raw #ty_generics>,
-                    idx: usize,
-                ) -> Self {
-                    Self {
-                        raw,
-                        idx,
-                        _marker: ::core::marker::PhantomData,
-                    }
-                }
-
                 #(
                 #[inline]
                 #vis_all fn #slice_getters_ref(&self) -> &'soa #ty_all {
-                    // SAFETY: raw and idx were validated at construction time
-                    unsafe { (*self.raw.as_ptr()).#ident_all.add(self.idx).as_ref() }
+                    // SAFETY: ptr was validated at construction time
+                    unsafe {
+                        (*self.ptr.raw().as_ptr())
+                            .#ident_all
+                            .add(self.ptr.index())
+                            .as_ref()
+                    }
                 }
                 )*
             }
@@ -275,7 +265,9 @@ pub fn fields_struct(
                     idx: usize,
                 ) -> Self::RefPacked<'soa> {
                     // SAFETY: Caller ensures base is valid for 'soa and idx is in bounds
-                    unsafe { #item_ref_packed::new_unchecked(base, idx) }
+                    #item_ref_packed {
+                        ptr: unsafe { ::soa_rs::PackedPointer::new_unchecked(base, idx) },
+                    }
                 }
             }
         });
@@ -286,30 +278,19 @@ pub fn fields_struct(
             #derive_ref_mut_packed
             #[allow(dead_code)]
             #vis struct #item_ref_mut_packed #impl_generics_ref #where_clause_ref {
-                raw: ::core::ptr::NonNull<#raw #ty_generics>,
-                idx: usize,
-                _marker: ::core::marker::PhantomData<&'soa mut #ident #ty_generics>,
+                ptr: ::soa_rs::PackedMutPointer<'soa, #raw #ty_generics>,
             }
 
             impl #impl_generics_ref #item_ref_mut_packed #ty_generics_ref #where_clause_ref {
-                #[inline]
-                unsafe fn new_unchecked(
-                    raw: ::core::ptr::NonNull<#raw #ty_generics>,
-                    idx: usize,
-                ) -> Self {
-                    Self {
-                        raw,
-                        idx,
-                        _marker: ::core::marker::PhantomData,
-                    }
-                }
-
                 #(
                 #[inline]
                 #vis_all fn #slice_getters_ref(&mut self) -> &'soa mut #ty_all {
-                    // SAFETY: raw and idx were validated at construction time
+                    // SAFETY: ptr was validated at construction time
                     unsafe {
-                        &mut *(*self.raw.as_ptr()).#ident_all.add(self.idx).as_ptr()
+                        &mut *(*self.ptr.raw().as_ptr())
+                            .#ident_all
+                            .add(self.ptr.index())
+                            .as_ptr()
                     }
                 }
                 )*
@@ -337,7 +318,9 @@ pub fn fields_struct(
                     idx: usize,
                 ) -> Self::RefMutPacked<'soa> {
                     // SAFETY: Caller ensures base is valid, idx in bounds, and exclusive access
-                    unsafe { #item_ref_mut_packed::new_unchecked(base, idx) }
+                    #item_ref_mut_packed {
+                        ptr: unsafe { ::soa_rs::PackedMutPointer::new_unchecked(base, idx) },
+                    }
                 }
             }
         });
