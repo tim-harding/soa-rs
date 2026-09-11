@@ -1,3 +1,5 @@
+use core::ptr::NonNull;
+
 use crate::{AsSoaRef, SoaDeref, SoaRaw};
 
 #[diagnostic::on_unimplemented(
@@ -60,4 +62,79 @@ pub unsafe trait Soars: AsSoaRef<Item = Self> {
     type SlicesMut<'a>
     where
         Self: 'a;
+}
+
+#[diagnostic::on_unimplemented(
+    label = "SOA packed type",
+    note = "Enable with #[soa_derive(include(RefPacked))]"
+)]
+/// Enables compact packed shared element references.
+///
+/// Implemented automatically by the [`Soars`](crate::Soars) derive when
+/// `#[soa_derive(include(RefPacked))]` is present. Required by
+/// [`Slice::get_packed`](crate::Slice::get_packed) and
+/// [`Slice::iter_packed`](crate::Slice::iter_packed).
+///
+/// # Safety
+///
+/// [`SoarsPacked::get_ref_packed`] must uphold the same validity requirements
+/// documented on that method.
+pub unsafe trait SoarsPacked: Soars {
+    /// A compact reference to an element of a [`Slice`](crate::Slice).
+    ///
+    /// Stores a pointer to the SoA raw storage and a pre-validated index.
+    /// Size is always 2 × pointer regardless of field count.
+    /// Fields are accessed via methods that perform the pointer arithmetic
+    /// on demand rather than materializing all field references at once.
+    type RefPacked<'a>: Copy
+    where
+        Self: 'a;
+
+    /// Creates a compact packed reference to the element at `idx`.
+    ///
+    /// # Safety
+    ///
+    /// The caller must ensure that
+    /// - `base` points to a valid, initialized [`Soars::Raw`] for lifetime `'a`
+    /// - `idx` is a valid index (< length) and was validated before this call
+    unsafe fn get_ref_packed<'a>(base: NonNull<Self::Raw>, idx: usize) -> Self::RefPacked<'a>;
+}
+
+#[diagnostic::on_unimplemented(
+    label = "SOA packed mut type",
+    note = "Enable with #[soa_derive(include(RefMutPacked))]"
+)]
+/// Enables compact packed mutable element references.
+///
+/// Implemented automatically by the [`Soars`](crate::Soars) derive when
+/// `#[soa_derive(include(RefMutPacked))]` is present. Required by
+/// [`Slice::get_packed_mut`](crate::Slice::get_packed_mut) and
+/// [`Slice::iter_packed_mut`](crate::Slice::iter_packed_mut).
+///
+/// # Safety
+///
+/// [`SoarsMutPacked::get_ref_mut_packed`] must uphold the same validity
+/// requirements documented on that method.
+pub unsafe trait SoarsMutPacked: Soars {
+    /// A compact mutable reference to an element of a [`Slice`](crate::Slice).
+    ///
+    /// Mutable counterpart of [`SoarsPacked::RefPacked`]. Not [`Copy`].
+    /// Field accessors take `&mut self` to prevent simultaneous aliased
+    /// mutable borrows.
+    type RefMutPacked<'a>
+    where
+        Self: 'a;
+
+    /// Creates a compact packed mutable reference to the element at `idx`.
+    ///
+    /// # Safety
+    ///
+    /// The caller must ensure that
+    /// - `base` points to a valid, initialized [`Soars::Raw`] for lifetime `'a`
+    /// - `idx` is a valid index (< length) and was validated before this call
+    /// - no other references to the same element exist
+    unsafe fn get_ref_mut_packed<'a>(
+        base: NonNull<Self::Raw>,
+        idx: usize,
+    ) -> Self::RefMutPacked<'a>;
 }

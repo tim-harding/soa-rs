@@ -2,14 +2,78 @@ use proc_macro2::{Ident, TokenStream};
 use quote::{format_ident, quote};
 use syn::{Fields, Visibility};
 
-pub fn zst_struct(ident: Ident, vis: Visibility, kind: Fields) -> TokenStream {
+pub fn zst_struct(
+    ident: Ident,
+    vis: Visibility,
+    kind: Fields,
+    derive_ref_packed: Option<&TokenStream>,
+    derive_ref_mut_packed: Option<&TokenStream>,
+) -> TokenStream {
     let raw = format_ident!("{ident}SoaRaw");
     let deref = format_ident!("{ident}Deref");
     let array = format_ident!("{ident}Array");
+    let item_ref_packed = format_ident!("{ident}RefPacked");
+    let item_ref_mut_packed = format_ident!("{ident}RefMutPacked");
     let unit_construct = match kind {
         Fields::Unit => quote! {},
         Fields::Named(_) => quote! { {} },
         Fields::Unnamed(_) => quote! { () },
+    };
+
+    let ref_packed_items = if let Some(derive_ref_packed) = derive_ref_packed {
+        quote! {
+            #derive_ref_packed
+            #[allow(dead_code)]
+            #vis struct #item_ref_packed<'soa>(::core::marker::PhantomData<&'soa #ident>);
+
+            // Derive would impose unnecessary Copy restrictions on generic params
+            impl ::core::marker::Copy for #item_ref_packed<'_> {}
+            impl ::core::clone::Clone for #item_ref_packed<'_> {
+                fn clone(&self) -> Self {
+                    *self
+                }
+            }
+
+            // SAFETY: ZST packed refs carry no raw storage; construction is a no-op
+            #[automatically_derived]
+            unsafe impl ::soa_rs::SoarsPacked for #ident {
+                type RefPacked<'soa> = #item_ref_packed<'soa>;
+
+                #[inline]
+                unsafe fn get_ref_packed<'soa>(
+                    _base: ::core::ptr::NonNull<Self::Raw>,
+                    _idx: usize,
+                ) -> Self::RefPacked<'soa> {
+                    #item_ref_packed(::core::marker::PhantomData)
+                }
+            }
+        }
+    } else {
+        TokenStream::new()
+    };
+
+    let ref_mut_packed_items = if let Some(derive_ref_mut_packed) = derive_ref_mut_packed {
+        quote! {
+            #derive_ref_mut_packed
+            #[allow(dead_code)]
+            #vis struct #item_ref_mut_packed<'soa>(::core::marker::PhantomData<&'soa mut #ident>);
+
+            // SAFETY: ZST packed mut refs carry no raw storage; construction is a no-op
+            #[automatically_derived]
+            unsafe impl ::soa_rs::SoarsMutPacked for #ident {
+                type RefMutPacked<'soa> = #item_ref_mut_packed<'soa>;
+
+                #[inline]
+                unsafe fn get_ref_mut_packed<'soa>(
+                    _base: ::core::ptr::NonNull<Self::Raw>,
+                    _idx: usize,
+                ) -> Self::RefMutPacked<'soa> {
+                    #item_ref_mut_packed(::core::marker::PhantomData)
+                }
+            }
+        }
+    } else {
+        TokenStream::new()
     };
 
     quote! {
@@ -23,6 +87,9 @@ pub fn zst_struct(ident: Ident, vis: Visibility, kind: Fields) -> TokenStream {
             type Slices<'soa> = Self;
             type SlicesMut<'soa> = Self;
         }
+
+        #ref_packed_items
+        #ref_mut_packed_items
 
         #[allow(dead_code)]
         #vis struct #array<const N: usize>;

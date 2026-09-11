@@ -726,6 +726,183 @@ fn no_transmute_ptr_to_ptr_warning() {
     }
 }
 
+mod ref_packed_tests {
+    use super::*;
+    use core::mem::size_of;
+
+    #[derive(Soars, Debug, Clone, PartialEq)]
+    #[soa_derive(include(RefPacked, RefMutPacked))]
+    struct Particle {
+        x: f32,
+        y: f32,
+        mass: f64,
+        active: bool,
+    }
+
+    fn make_soa() -> Soa<Particle> {
+        soa![
+            Particle {
+                x: 1.0,
+                y: 2.0,
+                mass: 3.0,
+                active: true
+            },
+            Particle {
+                x: 4.0,
+                y: 5.0,
+                mass: 6.0,
+                active: false
+            },
+            Particle {
+                x: 7.0,
+                y: 8.0,
+                mass: 9.0,
+                active: true
+            },
+        ]
+    }
+
+    #[test]
+    fn get_packed_returns_none_out_of_bounds() {
+        let soa = make_soa();
+        assert!(soa.get_packed(3).is_none());
+        assert!(soa.get_packed(100).is_none());
+    }
+
+    #[test]
+    fn get_packed_returns_some_in_bounds() {
+        let soa = make_soa();
+        assert!(soa.get_packed(0).is_some());
+        assert!(soa.get_packed(2).is_some());
+    }
+
+    #[test]
+    fn get_packed_field_accessors() {
+        let soa = make_soa();
+        let packed = soa.get_packed(1).unwrap();
+        assert_eq!(*packed.x(), 4.0f32);
+        assert_eq!(*packed.y(), 5.0f32);
+        assert_eq!(*packed.mass(), 6.0f64);
+        assert_eq!(*packed.active(), false);
+    }
+
+    #[test]
+    fn get_packed_is_copy() {
+        let soa = make_soa();
+        let packed = soa.get_packed(0).unwrap();
+        let _copy = packed;
+        // Can still use original after copy
+        assert_eq!(*packed.x(), 1.0f32);
+    }
+
+    #[test]
+    fn get_packed_size() {
+        // RefPacked is always 2 pointers: NonNull<SoaRaw> + usize
+        assert_eq!(size_of::<ParticleRefPacked<'_>>(), 2 * size_of::<usize>());
+    }
+
+    #[test]
+    fn ref_mut_packed_size() {
+        assert_eq!(
+            size_of::<ParticleRefMutPacked<'_>>(),
+            2 * size_of::<usize>()
+        );
+    }
+
+    #[test]
+    fn from_ref_packed_for_ref() {
+        let soa = make_soa();
+        let packed = soa.get_packed(2).unwrap();
+        let unpacked = ParticleRef::from(packed);
+        assert_eq!(*unpacked.x, 7.0f32);
+        assert_eq!(*unpacked.y, 8.0f32);
+        assert_eq!(*unpacked.mass, 9.0f64);
+        assert_eq!(*unpacked.active, true);
+    }
+
+    #[test]
+    fn get_packed_mut_returns_none_out_of_bounds() {
+        let mut soa = make_soa();
+        assert!(soa.get_packed_mut(3).is_none());
+        assert!(soa.get_packed_mut(100).is_none());
+    }
+
+    #[test]
+    fn get_packed_mut_field_accessors() {
+        let mut soa = make_soa();
+        let mut packed = soa.get_packed_mut(0).unwrap();
+        assert_eq!(*packed.x(), 1.0f32);
+        assert_eq!(*packed.active(), true);
+    }
+
+    #[test]
+    fn get_packed_mut_mutation_visible() {
+        let mut soa = make_soa();
+        {
+            let mut packed = soa.get_packed_mut(1).unwrap();
+            *packed.x() = 99.0;
+            *packed.mass() = 42.0;
+        }
+        assert_eq!(*soa.get_packed(1).unwrap().x(), 99.0f32);
+        assert_eq!(*soa.get_packed(1).unwrap().mass(), 42.0f64);
+    }
+
+    #[test]
+    fn from_ref_mut_packed_for_ref_mut() {
+        let mut soa = make_soa();
+        let packed = soa.get_packed_mut(0).unwrap();
+        let unpacked = ParticleRefMut::from(packed);
+        *unpacked.x = 55.0;
+        assert_eq!(*soa.get_packed(0).unwrap().x(), 55.0f32);
+    }
+
+    #[test]
+    fn iter_packed_yields_in_order() {
+        let soa = make_soa();
+        let xs: Vec<_> = soa.iter_packed().map(|p| *p.x()).collect();
+        assert_eq!(xs, [1.0, 4.0, 7.0]);
+        assert_eq!(soa.iter_packed().len(), 3);
+    }
+
+    #[test]
+    fn iter_packed_empty() {
+        let soa = Soa::<Particle>::new();
+        assert_eq!(soa.iter_packed().count(), 0);
+        assert!(soa.iter_packed().next().is_none());
+    }
+
+    #[test]
+    fn iter_packed_next_back() {
+        let soa = make_soa();
+        let mut iter = soa.iter_packed();
+        assert_eq!(*iter.next_back().unwrap().x(), 7.0);
+        assert_eq!(*iter.next().unwrap().x(), 1.0);
+        assert_eq!(*iter.next().unwrap().x(), 4.0);
+        assert!(iter.next().is_none());
+        assert!(iter.next_back().is_none());
+    }
+
+    #[test]
+    fn iter_packed_mut_mutation_visible() {
+        let mut soa = make_soa();
+        for mut packed in soa.iter_packed_mut() {
+            *packed.x() *= 10.0;
+        }
+        let xs: Vec<_> = soa.iter_packed().map(|p| *p.x()).collect();
+        assert_eq!(xs, [10.0, 40.0, 70.0]);
+    }
+
+    #[test]
+    fn iter_packed_mut_next_back() {
+        let mut soa = make_soa();
+        let mut iter = soa.iter_packed_mut();
+        *iter.next_back().unwrap().x() = 99.0;
+        drop(iter);
+        assert_eq!(*soa.get_packed(2).unwrap().x(), 99.0);
+        assert_eq!(*soa.get_packed(0).unwrap().x(), 1.0);
+    }
+}
+
 #[cfg(miri)]
 mod ub_tests {
     use super::*;

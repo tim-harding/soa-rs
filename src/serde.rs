@@ -1,11 +1,11 @@
 use crate::{Soa, Soars};
-use serde::{
-    de::{Deserialize, Deserializer, SeqAccess, Visitor},
-    ser::{Serialize, SerializeSeq, Serializer},
-};
 use core::{
     fmt::{self, Formatter},
     marker::PhantomData,
+};
+use serde::{
+    de::{Deserialize, Deserializer, SeqAccess, Visitor},
+    ser::{Serialize, SerializeSeq, Serializer},
 };
 
 impl<T> Serialize for Soa<T>
