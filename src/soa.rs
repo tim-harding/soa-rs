@@ -230,6 +230,7 @@ where
     /// soa.push(Foo(3));
     /// assert_eq!(soa, soa![Foo(1), Foo(2), Foo(3)]);
     /// ```
+    #[inline]
     pub fn push(&mut self, element: T) {
         self.maybe_grow();
         // SAFETY: After maybe_grow, the allocated capacity is greater than len
@@ -562,10 +563,17 @@ where
     }
 
     /// Grows the allocated capacity if `len == cap`.
+    #[inline]
     fn maybe_grow(&mut self) {
         if self.len < self.cap {
             return;
         }
+        self.grow_amortized();
+    }
+
+    #[cold]
+    #[inline(never)]
+    fn grow_amortized(&mut self) {
         let new_cap = match self.cap {
             0 => Self::SMALL_CAPACITY,
             old_cap => old_cap * 2,
